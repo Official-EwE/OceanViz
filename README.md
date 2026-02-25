@@ -8,7 +8,7 @@
 ![image](https://github.com/user-attachments/assets/f67086b1-0714-4f7b-8ef3-9e22074cdfec)
 
 # Features:
-Split-screen: Visualize up to 4 scenarios simultaneously by varying the water turbidity and number of species per screen region:
+Split-screen: Visualize up to 4 scenarios - or up to four time slices of a single scenario - simultaneously by varying species densities and water quality, providing immediate  visual impact how ecosystem states differ:
 ![Screenshot 2024-12-15 110259](https://github.com/user-attachments/assets/f90c5584-6a74-4b1c-b0ef-72e457518c2e)
 
 Realism: The environment is generated from a library of assets based on rules to create a rich and believable world:
