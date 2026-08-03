@@ -5,7 +5,9 @@
 - A framework that can be extended to visualize more marine ecosystems
 - Built on top of the Unity game engine
 
-![image](https://github.com/user-attachments/assets/f67086b1-0714-4f7b-8ef3-9e22074cdfec)
+# Video Overview:
+https://github.com/user-attachments/assets/706cf2cb-36e6-4545-8412-58baedc854bf
+
 
 # Features:
 Split-screen: Visualize up to 4 scenarios - or up to four time slices of a single scenario - simultaneously by varying species densities and water quality, providing immediate  visual impact how ecosystem states differ:
@@ -23,9 +25,8 @@ Programmable: Uses simple JSON data structure to drive the visualization:
 Asset Library: Over 50 ready-to-use entities including fish, mammals, birds, invertebrates, and manmade objects:
 ![Screenshot 2024-12-15 113920](https://github.com/user-attachments/assets/b08c19f7-2c7c-4a11-b67d-834147fb6cfe)
 
-
-# Video Overview:
-https://github.com/user-attachments/assets/706cf2cb-36e6-4545-8412-58baedc854bf
+Reusable and scalable: Built with Unity Game Engine and easy to make changes
+![image](https://github.com/user-attachments/assets/f67086b1-0714-4f7b-8ef3-9e22074cdfec)
 
 
 # Development:
