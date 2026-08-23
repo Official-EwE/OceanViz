@@ -75,7 +75,7 @@ public class SimulationAPI : MonoBehaviour
         }
 
         // Then scan all behaviours in loaded scenes
-        MonoBehaviour[] allBehaviours = FindObjectsOfType<MonoBehaviour>();
+        MonoBehaviour[] allBehaviours = FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None);
         if (allBehaviours != null)
         {
             for (int i = 0; i < allBehaviours.Length; i++)
@@ -425,7 +425,7 @@ public class SimulationAPI : MonoBehaviour
     {
         Debug.Log($"[SimulationAPI] API call queued: Spawn static preset '{presetName}' with group name: {groupName}");
         EnqueueApiCall(() => {
-            mainScene.SpawnStaticPreset(presetName, groupName);
+            _ = mainScene.SpawnStaticPreset(presetName, groupName);
         });
     }
 
@@ -467,7 +467,7 @@ public class SimulationAPI : MonoBehaviour
                 {
                     finalName = presetName;
                 }
-                mainScene.SpawnStaticPreset(presetName, finalName);
+                _ = mainScene.SpawnStaticPreset(presetName, finalName);
                 return;
             }
 
@@ -514,7 +514,7 @@ public class SimulationAPI : MonoBehaviour
                 {
                     groupName = presetName;
                 }
-                mainScene.simulationModeManager.SpawnStaticPresetInHabitats(presetName, groupName, habitatNames);
+                _ = mainScene.simulationModeManager.SpawnStaticPresetInHabitats(presetName, groupName, habitatNames);
                 return;
             }
 
@@ -635,6 +635,32 @@ public class SimulationAPI : MonoBehaviour
                 return;
             }
             Debug.LogWarning("[SimulationAPI] Entity group '" + groupName + "' not found for view visibility update.");
+        });
+    }
+
+    /// <summary>
+    /// Sets the per-view size multiplier for a group (dynamic or static).
+    /// </summary>
+    public void SetEntityGroupViewSize(string groupName, int viewIndex, float sizeMultiplier)
+    {
+        Debug.Log("[SimulationAPI] API call queued: Set group '" + groupName + "' view " + viewIndex + " size to: " + sizeMultiplier);
+        float clamped = Mathf.Clamp(sizeMultiplier, 0.5f, 2.0f);
+        EnqueueApiCall(() => {
+            var dGroup = mainScene.simulationModeManager.dynamicEntitiesGroups.Find(g => g.name == groupName);
+            if (dGroup != null)
+            {
+                dGroup.SetViewSizeMultiplier(viewIndex, clamped);
+                return;
+            }
+
+            var sGroup = mainScene.simulationModeManager.staticEntitiesGroups.Find(g => g.name == groupName);
+            if (sGroup != null)
+            {
+                sGroup.SetViewSizeMultiplier(viewIndex, clamped);
+                return;
+            }
+
+            Debug.LogWarning("[SimulationAPI] Entity group '" + groupName + "' not found for view size update.");
         });
     }
 

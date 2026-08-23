@@ -9,7 +9,7 @@ TerrainLayer:
   m_Name: MossyRockSb1
   m_DiffuseTexture: {fileID: 2800000, guid: a3f35ad5b14c8794d9893bb0e8200760, type: 3}
   m_NormalMapTexture: {fileID: 2800000, guid: bf79440e3ec8b9143883f7af5f7b59fa, type: 3}
-  m_MaskMapTexture: {fileID: 2800000, guid: 066842fb90d2d704ca38cd294cf54930, type: 3}
+  m_MaskMapTexture: {fileID: 0}
   m_TileSize: {x: 4, y: 4}
   m_TileOffset: {x: 0, y: 0}
   m_Specular: {r: 0, g: 0, b: 0, a: 0}

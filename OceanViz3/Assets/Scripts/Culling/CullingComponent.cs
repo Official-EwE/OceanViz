@@ -8,7 +8,7 @@ namespace OceanViz3
     public struct CullingComponent : IComponentData
     {
         /// <summary>
-        /// The maximum distance from the camera before the entity is disabled.
+        /// Per-entity maximum distance from the camera before the entity is disabled.
         /// </summary>
         public float MaxDistance;
     }

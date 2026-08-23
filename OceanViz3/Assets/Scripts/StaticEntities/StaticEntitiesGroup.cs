@@ -59,12 +59,17 @@ public struct StaticEntitiesGroupStruct
 }
     
 /// <summary>
-/// Manages a group of dynamic entities in the ocean visualization system.
-/// Handles entity spawning, configuration, and lifecycle management for groups of boids.
+/// Manages a group of static entities in the ocean visualization system.
+/// Handles entity spawning, configuration, and lifecycle management for grouped static assets.
 /// </summary>
 [Serializable]
-public class StaticEntitiesGroup
+public class StaticEntitiesGroup : IViewsSetupTarget
 {
+    private const string StaticEntityShaderName = "Shader Graphs/StaticEntityShaderGraph";
+    private const string TurbulenceSpeedPropertyName = "_TurbulenceSpeed";
+    private const string TurbulenceScalePropertyName = "_TurbulenceScale";
+    private const string WaterCurrentMeshBoundsYPropertyName = "_WaterCurrentMeshBoundsY";
+
     public int StaticEntitiesGroupId;
     public string name;
     public StaticEntityPreset staticEntityPreset;
@@ -79,6 +84,7 @@ public class StaticEntitiesGroup
     
     private int viewsCount = -1;
     private int[] viewVisibilityPercentageArray = new int[4] {100, 100, 100, 100};
+    private float[] viewSizeMultiplierArray = new float[4] {1.0f, 1.0f, 1.0f, 1.0f};
     
     [SerializeField]
     public List<StaticEntitiesGroupStruct> staticEntitiesGroupStructs = new List<StaticEntitiesGroupStruct>();
@@ -88,16 +94,17 @@ public class StaticEntitiesGroup
     private SliderInt populationSlider;
     private Button reloadButton;
     private Button deleteButton;
-    // Sliders
-    private List<SliderInt> populationPercentageSliderInts = new List<SliderInt>();
-
     // Delegates
     public delegate void GroupDeleteRequestHandler(StaticEntitiesGroup staticEntitiesGroup);
     public event GroupDeleteRequestHandler OnDeleteRequest;
+    public event Action ViewsSetupChanged;
 
     private EventCallback<ChangeEvent<int>> populationSliderChangeCallback;
 
     private Entity staticEntityPrototype;
+    private bool materialSupportsViewSizeMultipliers;
+    private bool missingViewSizeSupportLogged;
+    private bool missingWaterCurrentShaderSupportLogged;
 
     public GLTFast.GltfImport gltf { get; private set; }
 
@@ -106,12 +113,155 @@ public class StaticEntitiesGroup
     // Rename lodMeshes to meshes and make it public
     public Mesh[] meshes;
     private const int LOD_COUNT = 3; // LOD0, LOD1, LOD2
+    private float meshLargestDimension = 0.0f;
+    private float meshBoundsMinY = 0.0f;
+    private float meshBoundsHeight = 1.0f;
 
     // Optional override for habitats used when writing ECS buffer
     private string[] overrideHabitats;
 
+    public string DisplayName
+    {
+        get { return name; }
+    }
+
+    private UnityEngine.Vector4 GetViewSizeMultipliersVector()
+    {
+        return new UnityEngine.Vector4(
+            viewSizeMultiplierArray[0],
+            viewSizeMultiplierArray[1],
+            viewSizeMultiplierArray[2],
+            viewSizeMultiplierArray[3]);
+    }
+
+    private void ApplyViewSizeMultipliersToMaterial()
+    {
+        Debug.Assert(material != null, "[StaticEntitiesGroup] Applying view size multipliers requires a valid material.");
+        if (material == null)
+        {
+            return;
+        }
+
+        if (!materialSupportsViewSizeMultipliers)
+        {
+            bool usesOnlyDefaultMultipliers = true;
+            for (int i = 0; i < viewSizeMultiplierArray.Length; i++)
+            {
+                if (!Mathf.Approximately(viewSizeMultiplierArray[i], 1.0f))
+                {
+                    usesOnlyDefaultMultipliers = false;
+                    break;
+                }
+            }
+
+            if (!usesOnlyDefaultMultipliers && !missingViewSizeSupportLogged)
+            {
+                missingViewSizeSupportLogged = true;
+                Debug.LogError(
+                    "[StaticEntitiesGroup] StaticEntityShaderGraph does not expose _ViewScaleMultipliers/_ViewScaleBlendWidth. " +
+                    "Static per-view Size changes are stored in group state but do not affect rendering until the static shader is updated.");
+                Debug.Assert(false,
+                    "[StaticEntitiesGroup] Static per-view Size requires StaticEntityShaderGraph support for _ViewScaleMultipliers and _ViewScaleBlendWidth.");
+            }
+
+            return;
+        }
+
+        BoidViewScalingShaderSettings.ApplyTo(material, GetViewSizeMultipliersVector());
+    }
+
+    private void ConfigureStaticMaterialDefaults()
+    {
+        Debug.Assert(material != null, "[StaticEntitiesGroup] Static material defaults require a valid material.");
+        if (material == null)
+        {
+            return;
+        }
+
+        Debug.Assert(material.HasProperty("_Alpha_Clip"),
+            "[StaticEntitiesGroup] StaticEntityShaderGraph must expose _Alpha_Clip.");
+        Debug.Assert(material.HasProperty("_AlbedoTintColor"),
+            "[StaticEntitiesGroup] StaticEntityShaderGraph must expose _AlbedoTintColor.");
+
+        material.SetFloat("_Alpha_Clip", 0.35f);
+        material.SetColor("_AlbedoTintColor", Color.white);
+    }
+
+    private void ApplyWaterCurrentMeshBoundsToMaterial()
+    {
+        Debug.Assert(material != null, "[StaticEntitiesGroup] Applying water current mesh bounds requires a valid material.");
+        Debug.Assert(meshBoundsHeight > 0.0f, "[StaticEntitiesGroup] Static mesh height must be positive for water current normalization.");
+        Debug.Assert(meshLargestDimension > 0.0f, "[StaticEntitiesGroup] Static mesh largest dimension must be positive for water current size scaling.");
+        Debug.Assert(staticEntityPreset != null, "[StaticEntitiesGroup] Static entity preset is required for water current rigidity influence.");
+        if (material == null)
+        {
+            return;
+        }
+
+        bool hasMeshBoundsProperty = material.HasProperty(WaterCurrentMeshBoundsYPropertyName);
+        Debug.Assert(hasMeshBoundsProperty, "[StaticEntitiesGroup] StaticEntityShaderGraph must expose _WaterCurrentMeshBoundsY for normalized water current sway.");
+        if (hasMeshBoundsProperty == false)
+        {
+            Debug.LogError("[StaticEntitiesGroup] StaticEntityShaderGraph is missing _WaterCurrentMeshBoundsY. Static water current sway cannot normalize by mesh height.");
+            return;
+        }
+
+        float safeMeshHeight = Mathf.Max(0.0001f, meshBoundsHeight);
+        float safeMeshLargestDimension = Mathf.Max(0.0001f, meshLargestDimension);
+        float rigidityInfluence = 1.0f;
+        if (staticEntityPreset != null)
+        {
+            rigidityInfluence = Mathf.Clamp01(1.0f - staticEntityPreset.rigidity);
+        }
+
+        material.SetVector(
+            WaterCurrentMeshBoundsYPropertyName,
+            new UnityEngine.Vector4(meshBoundsMinY, safeMeshHeight, rigidityInfluence, safeMeshLargestDimension));
+    }
+
     /// <summary>
-    /// Checks if the dynamic entities group is properly initialized and ready for use.
+    /// Applies the current location water motion settings to this group's static shader material.
+    /// Species-level motion strength still comes from static entity ECS material overrides.
+    /// </summary>
+    public void ApplyWaterCurrentShaderSettings(float noiseScale, float noiseSpeed)
+    {
+        Debug.Assert(material != null, "[StaticEntitiesGroup] Applying water current shader settings requires a valid material.");
+        Debug.Assert(noiseScale > 0.0f, "[StaticEntitiesGroup] Water current noise scale must be positive.");
+        Debug.Assert(noiseSpeed >= 0.0f, "[StaticEntitiesGroup] Water current noise speed cannot be negative.");
+        if (material == null)
+        {
+            return;
+        }
+
+        bool hasTurbulenceSpeed = material.HasProperty(TurbulenceSpeedPropertyName);
+        bool hasTurbulenceScale = material.HasProperty(TurbulenceScalePropertyName);
+        if (hasTurbulenceSpeed == false || hasTurbulenceScale == false)
+        {
+            if (missingWaterCurrentShaderSupportLogged == false)
+            {
+                missingWaterCurrentShaderSupportLogged = true;
+                Debug.LogError(
+                    "[StaticEntitiesGroup] StaticEntityShaderGraph is missing _TurbulenceSpeed or _TurbulenceScale. " +
+                    "Location water-current speed and scale cannot sync to static entity shader motion.");
+                Debug.Assert(false,
+                    "[StaticEntitiesGroup] StaticEntityShaderGraph must expose _TurbulenceSpeed and _TurbulenceScale for location water-current sync.");
+            }
+
+            return;
+        }
+
+        float shaderScale = 1.0f / Mathf.Max(0.0001f, noiseScale);
+        material.SetFloat(TurbulenceSpeedPropertyName, Mathf.Max(0.0f, noiseSpeed));
+        material.SetFloat(TurbulenceScalePropertyName, shaderScale);
+    }
+
+    private void NotifyViewsSetupChanged()
+    {
+        ViewsSetupChanged?.Invoke();
+    }
+
+    /// <summary>
+    /// Checks if the static entities group is properly initialized and ready for use.
     /// This is used by the SimulationAPI.
     /// </summary>
     public bool IsReady
@@ -143,7 +293,8 @@ public class StaticEntitiesGroup
     }
 
     /// <summary>
-    /// Initializes the static entities group with necessary components and UI elements.
+    /// Initializes the static entities group with necessary components and summary row UI elements.
+    /// Per-view visibility and size are edited through the shared Views Setup popup.
     /// </summary>
     /// <param name="name">Name identifier for the group</param>
     /// <param name="dataRow">UI element containing group controls</param>
@@ -201,31 +352,10 @@ public class StaticEntitiesGroup
                 Debug.LogError("[StaticEntitiesGroup] PopulationSliderInt not found in DataRow!");
             }
 
-            // Sliders
-            for (int i = 0; i < 4; i++)
-            {
-                SliderInt sliderInt = dataRow.Q<SliderInt>("PopulationPercentageSliderInt" + i);
-                populationPercentageSliderInts.Add(sliderInt);
-
-                sliderInt.RegisterValueChangedCallback((evt) => OnPopulationPercentageSliderIntChanged(evt));
-
-                // Set the sliders visibility according to the amount of views
-                if (i < viewsCount)
-                {
-                    sliderInt.style.display = DisplayStyle.Flex;
-                }
-                else
-                {
-                    sliderInt.style.display = DisplayStyle.None;
-                }
-
-                // Set the value of the slider
-                sliderInt.value = viewVisibilityPercentageArray[i];
-            }
             deleteButton = dataRow.Q<Button>("DeleteButton");
             deleteButton.RegisterCallback<ClickEvent>((evt) => DeleteGroupClicked(evt));
             reloadButton = dataRow.Q<Button>("ReloadButton");
-            reloadButton.RegisterCallback<ClickEvent>((evt) => ReloadGroup(evt));
+            reloadButton.RegisterCallback<ClickEvent>((evt) => _ = ReloadGroup(evt));
         }
     }
 
@@ -376,7 +506,12 @@ public class StaticEntitiesGroup
             Debug.LogError($"[StaticEntitiesGroup] Loading LOD0 glTF failed for {presetFolderName}!");
             throw new Exception($"Loading LOD0 glTF failed for {presetFolderName}!");
         }
-        meshes[0] = gltf.GetMeshes()[0];
+        meshes[0] = gltf.Meshes.FirstOrDefault();
+        if (meshes[0] == null)
+        {
+            Debug.LogError($"[StaticEntitiesGroup] Loaded glTF but no meshes were imported for {presetFolderName}!");
+            throw new Exception($"No meshes were imported for {presetFolderName}!");
+        }
         
         // Load LOD1 and LOD2
         for (int i = 1; i < LOD_COUNT; i++)
@@ -387,8 +522,16 @@ public class StaticEntitiesGroup
                 success = await lodGltf.Load(lodPaths[i], importSettings);
                 if (success)
                 {
-                    meshes[i] = lodGltf.GetMeshes()[0];
-                    Debug.Log($"[StaticEntitiesGroup] Loaded LOD{i} for {presetFolderName}");
+                    meshes[i] = lodGltf.Meshes.FirstOrDefault();
+                    if (meshes[i] != null)
+                    {
+                        Debug.Log($"[StaticEntitiesGroup] Loaded LOD{i} for {presetFolderName}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning($"[StaticEntitiesGroup] LOD{i} imported without meshes for {presetFolderName}, using LOD0 as fallback");
+                        meshes[i] = meshes[0];
+                    }
                 }
                 else
                 {
@@ -408,6 +551,36 @@ public class StaticEntitiesGroup
         for (int i = 0; i < meshes.Length; i++) {
             Debug.Log($"[StaticEntitiesGroup] LOD{i}: {(meshes[i] != null ? "Loaded" : "NULL")}");
         }
+
+        // Calculate mesh largest dimension (LOD0 only)
+        UnityEngine.Vector3[] vertices = meshes[0].vertices;
+        float meshXMin = float.MaxValue;
+        float meshYMin = float.MaxValue;
+        float meshZMin = float.MaxValue;
+        float meshXMax = float.MinValue;
+        float meshYMax = float.MinValue;
+        float meshZMax = float.MinValue;
+        foreach (UnityEngine.Vector3 vertex in vertices)
+        {
+            if (vertex.x < meshXMin) meshXMin = vertex.x;
+            if (vertex.x > meshXMax) meshXMax = vertex.x;
+            if (vertex.y < meshYMin) meshYMin = vertex.y;
+            if (vertex.y > meshYMax) meshYMax = vertex.y;
+            if (vertex.z < meshZMin) meshZMin = vertex.z;
+            if (vertex.z > meshZMax) meshZMax = vertex.z;
+        }
+
+        float dx = meshXMax - meshXMin;
+        float dy = meshYMax - meshYMin;
+        float dz = meshZMax - meshZMin;
+        meshBoundsMinY = meshYMin;
+        meshBoundsHeight = dy;
+        Debug.Assert(meshBoundsHeight > 0.0f, "[StaticEntitiesGroup] Static mesh height must be positive.");
+        meshLargestDimension = dx;
+        if (dy > meshLargestDimension) meshLargestDimension = dy;
+        if (dz > meshLargestDimension) meshLargestDimension = dz;
+        Debug.Log($"[StaticEntitiesGroup] {presetFolderName} largest mesh dimension: {meshLargestDimension}");
+        Debug.Log($"[StaticEntitiesGroup] {presetFolderName} water current mesh bounds: minY={meshBoundsMinY}, height={meshBoundsHeight}, largestDimension={meshLargestDimension}");
 
         try {
             byte[] fileData = File.ReadAllBytes(baseColorPath);
@@ -437,16 +610,35 @@ public class StaticEntitiesGroup
             }
 
             // Create material
-            material = new Material(Shader.Find("Shader Graphs/StaticEntityShaderGraph"));
+            Shader staticEntityShader = Shader.Find(StaticEntityShaderName);
+            Debug.Assert(staticEntityShader != null,
+                "[StaticEntitiesGroup] Could not find shader '" + StaticEntityShaderName + "'.");
+            if (staticEntityShader == null)
+            {
+                throw new InvalidOperationException(
+                    "Could not find shader '" + StaticEntityShaderName + "'.");
+            }
+
+            material = new Material(staticEntityShader);
             material.SetTexture("_BaseColor", baseColorTexture);
             material.SetTexture("_Normal", normalTexture);
             if (emissionTexture != null)
+            {
                 material.SetTexture("_Emission", emissionTexture);
+            }
+            ConfigureStaticMaterialDefaults();
+            ApplyWaterCurrentMeshBoundsToMaterial();
+            materialSupportsViewSizeMultipliers =
+                material.HasProperty(BoidViewScalingShaderSettings.ViewScaleMultipliersPropertyName) &&
+                material.HasProperty(BoidViewScalingShaderSettings.ViewScaleBlendWidthPropertyName);
+            if (!materialSupportsViewSizeMultipliers)
+            {
+                Debug.LogWarning(
+                    "[StaticEntitiesGroup] StaticEntityShaderGraph is missing per-view size properties. " +
+                    "Static groups will render normally, but Size sliders will not change the mesh until the shader is updated.");
+            }
+            ApplyViewSizeMultipliersToMaterial();
             material.enableInstancing = true;  // Enable GPU instancing for better performance
-            
-            // Set up alpha properties
-            material.SetFloat("_AlphaClipThreshold", 0.5f); // Adjust threshold as needed
-            material.EnableKeyword("_ALPHATEST_ON");
 
         } catch (Exception e) {
             Debug.LogError($"Error loading textures: {e.Message}");
@@ -478,6 +670,23 @@ public class StaticEntitiesGroup
             renderMeshArray,
             MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0)  // Use FromRenderMeshArrayIndices to get correct negative indices
         );
+        entityManager.AddComponentData(staticEntityPrototype, new StaticEntityHoverMember
+        {
+            GroupEntity = Entity.Null
+        });
+        if (!entityManager.HasComponent<StaticEntitySpawnSiteIndex>(staticEntityPrototype))
+        {
+            entityManager.AddComponentData(staticEntityPrototype, new StaticEntitySpawnSiteIndex { Value = -1 });
+        }
+
+        entityManager.SetComponentData(staticEntityPrototype, new TurbulenceStrengthOverride
+        {
+            Value = 1.0f - staticEntityPreset.rigidity
+        });
+        entityManager.SetComponentData(staticEntityPrototype, new WavesMotionStrengthOverride
+        {
+            Value = staticEntityPreset.wavesMotionStrength
+        });
 
         // Set initial population to 100000 for static groups
         CreateStaticEntitiesGroupEntity(this.StaticEntitiesGroupId, initialPopulation);
@@ -545,6 +754,20 @@ public class StaticEntitiesGroup
         entityManager.SetName(StaticEntitiesGroupEntity, "StaticEntitiesGroup_" + this.name + "_" + uniqueGroupId);
         
         entityManager.SetComponentData(StaticEntitiesGroupEntity, CreateStaticEntitiesGroupData(uniqueGroupId, population));
+        entityManager.AddComponentData(StaticEntitiesGroupEntity, CreateHoverGroupData());
+        if (!entityManager.HasBuffer<StaticEntitySpawnSite>(StaticEntitiesGroupEntity))
+        {
+            entityManager.AddBuffer<StaticEntitySpawnSite>(StaticEntitiesGroupEntity);
+        }
+        else
+        {
+            entityManager.GetBuffer<StaticEntitySpawnSite>(StaticEntitiesGroupEntity).Clear();
+        }
+
+        entityManager.SetComponentData(staticEntityPrototype, new StaticEntityHoverMember
+        {
+            GroupEntity = StaticEntitiesGroupEntity
+        });
         
         // Add habitats to the buffer (prefer overrideHabits if provided)
         var habitatBuffer = entityManager.AddBuffer<StaticEntityHabitat>(StaticEntitiesGroupEntity);
@@ -574,6 +797,36 @@ public class StaticEntitiesGroup
         staticEntitiesGroupStructs.Add(staticEntitiesGroupStruct);
     }
 
+    private EntityHoverGroup CreateHoverGroupData()
+    {
+        Bounds hoverBounds = meshes[0].bounds;
+        return new EntityHoverGroup
+        {
+            GroupId = StaticEntitiesGroupId,
+            Kind = EntityHoverKind.Static,
+            LocalBoundsCenter = hoverBounds.center,
+            LocalBoundsExtents = hoverBounds.extents,
+            ViewScaleMultipliers = new float4(
+                viewSizeMultiplierArray[0],
+                viewSizeMultiplierArray[1],
+                viewSizeMultiplierArray[2],
+                viewSizeMultiplierArray[3])
+        };
+    }
+
+    private void UpdateHoverGroupViewScale()
+    {
+        EntityHoverGroup hoverGroup = CreateHoverGroupData();
+        foreach (StaticEntitiesGroupStruct group in staticEntitiesGroupStructs)
+        {
+            if (entityManager.Exists(group.StaticEntitiesGroupEntity) &&
+                entityManager.HasComponent<EntityHoverGroup>(group.StaticEntitiesGroupEntity))
+            {
+                entityManager.SetComponentData(group.StaticEntitiesGroupEntity, hoverGroup);
+            }
+        }
+    }
+
     private StaticEntitiesGroupComponent CreateStaticEntitiesGroupData(int uniqueGroupId, int population)
     {
         return new StaticEntitiesGroupComponent
@@ -581,8 +834,14 @@ public class StaticEntitiesGroup
             StaticEntitiesGroupId = uniqueGroupId,
             StaticEntityPrototype = staticEntityPrototype,
             Count = 0,
+            GeneratedCount = 0,
+            StreamingScanIndex = 0,
+            StreamingScanCameraPosition = float3.zero,
+            StreamingRefreshRequested = false,
+            ShaderUpdateScanIndex = 0,
             DestroyRequested = false,
             RequestedCount = population,
+            PopulationReductionInProgress = false,
             ViewsCount = viewsCount,
             ViewVisibilityPercentages = new float4(
                 viewVisibilityPercentageArray[0] / 100f, // Convert percentage to 0-1 range
@@ -601,7 +860,8 @@ public class StaticEntitiesGroup
             /*HabitatName = staticEntityPreset != null && staticEntityPreset.habitats != null && staticEntityPreset.habitats.Length > 0 
                 ? staticEntityPreset.habitats[0] 
                 : string.Empty*/
-            WavesMotionStrength = staticEntityPreset.wavesMotionStrength
+            WavesMotionStrength = staticEntityPreset.wavesMotionStrength,
+            MeshLargestDimension = meshLargestDimension
         };
     }
 
@@ -643,35 +903,18 @@ public class StaticEntitiesGroup
         OnDeleteRequest?.Invoke(this);
     }
 
-    private void OnPopulationPercentageSliderIntChanged(ChangeEvent<int> evt)
-    {
-        var slider = evt.target as SliderInt;
-
-        // Get the index of the slider
-        int view_index = int.Parse(slider.name.Substring(slider.name.Length - 1));
-        
-        SetViewVisibilityPercentage(view_index, evt.newValue);
-    }
-
     public void SetViewVisibilityPercentageAndUpdateGUI(int viewIndex, int value)
     {
-        if (viewIndex < 0 || viewIndex >= populationPercentageSliderInts.Count) return;
-
-        // Temporarily unregister the event handler
-        // Check if sliderInt exists and is not null
-        SliderInt sliderInt = populationPercentageSliderInts[viewIndex];
-        if (sliderInt != null)
-        {
-            sliderInt.SetValueWithoutNotify(value);
-        }
-        
-        // Update the actual visibility
         SetViewVisibilityPercentage(viewIndex, value);
     }
         
     public void SetViewVisibilityPercentage(int view_index, int value)
     {
-        if (view_index < 0 || view_index >= viewVisibilityPercentageArray.Length) return;
+        Debug.Assert(view_index >= 0 && view_index < viewVisibilityPercentageArray.Length, "[StaticEntitiesGroup] Invalid view index for visibility update.");
+        if (view_index < 0 || view_index >= viewVisibilityPercentageArray.Length)
+        {
+            return;
+        }
 
         viewVisibilityPercentageArray[view_index] = value;
 
@@ -679,6 +922,25 @@ public class StaticEntitiesGroup
         {
             UpdateStaticEntitiesGroupViewportVisibility(staticEntitiesGroupStruct.StaticEntitiesGroupEntity);
         }
+
+        ApplyViewSizeMultipliersToMaterial();
+        NotifyViewsSetupChanged();
+    }
+
+    public void SetViewSizeMultiplier(int viewIndex, float value)
+    {
+        Debug.Assert(viewIndex >= 0 && viewIndex < viewSizeMultiplierArray.Length, "[StaticEntitiesGroup] Invalid view index for size update.");
+        Debug.Assert(value >= 0.5f && value <= 2.0f, "[StaticEntitiesGroup] View size multiplier must be in [0.5, 2.0].");
+        if (viewIndex < 0 || viewIndex >= viewSizeMultiplierArray.Length)
+        {
+            return;
+        }
+
+        float clamped = Mathf.Clamp(value, 0.5f, 2.0f);
+        viewSizeMultiplierArray[viewIndex] = clamped;
+        ApplyViewSizeMultipliersToMaterial();
+        UpdateHoverGroupViewScale();
+        NotifyViewsSetupChanged();
     }
 
     // New handler for the population slider
@@ -695,8 +957,8 @@ public class StaticEntitiesGroup
     }
 
     /// <summary>
-    /// Sets the population for all boid schools in the group.
-    /// Updates the prototype entity and propagates changes to all schools.
+    /// Sets the requested habitat population for this static group.
+    /// The streaming system generates lightweight sites and instantiates only nearby sites.
     /// </summary>
     /// <param name="population">New population count</param>
     public void SetPopulation(int population)
@@ -706,22 +968,17 @@ public class StaticEntitiesGroup
         // Ensure population is not negative. The slider's lowValue should handle this.
         if (population < 0) population = 0;
 
-        // Update the mesh and material on this group's prototype entity while preserving all LOD meshes.
-        var renderMeshDescription = new RenderMeshDescription(
-            shadowCastingMode: ShadowCastingMode.Off,
-            receiveShadows: false);
-        RenderMeshUtility.AddComponents(
-            staticEntityPrototype,
-            entityManager,
-            renderMeshDescription,
-            new RenderMeshArray(new Material[] { material }, meshes), // Use full LOD array here
-            MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0)
-        );
-        
         foreach (StaticEntitiesGroupStruct staticEntitiesGroupStruct in staticEntitiesGroupStructs)
         {
             StaticEntitiesGroupComponent staticEntitiesGroupEntity = entityManager.GetComponentData<StaticEntitiesGroupComponent>(staticEntitiesGroupStruct.StaticEntitiesGroupEntity);
-            staticEntitiesGroupEntity.ShaderUpdateRequested = true;
+            if (population < staticEntitiesGroupEntity.RequestedCount)
+            {
+                staticEntitiesGroupEntity.PopulationReductionInProgress = true;
+            }
+            else if (population > staticEntitiesGroupEntity.RequestedCount)
+            {
+                staticEntitiesGroupEntity.PopulationReductionInProgress = false;
+            }
             staticEntitiesGroupEntity.RequestedCount = population;
             entityManager.SetComponentData(staticEntitiesGroupStruct.StaticEntitiesGroupEntity, staticEntitiesGroupEntity);
         }
@@ -749,6 +1006,7 @@ public class StaticEntitiesGroup
             for (int i = previousViewsCount; i < this.viewsCount && i < viewVisibilityPercentageArray.Length; i++)
             {
                 viewVisibilityPercentageArray[i] = 100;
+                viewSizeMultiplierArray[i] = 1.0f;
             }
         }
 
@@ -757,30 +1015,9 @@ public class StaticEntitiesGroup
             UpdateStaticEntitiesGroupViewportVisibility(staticEntitiesGroupStruct.StaticEntitiesGroupEntity);
         }
 
-        // Update the sliders according to the viewVisibilityPercentageArray
-        for (int i = 0; i < 4; i++)
-        {
-            if (i < populationPercentageSliderInts.Count && populationPercentageSliderInts[i] != null)
-            {
-                populationPercentageSliderInts[i].SetValueWithoutNotify(viewVisibilityPercentageArray[i]);
-            }
-        }
-
-        // Change the sliders visibility according to the amount of views
-        for (int i = 0; i < 4; i++)
-        {
-            if (i < populationPercentageSliderInts.Count && populationPercentageSliderInts[i] != null)
-            {
-                if (i < viewsCount)
-                {
-                    populationPercentageSliderInts[i].style.display = DisplayStyle.Flex;
-                }
-                else
-                {
-                    populationPercentageSliderInts[i].style.display = DisplayStyle.None;
-                }
-            }
-        }
+        ApplyViewSizeMultipliersToMaterial();
+        UpdateHoverGroupViewScale();
+        NotifyViewsSetupChanged();
     }
 
     // Size of array is amount of Views, the index of the element is the index of the view, and bool is whether the group is visible in that view
@@ -801,6 +1038,7 @@ public class StaticEntitiesGroup
             viewVisibilityPercentageArray[3] / 100f
         );
         staticEntitiesGroupComponent.ShaderUpdateRequested = true;
+        staticEntitiesGroupComponent.ShaderUpdateScanIndex = 0;
         
         entityManager.SetComponentData(staticEntitiesGroupEntity, staticEntitiesGroupComponent);
     }
@@ -838,6 +1076,39 @@ public class StaticEntitiesGroup
     }
 
     /// <summary>
+    /// Returns true after all requested habitat sites have been generated and reconciled with the camera.
+    /// </summary>
+    public bool IsPopulationStreamingReady()
+    {
+        if (staticEntitiesGroupStructs == null || staticEntitiesGroupStructs.Count == 0)
+        {
+            return false;
+        }
+
+        for (int i = 0; i < staticEntitiesGroupStructs.Count; i++)
+        {
+            Entity groupEntity = staticEntitiesGroupStructs[i].StaticEntitiesGroupEntity;
+            Debug.Assert(entityManager.Exists(groupEntity) &&
+                         entityManager.HasComponent<StaticEntitiesGroupComponent>(groupEntity),
+                "StaticEntitiesGroup.IsPopulationStreamingReady requires a valid group entity.");
+            if (!entityManager.Exists(groupEntity) ||
+                !entityManager.HasComponent<StaticEntitiesGroupComponent>(groupEntity))
+            {
+                return false;
+            }
+
+            StaticEntitiesGroupComponent group =
+                entityManager.GetComponentData<StaticEntitiesGroupComponent>(groupEntity);
+            if (group.GeneratedCount != group.RequestedCount || group.StreamingRefreshRequested)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>
     /// Returns a copy of the per-view visibility percentages array (0-100).
     /// Index corresponds to the view index.
     /// </summary>
@@ -848,6 +1119,21 @@ public class StaticEntitiesGroup
         for (int i = 0; i < length; i++)
         {
             copy[i] = viewVisibilityPercentageArray[i];
+        }
+        return copy;
+    }
+
+    /// <summary>
+    /// Returns a copy of the per-view size multipliers array.
+    /// Index corresponds to the view index.
+    /// </summary>
+    public float[] GetViewSizeMultipliersCopy()
+    {
+        int length = viewSizeMultiplierArray.Length;
+        float[] copy = new float[length];
+        for (int i = 0; i < length; i++)
+        {
+            copy[i] = viewSizeMultiplierArray[i];
         }
         return copy;
     }
@@ -881,5 +1167,3 @@ public class StaticEntitiesGroup
     }
 }
 }
-
-

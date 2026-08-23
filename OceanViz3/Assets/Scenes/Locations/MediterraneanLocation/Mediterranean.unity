@@ -13,7 +13,7 @@ OcclusionCullingSettings:
 --- !u!104 &2
 RenderSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 9
+  serializedVersion: 10
   m_Fog: 1
   m_FogColor: {r: 0, g: 0.48235297, b: 0.45882356, a: 1}
   m_FogMode: 1
@@ -38,13 +38,12 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 1273810789}
-  m_IndirectSpecularColor: {r: 0, g: 0, b: 0, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
   m_ObjectHideFlags: 0
-  serializedVersion: 12
-  m_GIWorkflowMode: 1
+  serializedVersion: 13
+  m_BakeOnSceneLoad: 0
   m_GISettings:
     serializedVersion: 2
     m_BounceScale: 1
@@ -67,9 +66,6 @@ LightmapSettings:
     m_LightmapParameters: {fileID: 0}
     m_LightmapsBakeMode: 1
     m_TextureCompression: 1
-    m_FinalGather: 0
-    m_FinalGatherFiltering: 1
-    m_FinalGatherRayCount: 256
     m_ReflectionCompression: 2
     m_MixedBakeMode: 2
     m_BakeBackend: 1
@@ -215,7 +211,7 @@ PrefabInstance:
     - target: {fileID: 1203012096820458718, guid: 58ad90972c4698e47978ae8418ff0c8f,
         type: 3}
       propertyPath: m_Name
-      value: Quarry Cliff_ubhubhyda (6)
+      value: Seabed Layered Cliff A (6)
       objectReference: {fileID: 0}
     - target: {fileID: 2932446589375968628, guid: 58ad90972c4698e47978ae8418ff0c8f,
         type: 3}
@@ -351,6 +347,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &6420104
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -389,6 +387,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -410,9 +413,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &6420106
 MeshFilter:
@@ -470,6 +475,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &10505076
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -508,6 +515,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -529,9 +541,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &10505078
 MeshFilter:
@@ -540,125 +554,6 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 10505073}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &16009028
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 16009029}
-  - component: {fileID: 16009033}
-  - component: {fileID: 16009032}
-  - component: {fileID: 16009031}
-  - component: {fileID: 16009030}
-  m_Layer: 0
-  m_Name: BoidBoundsSeaweeds (12)
-  m_TagString: BoidBounds
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &16009029
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 16009028}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 73.26, y: -21.22, z: -49.44}
-  m_LocalScale: {x: 8.441905, y: 3.7761028, z: 7.0759573}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1985964504}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &16009030
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 16009028}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  HabitatName: Seaweed
---- !u!65 &16009031
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 16009028}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!23 &16009032
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 16009028}
-  m_Enabled: 0
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &16009033
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 16009028}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1001 &28419096
 PrefabInstance:
@@ -691,7 +586,7 @@ PrefabInstance:
     - target: {fileID: 2342142131378485443, guid: 8e208cf120da3fc4791ba979ca582ce7,
         type: 3}
       propertyPath: m_Name
-      value: Quarry Cliff_uchoab3fa (2)
+      value: Seabed Fractured Cliff B (2)
       objectReference: {fileID: 0}
     - target: {fileID: 2597710707526456002, guid: 8e208cf120da3fc4791ba979ca582ce7,
         type: 3}
@@ -838,6 +733,7 @@ Terrain:
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 5
   m_SplatMapDistance: 1000
+  m_HeightmapMinimumLODSimplification: 0
   m_HeightmapMaximumLOD: 0
   m_ShadowCastingMode: 2
   m_DrawHeightmap: 1
@@ -963,6 +859,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &35184247
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1001,6 +899,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1022,9 +925,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &35184249
 MeshFilter:
@@ -1082,6 +987,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Green Crab
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &71577389
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1120,6 +1027,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1141,9 +1053,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &71577391
 MeshFilter:
@@ -1234,6 +1148,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &85156678
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1272,6 +1188,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1293,9 +1214,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &85156680
 MeshFilter:
@@ -1305,140 +1228,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 85156675}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1001 &121716686
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 1896373435}
-    m_Modifications:
-    - target: {fileID: 1073253456522698428, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 1207220688221159226, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_RenderingLayerMask
-      value: 3
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalScale.x
-      value: 6.8372154
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalScale.y
-      value: 6.8372135
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalScale.z
-      value: 6.8372135
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -76.46512
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -31.46
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 2.5999699
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalRotation.w
-      value: -0.5077868
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0.009073536
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0.86142695
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0.0037318442
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0.16
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: -241.035
-      objectReference: {fileID: 0}
-    - target: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 1.113
-      objectReference: {fileID: 0}
-    - target: {fileID: 8002542694000632886, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_Name
-      value: Quarry Cliff_ub3xaihda
-      objectReference: {fileID: 0}
-    - target: {fileID: 8564539673505578509, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_Size
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 8564539673505578509, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalReferencePoint.x
-      value: 0.060534716
-      objectReference: {fileID: 0}
-    - target: {fileID: 8564539673505578509, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalReferencePoint.y
-      value: 0.9908056
-      objectReference: {fileID: 0}
-    - target: {fileID: 8564539673505578509, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LocalReferencePoint.z
-      value: 0.39968282
-      objectReference: {fileID: 0}
-    - target: {fileID: 8564539673505578509, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
-      value: 0.29920706
-      objectReference: {fileID: 0}
-    - target: {fileID: 8564539673505578509, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
-      value: 0.12072727
-      objectReference: {fileID: 0}
-    - target: {fileID: 8564539673505578509, guid: da35c5b6716645a44a8e0fffa8986974,
-        type: 3}
-      propertyPath: m_LODs.Array.data[2].screenRelativeHeight
-      value: 0.0002643674
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: da35c5b6716645a44a8e0fffa8986974, type: 3}
---- !u!4 &121716687 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 7687727677657999107, guid: da35c5b6716645a44a8e0fffa8986974,
-    type: 3}
-  m_PrefabInstance: {fileID: 121716686}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &126991256
 GameObject:
   m_ObjectHideFlags: 0
@@ -1494,34 +1283,167 @@ MonoBehaviour:
     groupName: Sea Bass 1
     population: 0.136
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Posidonia Oceanica
     groupName: Posidonia Oceanica 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Thresher Shark
     groupName: Thresher Shark 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats:
     - Predators
   - presetName: Blue Shark
     groupName: Blue Shark 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats:
     - Predators
   - presetName: Manta Ray
     groupName: Manta Ray 1
     population: 0.2
     visibilities: []
+    sizes: []
     overrideHabitats:
     - Manta Ray
   viewsCount: 1
   turbidities:
   - viewIndex: 0
     turbidity: 0
+--- !u!1 &170677225
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 170677226}
+  - component: {fileID: 170677230}
+  - component: {fileID: 170677229}
+  - component: {fileID: 170677228}
+  - component: {fileID: 170677227}
+  m_Layer: 0
+  m_Name: BoidBoundsWaterNearSurface (3)
+  m_TagString: BoidBounds
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &170677226
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 170677225}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -30.7, y: -1.8, z: -53.82}
+  m_LocalScale: {x: 43.562374, y: 0.9511946, z: 42.498962}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1985964504}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &170677227
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 170677225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HabitatName: Near Surface
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
+--- !u!65 &170677228
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 170677225}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &170677229
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 170677225}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &170677230
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 170677225}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1001 &171910478
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1613,7 +1535,7 @@ PrefabInstance:
     - target: {fileID: 1203012096820458718, guid: 58ad90972c4698e47978ae8418ff0c8f,
         type: 3}
       propertyPath: m_Name
-      value: Quarry Cliff_ubhubhyda (5)
+      value: Seabed Layered Cliff A (5)
       objectReference: {fileID: 0}
     - target: {fileID: 2932446589375968628, guid: 58ad90972c4698e47978ae8418ff0c8f,
         type: 3}
@@ -1749,6 +1671,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &192719989
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -1787,6 +1711,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -1808,9 +1737,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &192719991
 MeshFilter:
@@ -2076,7 +2007,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 11.72297, y: 203.2437, z: 359.9447}
 --- !u!95 &230126589
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -2090,6 +2021,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -2154,14 +2086,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0.531
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0.531
+  m_Version: 2
 --- !u!81 &230126592
 AudioListener:
   m_ObjectHideFlags: 0
@@ -2327,6 +2259,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2348,9 +2285,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &231299819
 MeshFilter:
@@ -2414,36 +2353,43 @@ MonoBehaviour:
     groupName: Sea Bass 1
     population: 0.136
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Posidonia Oceanica
     groupName: Posidonia Oceanica 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Thresher Shark
     groupName: Thresher Shark 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Blue Shark
     groupName: Blue Shark 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Damselfish
     groupName: Damselfish 1
     population: 0.211
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Gorgonian Coral
     groupName: Gorgonian Coral 1
     population: 0.211
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Red Coral
     groupName: Red Coral 1
     population: 0.211
     visibilities: []
+    sizes: []
     overrideHabitats: []
   viewsCount: 1
   turbidities:
@@ -2586,6 +2532,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &249740491
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -2624,6 +2572,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -2645,9 +2598,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &249740493
 MeshFilter:
@@ -2717,7 +2672,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -2797,7 +2752,7 @@ PrefabInstance:
     - target: {fileID: 3752049050044815172, guid: 96b66006e7293cf46b7e44ffda5185e2,
         type: 3}
       propertyPath: m_Name
-      value: Icelandic Rock Formation_tczbcguda (3)
+      value: Seabed Rock Scatter A (3)
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -2848,7 +2803,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 11.72297, y: 203.2437, z: 359.9447}
 --- !u!95 &268149227
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -2862,6 +2817,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -2926,14 +2882,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0.531
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0.531
+  m_Version: 2
 --- !u!81 &268149230
 AudioListener:
   m_ObjectHideFlags: 0
@@ -3041,6 +2997,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Blue Shark
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &311440536
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3079,6 +3037,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -3100,9 +3063,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &311440538
 MeshFilter:
@@ -3152,7 +3117,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0.0000001205777, y: 0.3815506, z: 0.0000003562367}
 --- !u!95 &316648272
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -3166,6 +3131,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -3230,14 +3196,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
 --- !u!81 &316648275
 AudioListener:
   m_ObjectHideFlags: 0
@@ -3307,7 +3273,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -2057541392408367497, guid: 260812b4eb28f9e4a9bf3bc4df5fa64a,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: c5ca37e894f1ee0468d89201036bb4bc, type: 2}
     - target: {fileID: 696510568898805871, guid: 260812b4eb28f9e4a9bf3bc4df5fa64a,
@@ -3430,6 +3396,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &325829473
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3468,6 +3436,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -3489,9 +3462,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &325829475
 MeshFilter:
@@ -3539,7 +3514,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0.000443476, y: 359.6322, z: 0.03014541}
 --- !u!95 &338670400
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -3553,6 +3528,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -3623,14 +3599,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0.531
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0.531
+  m_Version: 2
 --- !u!81 &338670403
 AudioListener:
   m_ObjectHideFlags: 0
@@ -3728,7 +3704,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 11.72297, y: 203.2437, z: 359.9447}
 --- !u!95 &342572872
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -3742,6 +3718,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -3806,14 +3783,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0.531
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0.531
+  m_Version: 2
 --- !u!81 &342572875
 AudioListener:
   m_ObjectHideFlags: 0
@@ -3921,6 +3898,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &354371418
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -3959,6 +3938,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -3980,9 +3964,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &354371420
 MeshFilter:
@@ -4040,6 +4026,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &357566077
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4078,6 +4066,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -4099,9 +4092,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &357566079
 MeshFilter:
@@ -4110,6 +4105,134 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 357566074}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &371740076
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 371740077}
+  - component: {fileID: 371740081}
+  - component: {fileID: 371740080}
+  - component: {fileID: 371740079}
+  - component: {fileID: 371740078}
+  m_Layer: 0
+  m_Name: BoidBoundsShrimp
+  m_TagString: BoidBounds
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &371740077
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 371740076}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0.23091915, z: -0, w: 0.972973}
+  m_LocalPosition: {x: 10.177, y: -28.399, z: -35.685}
+  m_LocalScale: {x: 0.45989513, y: 0.45294374, z: 4.061764}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1985964504}
+  m_LocalEulerAnglesHint: {x: 0, y: -26.702, z: 0}
+--- !u!114 &371740078
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 371740076}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HabitatName: Shrimp
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
+--- !u!65 &371740079
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 371740076}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &371740080
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 371740076}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &371740081
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 371740076}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &373666699
 GameObject:
@@ -4147,11 +4270,15 @@ MonoBehaviour:
   m_EndAngleFade: 47.836205
   m_UVScale: {x: 1, y: 1}
   m_UVBias: {x: 0, y: 0}
-  m_DecalLayerMask: 2
+  m_RenderingLayerMask:
+    serializedVersion: 0
+    m_Bits: 2
   m_ScaleMode: 0
   m_Offset: {x: -15.449425, y: -8.161148, z: 31.06585}
   m_Size: {x: 196.2, y: 157.57, z: 58.2}
   m_FadeFactor: 0.929
+  version: 1
+  m_DecalLayerMask: 2
 --- !u!4 &373666701
 Transform:
   m_ObjectHideFlags: 0
@@ -4298,7 +4425,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -4365,6 +4492,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &474964983
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4403,6 +4532,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -4424,9 +4558,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &474964985
 MeshFilter:
@@ -4545,6 +4681,134 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 484807974}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &497375684
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 497375685}
+  - component: {fileID: 497375689}
+  - component: {fileID: 497375688}
+  - component: {fileID: 497375687}
+  - component: {fileID: 497375686}
+  m_Layer: 0
+  m_Name: BoidBoundsWaterNearSurface (5)
+  m_TagString: BoidBounds
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &497375685
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 497375684}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 64.2, y: -1.8, z: -53.82}
+  m_LocalScale: {x: 43.562374, y: 0.9511946, z: 42.498962}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1985964504}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &497375686
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 497375684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HabitatName: Near Surface
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
+--- !u!65 &497375687
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 497375684}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &497375688
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 497375684}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &497375689
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 497375684}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &505105849
 GameObject:
   m_ObjectHideFlags: 0
@@ -4576,6 +4840,7 @@ Transform:
   m_Children:
   - {fileID: 1544090818}
   - {fileID: 71577387}
+  - {fileID: 2146500002}
   m_Father: {fileID: 766066283}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &510321723
@@ -4668,6 +4933,7 @@ MonoBehaviour:
       visibility: 0.048
     - viewIndex: 2
       visibility: 0.019
+    sizes: []
     overrideHabitats: []
   - presetName: Fishing Net
     groupName: 
@@ -4679,6 +4945,7 @@ MonoBehaviour:
       visibility: 0
     - viewIndex: 2
       visibility: 1
+    sizes: []
     overrideHabitats: []
   - presetName: Posidonia Oceanica
     groupName: 
@@ -4690,6 +4957,7 @@ MonoBehaviour:
       visibility: 0.454
     - viewIndex: 2
       visibility: 0.153
+    sizes: []
     overrideHabitats: []
   - presetName: Cod
     groupName: 
@@ -4701,6 +4969,7 @@ MonoBehaviour:
       visibility: 0.454
     - viewIndex: 2
       visibility: 0.153
+    sizes: []
     overrideHabitats: []
   - presetName: European Anchovy
     groupName: 
@@ -4712,6 +4981,7 @@ MonoBehaviour:
       visibility: 0.454
     - viewIndex: 2
       visibility: 0.153
+    sizes: []
     overrideHabitats: []
   - presetName: Grouper
     groupName: 
@@ -4723,6 +4993,7 @@ MonoBehaviour:
       visibility: 0.454
     - viewIndex: 2
       visibility: 0.153
+    sizes: []
     overrideHabitats: []
   - presetName: Thresher Shark
     groupName: 
@@ -4734,6 +5005,7 @@ MonoBehaviour:
       visibility: 0.454
     - viewIndex: 2
       visibility: 0.153
+    sizes: []
     overrideHabitats: []
   viewsCount: 3
   turbidities:
@@ -4802,31 +5074,37 @@ MonoBehaviour:
     groupName: 
     population: 0.293
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Damselfish
     groupName: 
     population: 0.502
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Posidonia Oceanica
     groupName: 
     population: 0.203
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Fishing Net
     groupName: 
     population: 0.614
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Rusted Wheel Rim
     groupName: 
     population: 1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Old Tire
     groupName: 
     population: 1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   viewsCount: 1
   turbidities:
@@ -4880,6 +5158,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &566135716
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4918,6 +5198,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -4939,9 +5224,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &566135718
 MeshFilter:
@@ -5011,7 +5298,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -5096,7 +5383,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -5169,6 +5456,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &595728532
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5207,6 +5496,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5228,9 +5522,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &595728534
 MeshFilter:
@@ -5288,6 +5584,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Damselfish
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &598605537
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5326,6 +5624,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5347,9 +5650,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &598605539
 MeshFilter:
@@ -5474,7 +5779,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3193168063303682813, guid: f04407b14bb33c644979ab67875f28f0,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 9de4791abfc8d2648bd5a8e92b12a52c, type: 2}
     m_RemovedComponents: []
@@ -5547,6 +5852,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5568,9 +5878,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &602717584
 MeshFilter:
@@ -5608,6 +5920,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!1001 &621908714
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -5668,7 +5982,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -5741,6 +6055,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &635309267
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5779,6 +6095,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5800,9 +6121,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &635309269
 MeshFilter:
@@ -5860,6 +6183,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &641301578
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -5898,6 +6223,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -5919,9 +6249,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &641301580
 MeshFilter:
@@ -5962,7 +6294,7 @@ PrefabInstance:
     - target: {fileID: 2342142131378485443, guid: 8e208cf120da3fc4791ba979ca582ce7,
         type: 3}
       propertyPath: m_Name
-      value: Quarry Cliff_uchoab3fa (1)
+      value: Seabed Fractured Cliff B (1)
       objectReference: {fileID: 0}
     - target: {fileID: 2597710707526456002, guid: 8e208cf120da3fc4791ba979ca582ce7,
         type: 3}
@@ -6050,6 +6382,134 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 651823645}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &654607427
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 654607428}
+  - component: {fileID: 654607432}
+  - component: {fileID: 654607431}
+  - component: {fileID: 654607430}
+  - component: {fileID: 654607429}
+  m_Layer: 0
+  m_Name: BoidBoundsWaterNearSurface
+  m_TagString: BoidBounds
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &654607428
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 654607427}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 15.95, y: -1.8, z: -10.7}
+  m_LocalScale: {x: 43.562374, y: 0.9511946, z: 42.498962}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1985964504}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &654607429
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 654607427}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HabitatName: Near Surface
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
+--- !u!65 &654607430
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 654607427}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &654607431
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 654607427}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &654607432
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 654607427}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &665102662
 GameObject:
   m_ObjectHideFlags: 0
@@ -6122,6 +6582,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6143,9 +6608,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &665102666
 MeshFilter:
@@ -6165,7 +6632,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -2057541392408367497, guid: 260812b4eb28f9e4a9bf3bc4df5fa64a,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: c5ca37e894f1ee0468d89201036bb4bc, type: 2}
     - target: {fileID: 696510568898805871, guid: 260812b4eb28f9e4a9bf3bc4df5fa64a,
@@ -6277,6 +6744,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Deepwater Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &687205924
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -6315,6 +6784,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6336,9 +6810,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &687205926
 MeshFilter:
@@ -6386,7 +6862,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 15.343, y: 224.972, z: 359.944}
 --- !u!95 &689416711
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -6400,6 +6876,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -6464,14 +6941,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0.531
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0.531
+  m_Version: 2
 --- !u!81 &689416714
 AudioListener:
   m_ObjectHideFlags: 0
@@ -6610,6 +7087,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &716334852
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -6648,6 +7127,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -6669,9 +7153,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &716334854
 MeshFilter:
@@ -6851,17 +7337,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Version: 3
   m_UsePipelineSettings: 1
   m_AdditionalLightsShadowResolutionTier: 2
-  m_LightLayerMask: 1
-  m_RenderingLayers: 1
   m_CustomShadowLayers: 0
-  m_ShadowLayerMask: 1
-  m_ShadowRenderingLayers: 1
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 1
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!108 &741642357
 Light:
   m_ObjectHideFlags: 0
@@ -6870,15 +7362,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 741642353}
   m_Enabled: 1
-  serializedVersion: 10
+  serializedVersion: 12
   m_Type: 1
-  m_Shape: 0
   m_Color: {r: 0.6745283, g: 0.989586, b: 1, a: 1}
   m_Intensity: 0.1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1
@@ -6922,8 +7413,12 @@ Light:
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
+  m_ForceVisible: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
 --- !u!1 &746238980
 GameObject:
   m_ObjectHideFlags: 0
@@ -6965,9 +7460,43 @@ MonoBehaviour:
     splatmap: {fileID: 2800000, guid: 35989e94c97d5474a8634d099626ef3e, type: 3}
   _pipelineAssetCurrent: {fileID: 11400000, guid: 7b7fd9122c28c4d15b667c7040e3b3fd,
     type: 2}
+  pipelineRendererData: {fileID: 11400000, guid: c40be3174f62c4acf8c1216858c64956,
+    type: 2}
+  debugTurbidityMaterial: {fileID: 0}
+  debugBloomMaterial: {fileID: 0}
   colorAtTurbidityValueOne: {r: 0.1882353, g: 0.36078432, b: 0.32941177, a: 0}
   colorAtTurbidityValueZero: {r: 0.14901961, g: 0.45490196, b: 0.49803922, a: 0}
   colorAtTurbidityValueMinusOne: {r: 0.34117648, g: 0.28235295, b: 0.14901961, a: 0}
+  bloomCutoffAtTurbidityValueOne: 0
+  bloomCutoffAtTurbidityValueZero: 0
+  bloomCutoffAtTurbidityValueMinusOne: 0
+  bloomWeightAtTurbidityValueOne: 1
+  bloomWeightAtTurbidityValueZero: 0
+  bloomWeightAtTurbidityValueMinusOne: 1
+  bloomOffsetAtTurbidityValueOne: 20
+  bloomOffsetAtTurbidityValueZero: 0.2
+  bloomOffsetAtTurbidityValueMinusOne: 20
+  bloomSampleCount: 4
+  depthBloomEnabled: 1
+  depthBloomNear: 0
+  depthBloomFar: 1
+  depthBloomWeightNear: 0
+  depthBloomWeightFar: 30
+  depthBloomExponent: 1
+  waterCurrentEnabled: 1
+  waterCurrentNoiseTextureSize: 512
+  waterCurrentNoiseTextureFeatureScale: 50
+  waterCurrentNoiseScale: 400
+  waterCurrentNoiseSpeed: 0.02
+  waterCurrentBoidStrengthMultiplier: 5
+  waterCurrentStaticShaderStrengthMultiplier: 4
+  waterCurrentStaticLongPlantDamping: 0.02
+  waterCurrentSecondaryNoiseScale: 1
+  waterCurrentSecondaryNoiseSpeed: 0.24
+  waterCurrentSecondaryNoiseStrength: 0.34
+  waterCurrentSecondaryNoiseSeed: 17
+  waterCurrentMaxAffectedBoidSize: 1
+  waterCurrentHorizontalDirection: {x: 1, y: -2.17}
 --- !u!4 &746238982
 Transform:
   m_ObjectHideFlags: 0
@@ -7074,7 +7603,7 @@ PrefabInstance:
     - target: {fileID: 7841898233694566802, guid: ffab090c1dfe4744eb1f8c9400b82452,
         type: 3}
       propertyPath: m_Name
-      value: Limestone Slab_ub3rcjzda (2)
+      value: Seabed Flat Rock A (2)
       objectReference: {fileID: 0}
     - target: {fileID: 8833610277846422359, guid: ffab090c1dfe4744eb1f8c9400b82452,
         type: 3}
@@ -7140,6 +7669,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &758649219
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -7178,6 +7709,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -7199,9 +7735,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &758649221
 MeshFilter:
@@ -7265,34 +7803,40 @@ MonoBehaviour:
     groupName: Sea Bass 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Damselfish
     groupName: Damselfish 1
     population: 0.2
     visibilities: []
+    sizes: []
     overrideHabitats:
     - Damselfish
   - presetName: Posidonia Oceanica
     groupName: Posidonia Oceanica 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Grouper
     groupName: Grouper 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats:
     - Grouper
   - presetName: Blue Shark
     groupName: Blue Shark 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats:
     - Blue Shark
   - presetName: Manta Ray
     groupName: Manta Ray 1
     population: 0.253
     visibilities: []
+    sizes: []
     overrideHabitats:
     - Manta Ray
   viewsCount: 1
@@ -7353,42 +7897,50 @@ MonoBehaviour:
     groupName: Sea Bass 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Mediterranean Parrotfish
     groupName: Mediterranean Parrotfish 1
     population: 0.2
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Posidonia Oceanica
     groupName: Posidonia Oceanica 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Grouper
     groupName: Grouper 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Blue Shark
     groupName: Blue Shark 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Loggerhead Sea Turtle
     groupName: Loggerhead Sea Turtle 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats:
     - Loggerhead Sea Turtle
   - presetName: Blue Shark
     groupName: Blue Shark 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Green Crab
     groupName: Green Crab 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats:
     - Green Crab
   viewsCount: 1
@@ -7443,6 +7995,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Dungon
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &784278632
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -7481,6 +8035,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -7502,9 +8061,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &784278634
 MeshFilter:
@@ -7567,16 +8128,19 @@ MonoBehaviour:
     groupName: Sea Bass 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Posidonia Oceanica
     groupName: Posidonia Oceanica 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Fishing Net
     groupName: Fishing Net 1
     population: 1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   viewsCount: 1
   turbidities:
@@ -7739,6 +8303,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Grouper
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &851760613
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -7777,6 +8343,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -7798,9 +8369,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &851760615
 MeshFilter:
@@ -7971,7 +8544,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3193168063303682813, guid: f04407b14bb33c644979ab67875f28f0,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 9de4791abfc8d2648bd5a8e92b12a52c, type: 2}
     m_RemovedComponents: []
@@ -8067,6 +8640,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &908739221
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8105,6 +8680,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -8126,9 +8706,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &908739223
 MeshFilter:
@@ -8224,6 +8806,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &967757359
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8262,6 +8846,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -8283,9 +8872,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &967757361
 MeshFilter:
@@ -8426,11 +9017,15 @@ MonoBehaviour:
   m_EndAngleFade: 47.836205
   m_UVScale: {x: 1, y: 1}
   m_UVBias: {x: 0, y: 0}
-  m_DecalLayerMask: 2
+  m_RenderingLayerMask:
+    serializedVersion: 0
+    m_Bits: 2
   m_ScaleMode: 0
   m_Offset: {x: -15.449425, y: -8.161148, z: 31.06585}
   m_Size: {x: 196.2, y: 157.57, z: 58.2}
   m_FadeFactor: 0.361
+  version: 1
+  m_DecalLayerMask: 2
 --- !u!4 &985538736
 Transform:
   m_ObjectHideFlags: 0
@@ -8494,6 +9089,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &995200254
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8532,6 +9129,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -8553,9 +9155,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &995200256
 MeshFilter:
@@ -8613,6 +9217,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &996864403
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -8651,6 +9257,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -8672,9 +9283,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &996864405
 MeshFilter:
@@ -8863,6 +9476,11 @@ VFXRenderer:
   m_ReflectionProbeUsage: 0
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_StaticBatchInfo:
@@ -8882,9 +9500,11 @@ VFXRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
 --- !u!2083052967 &1043327579
 VisualEffect:
   m_ObjectHideFlags: 0
@@ -8954,7 +9574,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -2057541392408367497, guid: 260812b4eb28f9e4a9bf3bc4df5fa64a,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: c5ca37e894f1ee0468d89201036bb4bc, type: 2}
     - target: {fileID: 696510568898805871, guid: 260812b4eb28f9e4a9bf3bc4df5fa64a,
@@ -9125,7 +9745,7 @@ PrefabInstance:
     - target: {fileID: 7841898233694566802, guid: ffab090c1dfe4744eb1f8c9400b82452,
         type: 3}
       propertyPath: m_Name
-      value: Limestone Slab_ub3rcjzda (1)
+      value: Seabed Flat Rock A (1)
       objectReference: {fileID: 0}
     - target: {fileID: 8833610277846422359, guid: ffab090c1dfe4744eb1f8c9400b82452,
         type: 3}
@@ -9191,6 +9811,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1060332876
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9229,6 +9851,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -9250,9 +9877,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1060332878
 MeshFilter:
@@ -9346,7 +9975,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: -19.933, z: 0}
 --- !u!95 &1125454497
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -9360,6 +9989,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -9426,14 +10056,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0.531
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0.531
+  m_Version: 2
 --- !u!81 &1125454500
 AudioListener:
   m_ObjectHideFlags: 0
@@ -9608,7 +10238,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3193168063303682813, guid: f04407b14bb33c644979ab67875f28f0,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 9de4791abfc8d2648bd5a8e92b12a52c, type: 2}
     m_RemovedComponents: []
@@ -9742,7 +10372,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -2057541392408367497, guid: 260812b4eb28f9e4a9bf3bc4df5fa64a,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: c5ca37e894f1ee0468d89201036bb4bc, type: 2}
     - target: {fileID: 696510568898805871, guid: 260812b4eb28f9e4a9bf3bc4df5fa64a,
@@ -9832,6 +10462,134 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1159151241}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1173738024
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1173738025}
+  - component: {fileID: 1173738029}
+  - component: {fileID: 1173738028}
+  - component: {fileID: 1173738027}
+  - component: {fileID: 1173738026}
+  m_Layer: 0
+  m_Name: BoidBoundsWaterSurface
+  m_TagString: BoidBounds
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1173738025
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1173738024}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 15.95, y: 0.5, z: -40.22}
+  m_LocalScale: {x: 144.2224, y: 0.25568372, z: 82.900536}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1985964504}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1173738026
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1173738024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HabitatName: Water Surface
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
+--- !u!65 &1173738027
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1173738024}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1173738028
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1173738024}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1173738029
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1173738024}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &1196811193
 GameObject:
   m_ObjectHideFlags: 0
@@ -9880,6 +10638,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1196811196
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -9918,6 +10678,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -9939,9 +10704,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1196811198
 MeshFilter:
@@ -10023,6 +10790,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -10044,9 +10816,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1196856320
 MeshFilter:
@@ -10094,7 +10868,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 15.343, y: 224.972, z: 359.944}
 --- !u!95 &1197962724
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -10108,6 +10882,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -10172,14 +10947,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0.531
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0.531
+  m_Version: 2
 --- !u!81 &1197962727
 AudioListener:
   m_ObjectHideFlags: 0
@@ -10299,7 +11074,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -10372,6 +11147,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1223768702
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -10410,6 +11187,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -10431,9 +11213,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1223768704
 MeshFilter:
@@ -10650,17 +11434,23 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Version: 3
   m_UsePipelineSettings: 1
   m_AdditionalLightsShadowResolutionTier: 2
-  m_LightLayerMask: 1
-  m_RenderingLayers: 1
   m_CustomShadowLayers: 0
-  m_ShadowLayerMask: 1
-  m_ShadowRenderingLayers: 1
   m_LightCookieSize: {x: 1, y: 1}
   m_LightCookieOffset: {x: 0, y: 0}
   m_SoftShadowQuality: 2
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!108 &1273810789
 Light:
   m_ObjectHideFlags: 0
@@ -10669,15 +11459,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1273810786}
   m_Enabled: 1
-  serializedVersion: 10
+  serializedVersion: 12
   m_Type: 1
-  m_Shape: 0
   m_Color: {r: 0.5803922, g: 0.85882354, b: 0.7529412, a: 1}
   m_Intensity: 6
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 2
     m_Resolution: -1
@@ -10721,8 +11510,12 @@ Light:
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
+  m_ForceVisible: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
+  m_LightUnit: 1
+  m_LuxAtDistance: 1
+  m_EnableSpotReflector: 1
 --- !u!4 &1273810790
 Transform:
   m_ObjectHideFlags: 0
@@ -10849,7 +11642,7 @@ PrefabInstance:
     - target: {fileID: 3752049050044815172, guid: 96b66006e7293cf46b7e44ffda5185e2,
         type: 3}
       propertyPath: m_Name
-      value: Icelandic Rock Formation_tczbcguda (1)
+      value: Seabed Rock Scatter A (1)
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -10910,6 +11703,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1338265170
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -10948,6 +11743,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -10969,9 +11769,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1338265172
 MeshFilter:
@@ -10980,6 +11782,134 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1338265167}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!1 &1340024138
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1340024139}
+  - component: {fileID: 1340024143}
+  - component: {fileID: 1340024142}
+  - component: {fileID: 1340024141}
+  - component: {fileID: 1340024140}
+  m_Layer: 0
+  m_Name: BoidBoundsWaterNearSurface (2)
+  m_TagString: BoidBounds
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1340024139
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340024138}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -30.7, y: -1.8, z: -10.7}
+  m_LocalScale: {x: 43.562374, y: 0.9511946, z: 42.498962}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1985964504}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1340024140
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340024138}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HabitatName: Near Surface
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
+--- !u!65 &1340024141
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340024138}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1340024142
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340024138}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1340024143
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1340024138}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1001 &1376918513
 PrefabInstance:
@@ -11071,7 +12001,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -11118,7 +12048,7 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &1376918517
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -11132,6 +12062,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -11139,7 +12070,7 @@ Animator:
   m_WriteDefaultValuesOnDisable: 0
 --- !u!95 &1376918518
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -11153,6 +12084,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -11244,6 +12176,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Manta Ray
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1409553898
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -11282,6 +12216,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -11303,9 +12242,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1409553900
 MeshFilter:
@@ -11465,7 +12406,7 @@ PrefabInstance:
     - target: {fileID: 1203012096820458718, guid: 58ad90972c4698e47978ae8418ff0c8f,
         type: 3}
       propertyPath: m_Name
-      value: Quarry Cliff_ubhubhyda (7)
+      value: Seabed Layered Cliff A (7)
       objectReference: {fileID: 0}
     - target: {fileID: 2932446589375968628, guid: 58ad90972c4698e47978ae8418ff0c8f,
         type: 3}
@@ -11613,7 +12554,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -11698,7 +12639,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -11765,6 +12706,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1478753314
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -11803,6 +12746,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -11824,9 +12772,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1478753316
 MeshFilter:
@@ -11884,6 +12834,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Megalodon
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1480259162
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -11922,6 +12874,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -11943,9 +12900,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1480259164
 MeshFilter:
@@ -11966,7 +12925,7 @@ GameObject:
   - component: {fileID: 1496066077}
   m_Layer: 0
   m_Name: Videos
-  m_TagString: Untagged
+  m_TagString: EditorOnly
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -12020,7 +12979,7 @@ PrefabInstance:
     - target: {fileID: 2342142131378485443, guid: 8e208cf120da3fc4791ba979ca582ce7,
         type: 3}
       propertyPath: m_Name
-      value: Quarry Cliff_uchoab3fa
+      value: Seabed Fractured Cliff B
       objectReference: {fileID: 0}
     - target: {fileID: 2597710707526456002, guid: 8e208cf120da3fc4791ba979ca582ce7,
         type: 3}
@@ -12156,6 +13115,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Manta Ray
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1512414098
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -12194,6 +13155,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -12215,9 +13181,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1512414100
 MeshFilter:
@@ -12275,6 +13243,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1519201125
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -12313,6 +13283,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -12334,9 +13309,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1519201127
 MeshFilter:
@@ -12407,7 +13384,7 @@ PrefabInstance:
     - target: {fileID: 3752049050044815172, guid: 96b66006e7293cf46b7e44ffda5185e2,
         type: 3}
       propertyPath: m_Name
-      value: Icelandic Rock Formation_tczbcguda
+      value: Seabed Rock Scatter A
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -12458,7 +13435,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0.0000001205777, y: 0.3815506, z: 0.0000003562367}
 --- !u!95 &1525265104
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -12472,6 +13449,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -12536,14 +13514,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
 --- !u!81 &1525265107
 AudioListener:
   m_ObjectHideFlags: 0
@@ -12663,7 +13641,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -12730,6 +13708,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Loggerhead Sea Turtle
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1544090820
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -12768,6 +13748,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -12789,9 +13774,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1544090822
 MeshFilter:
@@ -12839,7 +13826,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 15.343, y: 224.972, z: 359.944}
 --- !u!95 &1555836835
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -12853,6 +13840,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -12917,14 +13905,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0.531
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0.531
+  m_Version: 2
 --- !u!81 &1555836838
 AudioListener:
   m_ObjectHideFlags: 0
@@ -13044,7 +14032,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -13256,7 +14244,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -13352,6 +14340,7 @@ Terrain:
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 5
   m_SplatMapDistance: 1000
+  m_HeightmapMinimumLODSimplification: 0
   m_HeightmapMaximumLOD: 0
   m_ShadowCastingMode: 2
   m_DrawHeightmap: 1
@@ -13427,16 +14416,19 @@ MonoBehaviour:
     groupName: Sea Bass 1
     population: 0.029
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Posidonia Oceanica
     groupName: Posidonia Oceanica 1
     population: 0.1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   - presetName: Fishing Net
     groupName: Fishing Net 1
     population: 1
     visibilities: []
+    sizes: []
     overrideHabitats: []
   viewsCount: 1
   turbidities:
@@ -13585,6 +14577,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1694172313
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -13623,6 +14617,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -13644,9 +14643,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1694172315
 MeshFilter:
@@ -13717,7 +14718,7 @@ PrefabInstance:
     - target: {fileID: 3752049050044815172, guid: 96b66006e7293cf46b7e44ffda5185e2,
         type: 3}
       propertyPath: m_Name
-      value: Icelandic Rock Formation_tczbcguda (2)
+      value: Seabed Rock Scatter A (2)
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -13833,7 +14834,7 @@ PrefabInstance:
     - target: {fileID: 7841898233694566802, guid: ffab090c1dfe4744eb1f8c9400b82452,
         type: 3}
       propertyPath: m_Name
-      value: Limestone Slab_ub3rcjzda
+      value: Seabed Flat Rock A
       objectReference: {fileID: 0}
     - target: {fileID: 8833610277846422359, guid: ffab090c1dfe4744eb1f8c9400b82452,
         type: 3}
@@ -13901,7 +14902,7 @@ PrefabInstance:
     - target: {fileID: 1203012096820458718, guid: 58ad90972c4698e47978ae8418ff0c8f,
         type: 3}
       propertyPath: m_Name
-      value: Quarry Cliff_ubhubhyda (2)
+      value: Seabed Layered Cliff A (2)
       objectReference: {fileID: 0}
     - target: {fileID: 2932446589375968628, guid: 58ad90972c4698e47978ae8418ff0c8f,
         type: 3}
@@ -13989,6 +14990,134 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 1732809757}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1738149500
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1738149501}
+  - component: {fileID: 1738149505}
+  - component: {fileID: 1738149504}
+  - component: {fileID: 1738149503}
+  - component: {fileID: 1738149502}
+  m_Layer: 0
+  m_Name: BoidBoundsWaterNearSurface (1)
+  m_TagString: BoidBounds
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1738149501
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1738149500}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 15.95, y: -1.8, z: -53.82}
+  m_LocalScale: {x: 43.562374, y: 0.9511946, z: 42.498962}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1985964504}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1738149502
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1738149500}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HabitatName: Near Surface
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
+--- !u!65 &1738149503
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1738149500}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &1738149504
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1738149500}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &1738149505
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1738149500}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &1739030430
 GameObject:
   m_ObjectHideFlags: 0
@@ -14027,7 +15156,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: -0.00000003975177, y: 359.5965, z: -0.0000006712659}
 --- !u!95 &1739030432
 Animator:
-  serializedVersion: 5
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -14041,6 +15170,7 @@ Animator:
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
+  m_AnimatePhysics: 0
   m_WarningMessage: 
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
@@ -14103,14 +15233,14 @@ MonoBehaviour:
   m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
   m_RequiresDepthTexture: 0
   m_RequiresColorTexture: 0
-  m_Version: 2
   m_TaaSettings:
-    quality: 3
-    frameInfluence: 0.1
-    jitterScale: 1
-    mipBias: 0
-    varianceClampScale: 0.9
-    contrastAdaptiveSharpening: 0.531
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0.531
+  m_Version: 2
 --- !u!81 &1739030435
 AudioListener:
   m_ObjectHideFlags: 0
@@ -14224,6 +15354,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Megalodon
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1764592643
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -14262,6 +15394,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -14283,9 +15420,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1764592645
 MeshFilter:
@@ -14411,6 +15550,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Dungon
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1782946824
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -14449,6 +15590,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -14470,9 +15616,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1782946826
 MeshFilter:
@@ -14540,6 +15688,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -14561,9 +15714,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1798993638
 MeshFilter:
@@ -14631,7 +15786,7 @@ PrefabInstance:
     - target: {fileID: 2342142131378485443, guid: 8e208cf120da3fc4791ba979ca582ce7,
         type: 3}
       propertyPath: m_Name
-      value: Quarry Cliff_uchoab3fa (3)
+      value: Seabed Fractured Cliff B (3)
       objectReference: {fileID: 0}
     - target: {fileID: 2597710707526456002, guid: 8e208cf120da3fc4791ba979ca582ce7,
         type: 3}
@@ -14802,6 +15957,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1808507156
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -14840,6 +15997,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -14861,9 +16023,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1808507158
 MeshFilter:
@@ -14950,6 +16114,7 @@ Terrain:
   m_DetailObjectDensity: 1
   m_HeightmapPixelError: 5
   m_SplatMapDistance: 1000
+  m_HeightmapMinimumLODSimplification: 0
   m_HeightmapMaximumLOD: 0
   m_ShadowCastingMode: 2
   m_DrawHeightmap: 1
@@ -15019,6 +16184,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1833630741
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -15057,6 +16224,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -15078,9 +16250,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1833630743
 MeshFilter:
@@ -15138,6 +16312,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Predators
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1857365903
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -15176,6 +16352,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -15197,9 +16378,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1857365905
 MeshFilter:
@@ -15208,125 +16391,6 @@ MeshFilter:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1857365900}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1 &1864459949
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1864459950}
-  - component: {fileID: 1864459954}
-  - component: {fileID: 1864459953}
-  - component: {fileID: 1864459952}
-  - component: {fileID: 1864459951}
-  m_Layer: 0
-  m_Name: BoidBoundsSeaweeds (13)
-  m_TagString: BoidBounds
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &1864459950
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1864459949}
-  serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 66.01, y: -12.38, z: -45.58}
-  m_LocalScale: {x: 8.441905, y: 3.7761028, z: 7.0759573}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1985964504}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1864459951
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1864459949}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  HabitatName: Seaweed
---- !u!65 &1864459952
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1864459949}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 1, y: 1, z: 1}
-  m_Center: {x: 0, y: 0, z: 0}
---- !u!23 &1864459953
-MeshRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1864459949}
-  m_Enabled: 0
-  m_CastShadows: 1
-  m_ReceiveShadows: 1
-  m_DynamicOccludee: 1
-  m_StaticShadowCaster: 0
-  m_MotionVectors: 1
-  m_LightProbeUsage: 1
-  m_ReflectionProbeUsage: 1
-  m_RayTracingMode: 2
-  m_RayTraceProcedural: 0
-  m_RenderingLayerMask: 1
-  m_RendererPriority: 0
-  m_Materials:
-  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
-  m_StaticBatchInfo:
-    firstSubMesh: 0
-    subMeshCount: 0
-  m_StaticBatchRoot: {fileID: 0}
-  m_ProbeAnchor: {fileID: 0}
-  m_LightProbeVolumeOverride: {fileID: 0}
-  m_ScaleInLightmap: 1
-  m_ReceiveGI: 1
-  m_PreserveUVs: 0
-  m_IgnoreNormalsForChartDetection: 0
-  m_ImportantGI: 0
-  m_StitchLightmapSeams: 1
-  m_SelectedEditorRenderState: 3
-  m_MinimumChartSize: 4
-  m_AutoUVMaxDistance: 0.5
-  m_AutoUVMaxAngle: 89
-  m_LightmapParameters: {fileID: 0}
-  m_SortingLayerID: 0
-  m_SortingLayer: 0
-  m_SortingOrder: 0
-  m_AdditionalVertexStreams: {fileID: 0}
---- !u!33 &1864459954
-MeshFilter:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1864459949}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1 &1872929730
 GameObject:
@@ -15376,6 +16440,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1872929733
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -15414,6 +16480,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -15435,9 +16506,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1872929735
 MeshFilter:
@@ -15447,79 +16520,6 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1872929730}
   m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!1001 &1888964664
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 5659889479186811400, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_Name
-      value: AnimationTesting
-      objectReference: {fileID: 0}
-    - target: {fileID: 5659889479186811400, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_IsActive
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8176760946618296012, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_LocalPosition.x
-      value: -11.47
-      objectReference: {fileID: 0}
-    - target: {fileID: 8176760946618296012, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_LocalPosition.y
-      value: -12.55
-      objectReference: {fileID: 0}
-    - target: {fileID: 8176760946618296012, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 6.65
-      objectReference: {fileID: 0}
-    - target: {fileID: 8176760946618296012, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.70710754
-      objectReference: {fileID: 0}
-    - target: {fileID: 8176760946618296012, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8176760946618296012, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_LocalRotation.y
-      value: -0.707106
-      objectReference: {fileID: 0}
-    - target: {fileID: 8176760946618296012, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_LocalRotation.z
-      value: -0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8176760946618296012, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 8176760946618296012, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: -90
-      objectReference: {fileID: 0}
-    - target: {fileID: 8176760946618296012, guid: 22d7f04c2bc2edf47897c8fa8fd436c0,
-        type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: 22d7f04c2bc2edf47897c8fa8fd436c0, type: 3}
 --- !u!1 &1890971965
 GameObject:
   m_ObjectHideFlags: 0
@@ -15615,7 +16615,6 @@ Transform:
   - {fileID: 1054906932}
   - {fileID: 754790916}
   - {fileID: 418236943}
-  - {fileID: 121716687}
   - {fileID: 1732809758}
   - {fileID: 1907532532}
   - {fileID: 5831768}
@@ -15691,7 +16690,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -15807,7 +16806,7 @@ PrefabInstance:
     - target: {fileID: 1203012096820458718, guid: 58ad90972c4698e47978ae8418ff0c8f,
         type: 3}
       propertyPath: m_Name
-      value: Quarry Cliff_ubhubhyda (1)
+      value: Seabed Layered Cliff A (1)
       objectReference: {fileID: 0}
     - target: {fileID: 2932446589375968628, guid: 58ad90972c4698e47978ae8418ff0c8f,
         type: 3}
@@ -15943,6 +16942,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1921007835
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -15981,6 +16982,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -16002,9 +17008,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1921007837
 MeshFilter:
@@ -16062,6 +17070,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1928250996
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -16100,6 +17110,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -16121,9 +17136,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1928250998
 MeshFilter:
@@ -16181,6 +17198,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1931600133
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -16219,6 +17238,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -16240,9 +17264,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1931600135
 MeshFilter:
@@ -16332,7 +17358,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -7635826562936255635, guid: f3667449c4c2d5f48b2796a4e8898a07,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: 9d0c2e11141c4544d9d99a73d8db2cda, type: 2}
     - target: {fileID: 919132149155446097, guid: f3667449c4c2d5f48b2796a4e8898a07,
@@ -16454,6 +17480,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -16475,9 +17506,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1953581957
 MeshFilter:
@@ -16535,6 +17568,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &1968027235
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -16573,6 +17608,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -16594,9 +17634,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1968027237
 MeshFilter:
@@ -16613,8 +17655,7 @@ LightingSettings:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: 
-  serializedVersion: 6
-  m_GIWorkflowMode: 1
+  serializedVersion: 10
   m_EnableBakedLightmaps: 0
   m_EnableRealtimeLightmaps: 0
   m_RealtimeEnvironmentLighting: 1
@@ -16624,9 +17665,17 @@ LightingSettings:
   m_UsingShadowmask: 1
   m_BakeBackend: 1
   m_LightmapMaxSize: 1024
+  m_LightmapSizeFixed: 0
+  m_UseMipmapLimits: 1
   m_BakeResolution: 40
   m_Padding: 2
   m_LightmapCompression: 3
+  m_LightmapPackingMode: 1
+  m_LightmapPackingMethod: 0
+  m_XAtlasPackingAttempts: 16384
+  m_XAtlasBruteForce: 0
+  m_XAtlasBlockAlign: 0
+  m_XAtlasRepackUnderutilizedLightmaps: 1
   m_AO: 0
   m_AOMaxDistance: 1
   m_CompAOExponent: 1
@@ -16637,13 +17686,11 @@ LightingSettings:
   m_FilterMode: 1
   m_LightmapParameters: {fileID: 15204, guid: 0000000000000000f000000000000000, type: 0}
   m_ExportTrainingData: 0
+  m_EnableWorkerProcessBaking: 1
   m_TrainingDataDestination: TrainingData
   m_RealtimeResolution: 2
   m_ForceWhiteAlbedo: 0
   m_ForceUpdates: 0
-  m_FinalGather: 0
-  m_FinalGatherRayCount: 256
-  m_FinalGatherFiltering: 1
   m_PVRCulling: 1
   m_PVRSampling: 1
   m_PVRDirectSampleCount: 32
@@ -16667,8 +17714,6 @@ LightingSettings:
   m_PVRFilteringAtrousPositionSigmaDirect: 0.5
   m_PVRFilteringAtrousPositionSigmaIndirect: 2
   m_PVRFilteringAtrousPositionSigmaAO: 1
-  m_PVRTiledBaking: 0
-  m_NumRaysToShootPerTexel: -1
   m_RespectSceneVisibilityWhenBakingGI: 0
 --- !u!1 &1974089661
 GameObject:
@@ -16740,13 +17785,12 @@ Transform:
   - {fileID: 2130274077}
   - {fileID: 249740489}
   - {fileID: 354371416}
-  - {fileID: 16009029}
-  - {fileID: 1864459950}
   - {fileID: 1223768700}
   - {fileID: 996864401}
   - {fileID: 1060332874}
   - {fileID: 6420102}
   - {fileID: 602717585}
+  - {fileID: 371740077}
   - {fileID: 1808507154}
   - {fileID: 687205922}
   - {fileID: 1931600131}
@@ -16772,6 +17816,13 @@ Transform:
   - {fileID: 1872929731}
   - {fileID: 85156676}
   - {fileID: 2031410926}
+  - {fileID: 1173738025}
+  - {fileID: 654607428}
+  - {fileID: 1340024139}
+  - {fileID: 2013473016}
+  - {fileID: 1738149501}
+  - {fileID: 170677226}
+  - {fileID: 497375685}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &2007196176
@@ -16848,6 +17899,134 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 2007196176}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2013473015
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2013473016}
+  - component: {fileID: 2013473020}
+  - component: {fileID: 2013473019}
+  - component: {fileID: 2013473018}
+  - component: {fileID: 2013473017}
+  m_Layer: 0
+  m_Name: BoidBoundsWaterNearSurface (4)
+  m_TagString: BoidBounds
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2013473016
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2013473015}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 64.2, y: -1.8, z: -10.7}
+  m_LocalScale: {x: 43.562374, y: 0.9511946, z: 42.498962}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1985964504}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2013473017
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2013473015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HabitatName: Near Surface
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
+--- !u!65 &2013473018
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2013473015}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &2013473019
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2013473015}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &2013473020
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2013473015}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1001 &2014675443
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17079,6 +18258,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &2031410928
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -17117,6 +18298,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -17138,9 +18324,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &2031410930
 MeshFilter:
@@ -17210,7 +18398,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -17286,7 +18474,7 @@ GameObject:
   m_IsActive: 1
 --- !u!199 &2055355173
 ParticleSystemRenderer:
-  serializedVersion: 6
+  serializedVersion: 7
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -17302,6 +18490,11 @@ ParticleSystemRenderer:
   m_ReflectionProbeUsage: 0
   m_RayTracingMode: 0
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -17323,9 +18516,11 @@ ParticleSystemRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_RenderMode: 0
   m_MeshDistribution: 0
   m_SortMode: 0
@@ -17357,7 +18552,6 @@ ParticleSystemRenderer:
   m_MeshWeighting1: 1
   m_MeshWeighting2: 1
   m_MeshWeighting3: 1
-  m_MaskInteraction: 0
 --- !u!198 &2055355174
 ParticleSystem:
   m_ObjectHideFlags: 0
@@ -22269,6 +23463,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -22290,9 +23489,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &2080919891
 MeshFilter:
@@ -22356,6 +23557,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Coastal Zone
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &2108075086
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -22394,6 +23597,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -22415,9 +23623,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &2108075088
 MeshFilter:
@@ -22475,6 +23685,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &2109344931
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -22513,6 +23725,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -22534,9 +23751,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &2109344933
 MeshFilter:
@@ -22630,6 +23849,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Seaweed
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &2130274079
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -22668,6 +23889,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -22689,9 +23915,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &2130274081
 MeshFilter:
@@ -22749,6 +23977,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Dungon
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &2133357096
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -22787,6 +24017,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -22808,9 +24043,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &2133357098
 MeshFilter:
@@ -22868,6 +24105,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   HabitatName: Dungon
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
 --- !u!65 &2134567980
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -22906,6 +24145,11 @@ MeshRenderer:
   m_ReflectionProbeUsage: 1
   m_RayTracingMode: 2
   m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -22927,9 +24171,11 @@ MeshRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &2134567982
 MeshFilter:
@@ -22999,7 +24245,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 157817122286153385, guid: 51566ba7b3620aa4fa430c3d5b922f32,
         type: 3}
-      propertyPath: m_Materials.Array.data[0]
+      propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: fb516d8412a421a45ba4cfe832ecded7, type: 2}
     - target: {fileID: 8771091787928289351, guid: 51566ba7b3620aa4fa430c3d5b922f32,
@@ -23024,6 +24270,134 @@ Transform:
     type: 3}
   m_PrefabInstance: {fileID: 2143328910}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &2146500001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2146500002}
+  - component: {fileID: 2146500006}
+  - component: {fileID: 2146500005}
+  - component: {fileID: 2146500004}
+  - component: {fileID: 2146500003}
+  m_Layer: 0
+  m_Name: Shrimp
+  m_TagString: BoidBounds
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2146500002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2146500001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 2.83, y: -24.3, z: -26.27}
+  m_LocalScale: {x: 6.3857126, y: 0.6, z: 12.744453}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 505105850}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2146500003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2146500001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48d632b39b0708b409b9b44fe8488a68, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  HabitatName: Shrimp
+  Hardness: 0.1
+  SourceCollider: {fileID: 0}
+--- !u!65 &2146500004
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2146500001}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!23 &2146500005
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2146500001}
+  m_Enabled: 0
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 0ffe6557cabb22c449324f0edcca56f9, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &2146500006
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2146500001}
+  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -23040,7 +24414,6 @@ SceneRoots:
   - {fileID: 1942379868}
   - {fileID: 373911259}
   - {fileID: 1985964504}
-  - {fileID: 1888964664}
   - {fileID: 2055355175}
   - {fileID: 2117140007}
   - {fileID: 1594692252}

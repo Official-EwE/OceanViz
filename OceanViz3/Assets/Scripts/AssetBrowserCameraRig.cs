@@ -4,13 +4,14 @@ namespace OceanViz3
     using UnityEngine.EventSystems;
     using Unity.Entities;
     using Unity.Mathematics;
+    using Unity.Transforms;
     using UnityEngine.UIElements;
 
     /// <summary>
     /// Provides an orbit-style camera rig for the Asset Browser mode.
-    /// The camera orbits around the rig's position when the user holds the left mouse button (LMB)
-    /// as long as the pointer is not over a UI element. While orbiting the cursor is hidden and
-    /// locked, restoring when the button is released.
+    /// The camera follows the selected asset and orbits around it when the user holds the left
+    /// mouse button (LMB) over the 3D interaction area. Target following and orbit placement are
+    /// both applied in LateUpdate so no other component needs to write either camera transform.
     /// </summary>
     public class AssetBrowserCameraRig : MonoBehaviour
     {
@@ -18,10 +19,10 @@ namespace OceanViz3
 
         [Header("Movement Speeds")]
         [Tooltip("Degrees per pixel mouse movement.")]
-        public float rotationSpeed = 1.2f;
+        public float rotationSpeed = 2f;
 
-        [Tooltip("Zoom speed using mouse scroll wheel.")]
-        public float zoomSpeed = 80f;
+        [Tooltip("World-space distance moved per mouse-wheel step.")]
+        public float zoomSpeed = 1.5f;
 
         [Header("Zoom Limits")]
         public float minDistance = 0.001f;
@@ -40,6 +41,7 @@ namespace OceanViz3
         private float yaw;
         private float pitch;
         private float distance;
+        private Entity targetEntity = Entity.Null;
 
         // ECS integration (optional – mirrors SimulationModeCameraRig behaviour)
         private EntityManager entityManager;
@@ -59,7 +61,7 @@ namespace OceanViz3
             var al = orbitCamera.GetComponent<AudioListener>();
             if (al != null)
             {
-                var audioListeners = FindObjectsOfType<AudioListener>();
+                var audioListeners = FindObjectsByType<AudioListener>(FindObjectsSortMode.None);
                 if (audioListeners.Length > 1)
                 {
                     al.enabled = false;
@@ -93,8 +95,21 @@ namespace OceanViz3
         private void Update()
         {
             HandleInput();
+        }
+
+        private void LateUpdate()
+        {
+            UpdateTargetFollow();
+
             UpdateCameraTransform();
             UpdateSceneData();
+        }
+
+        private void OnDisable()
+        {
+            isOrbiting = false;
+            UnityEngine.Cursor.visible = true;
+            UnityEngine.Cursor.lockState = CursorLockMode.None;
         }
 
         private void HandleInput()
@@ -120,8 +135,8 @@ namespace OceanViz3
             // While orbiting, update angles based on mouse movement.
             if (isOrbiting)
             {
-                float deltaYaw = Input.GetAxis("Mouse X") * rotationSpeed * 100f * Time.deltaTime;
-                float deltaPitch = -Input.GetAxis("Mouse Y") * rotationSpeed * 100f * Time.deltaTime;
+                float deltaYaw = Input.GetAxis("Mouse X") * rotationSpeed;
+                float deltaPitch = -Input.GetAxis("Mouse Y") * rotationSpeed;
                 yaw += deltaYaw;
                 pitch += deltaPitch; // deltaPitch already negated above
                 pitch = Mathf.Clamp(pitch, minPitch, maxPitch);
@@ -131,7 +146,7 @@ namespace OceanViz3
             float scroll = Input.mouseScrollDelta.y;
             if (Mathf.Abs(scroll) > 0.01f && IsPointerOver3DInteractionArea(Input.mousePosition))
             {
-                float zoomDelta = -scroll * zoomSpeed * Time.deltaTime;
+                float zoomDelta = -scroll * zoomSpeed;
                 distance = Mathf.Clamp(distance + zoomDelta, minDistance, maxDistance);
             }
         }
@@ -143,6 +158,27 @@ namespace OceanViz3
             Vector3 newPos = transform.position + rot * (Vector3.back * distance);
             orbitCamera.transform.position = newPos;
             orbitCamera.transform.LookAt(transform.position);
+        }
+
+        private void UpdateTargetFollow()
+        {
+            if (targetEntity == Entity.Null)
+            {
+                return;
+            }
+
+            if (entityManager == null || !entityManager.Exists(targetEntity))
+            {
+                targetEntity = Entity.Null;
+                return;
+            }
+
+            Debug.Assert(
+                entityManager.HasComponent<LocalToWorld>(targetEntity),
+                "[AssetBrowserCameraRig] Tracked entity must have a LocalToWorld component.");
+
+            LocalToWorld targetTransform = entityManager.GetComponentData<LocalToWorld>(targetEntity);
+            transform.position = targetTransform.Position;
         }
 
         private void UpdateSceneData()
@@ -218,6 +254,23 @@ namespace OceanViz3
         public void SetUIDocument(UIDocument doc)
         {
             uiDocument = doc;
+        }
+
+        /// <summary>
+        /// Sets the ECS entity whose current render transform the orbit pivot follows.
+        /// </summary>
+        public void SetTargetEntity(Entity entity)
+        {
+            Debug.Assert(entity != Entity.Null, "[AssetBrowserCameraRig] Cannot follow a null entity.");
+            targetEntity = entity;
+        }
+
+        /// <summary>
+        /// Stops target following while preserving the current orbit pivot and camera view.
+        /// </summary>
+        public void ClearTargetEntity()
+        {
+            targetEntity = Entity.Null;
         }
     }
 } 

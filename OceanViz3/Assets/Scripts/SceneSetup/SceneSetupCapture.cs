@@ -162,6 +162,36 @@ namespace OceanViz3
             return visEntries.ToArray();
         }
 
+        private static SizeEntry[] BuildSizesFromMultipliers(float[] multipliers)
+        {
+            if (multipliers == null)
+            {
+                return new SizeEntry[0];
+            }
+
+            List<SizeEntry> sizeEntries = new List<SizeEntry>();
+            int length = multipliers.Length;
+            for (int i = 0; i < length; i++)
+            {
+                float multiplier = multipliers[i];
+                if (multiplier < 0.5f)
+                {
+                    multiplier = 0.5f;
+                }
+                if (multiplier > 2.0f)
+                {
+                    multiplier = 2.0f;
+                }
+
+                SizeEntry entry = new SizeEntry();
+                entry.viewIndex = i;
+                entry.sizeMultiplier = multiplier;
+                sizeEntries.Add(entry);
+            }
+
+            return sizeEntries.ToArray();
+        }
+
         private static GroupEntry BuildGroupEntryFromDynamic(DynamicEntitiesGroup group)
         {
             GroupEntry entry = new GroupEntry();
@@ -193,6 +223,7 @@ namespace OceanViz3
 
             int[] visPercentages = group.GetViewVisibilityPercentagesCopy();
             entry.visibilities = BuildVisibilitiesFromPercentages(visPercentages);
+            entry.sizes = BuildSizesFromMultipliers(group.GetViewSizeMultipliersCopy());
 
             return entry;
         }
@@ -228,6 +259,7 @@ namespace OceanViz3
 
             int[] visPercentages = group.GetViewVisibilityPercentagesCopy();
             entry.visibilities = BuildVisibilitiesFromPercentages(visPercentages);
+            entry.sizes = BuildSizesFromMultipliers(group.GetViewSizeMultipliersCopy());
 
             return entry;
         }

@@ -1,0 +1,217 @@
+{
+    "version": 1,
+    "locationName": "Mediterranean",
+    "viewsCount": 3,
+    "turbidities": [
+        {
+            "viewIndex": 0,
+            "turbidity": 0.0
+        },
+        {
+            "viewIndex": 1,
+            "turbidity": -0.38999998569488528
+        },
+        {
+            "viewIndex": 2,
+            "turbidity": -0.6899999976158142
+        },
+        {
+            "viewIndex": 3,
+            "turbidity": 0.25
+        }
+    ],
+    "groups": [
+        {
+            "presetName": "European Hake",
+            "groupName": "European Hake",
+            "population": 0.25,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.3799999952316284
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Thresher Shark",
+            "groupName": "Thresher Shark",
+            "population": 0.10000000149011612,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.2800000011920929
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Sea Bass",
+            "groupName": "Sea Bass",
+            "population": 0.25,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Old Tire",
+            "groupName": "Old Tire",
+            "population": 0.9833333492279053,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Fishing Net",
+            "groupName": "Fishing Net",
+            "population": 1.0,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Posidonia Oceanica",
+            "groupName": "Posidonia Oceanica",
+            "population": 0.6595733165740967,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.30000001192092898
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.05999999865889549
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Cystoseira",
+            "groupName": "Cystoseira",
+            "population": 0.04255333170294762,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.5
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.10999999940395355
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.05999999865889549
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Kelp",
+            "groupName": "Kelp",
+            "population": 0.14090000092983247,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.8999999761581421
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.2199999988079071
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        }
+    ]
+}

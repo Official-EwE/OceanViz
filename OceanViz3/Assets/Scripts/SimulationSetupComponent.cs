@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Inspector-driven configuration for initial simulation setup.
-/// Allows setting location, spawning entity groups with population and per-view visibility,
+/// Allows setting location, spawning entity groups with population, per-view visibility, per-view size,
 /// view count, and per-view turbidity. Executes via SimulationAPI's queuing once per scene/location load
 /// when discovered by the SimulationAPI (either at startup or when a new location becomes ready).
 /// </summary>
@@ -33,6 +33,17 @@ public class SimulationSetupComponent : MonoBehaviour, IAPICallsExecutor
     }
 
     [System.Serializable]
+    public class SizeEntry
+    {
+        [Tooltip("Target view index (0-3). Max supported views is 4.")]
+        public int viewIndex = 0;
+
+        [Range(0.5f, 2.0f)]
+        [Tooltip("Size multiplier for the group in the given view (0.5-2.0).")]
+        public float sizeMultiplier = 1f;
+    }
+
+    [System.Serializable]
     public class GroupConfig
     {
         [Header("Preset and Naming")]
@@ -49,6 +60,9 @@ public class SimulationSetupComponent : MonoBehaviour, IAPICallsExecutor
 
         [Tooltip("Per-view visibility entries for this group.")]
         public VisibilityEntry[] visibilities = new VisibilityEntry[0];
+
+        [Tooltip("Per-view size entries for this group.")]
+        public SizeEntry[] sizes = new SizeEntry[0];
 
         [Header("Habitat Override")]
         [Tooltip("Optional habitat names to override preset spawning habitats. Leave empty to use preset defaults.")]
@@ -215,6 +229,38 @@ public class SimulationSetupComponent : MonoBehaviour, IAPICallsExecutor
                         api.SetEntityGroupViewVisibility(resolvedGroupName, entry.viewIndex, clampedVisibility);
                     }
                 }
+
+                if (group.sizes != null)
+                {
+                    for (int j = 0; j < group.sizes.Length; j++)
+                    {
+                        SizeEntry entry = group.sizes[j];
+                        if (entry == null)
+                        {
+                            continue;
+                        }
+
+                        bool viewIndexInRange = entry.viewIndex >= 0 && entry.viewIndex < 4;
+                        Debug.Assert(viewIndexInRange, "Size viewIndex must be in [0,3]");
+                        if (!viewIndexInRange)
+                        {
+                            continue;
+                        }
+
+                        bool sizeInRange = entry.sizeMultiplier >= 0.5f && entry.sizeMultiplier <= 2.0f;
+                        Debug.Assert(sizeInRange, "Size multiplier must be in [0.5,2.0].");
+                        float clampedSize = entry.sizeMultiplier;
+                        if (clampedSize < 0.5f)
+                        {
+                            clampedSize = 0.5f;
+                        }
+                        if (clampedSize > 2.0f)
+                        {
+                            clampedSize = 2.0f;
+                        }
+                        api.SetEntityGroupViewSize(resolvedGroupName, entry.viewIndex, clampedSize);
+                    }
+                }
             }
         }
 
@@ -265,7 +311,7 @@ public class SimulationSetupComponent : MonoBehaviour, IAPICallsExecutor
 
         if (cachedMainScene == null)
         {
-            cachedMainScene = FindObjectOfType<MainScene>();
+            cachedMainScene = UnityEngine.Object.FindFirstObjectByType<MainScene>();
         }
     }
 
@@ -278,7 +324,7 @@ public class SimulationSetupComponent : MonoBehaviour, IAPICallsExecutor
 
         if (cachedMainScene == null)
         {
-            cachedMainScene = FindObjectOfType<MainScene>();
+            cachedMainScene = UnityEngine.Object.FindFirstObjectByType<MainScene>();
         }
 
         if (cachedMainScene == null || cachedMainScene.simulationModeManager == null)

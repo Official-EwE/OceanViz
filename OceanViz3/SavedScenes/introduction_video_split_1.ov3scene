@@ -1,0 +1,193 @@
+{
+    "version": 1,
+    "locationName": "Mediterranean",
+    "viewsCount": 3,
+    "turbidities": [
+        {
+            "viewIndex": 0,
+            "turbidity": -0.800000011920929
+        },
+        {
+            "viewIndex": 1,
+            "turbidity": -0.5
+        },
+        {
+            "viewIndex": 2,
+            "turbidity": 0.0
+        },
+        {
+            "viewIndex": 3,
+            "turbidity": 0.25
+        }
+    ],
+    "groups": [
+        {
+            "presetName": "Common Dolphin",
+            "groupName": "Common Dolphin",
+            "population": 0.4000000059604645,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "European Hake",
+            "groupName": "European Hake",
+            "population": 0.25,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Old Tire",
+            "groupName": "Old Tire",
+            "population": 0.9833333492279053,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Fishing Net",
+            "groupName": "Fishing Net",
+            "population": 0.4893999993801117,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Posidonia Oceanica",
+            "groupName": "Posidonia Oceanica",
+            "population": 0.6595733165740967,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.10999999940395355
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.05999999865889549
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Padina Pavonica",
+            "groupName": "Padina Pavonica",
+            "population": 0.25,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Cystoseira",
+            "groupName": "Cystoseira",
+            "population": 0.04255333170294762,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.10999999940395355
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        }
+    ]
+}

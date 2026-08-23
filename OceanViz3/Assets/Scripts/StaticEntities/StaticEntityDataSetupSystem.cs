@@ -6,9 +6,197 @@ using Unity.Burst;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Transforms;
+using System;
 
 namespace OceanViz3
 {
+    /// <summary>
+    /// Owns immutable terrain height and flora splatmap data for every location visited during this app session.
+    /// Location loading prepares this cache before entity groups are allowed to spawn.
+    /// </summary>
+    public sealed class StaticEntityLocationDataCache : IDisposable
+    {
+        public readonly struct SplatmapData
+        {
+            public readonly BlobAssetReference<ByteBlob> BlobRef;
+            public readonly int Width;
+            public readonly int Height;
+            public readonly int FallbackIndex;
+
+            public SplatmapData(
+                BlobAssetReference<ByteBlob> blobRef,
+                int width,
+                int height,
+                int fallbackIndex)
+            {
+                BlobRef = blobRef;
+                Width = width;
+                Height = height;
+                FallbackIndex = fallbackIndex;
+            }
+        }
+
+        public sealed class LocationData
+        {
+            public readonly BlobAssetReference<FloatBlob> HeightmapBlobRef;
+            public readonly int HeightmapWidth;
+            public readonly int HeightmapHeight;
+            public readonly Dictionary<string, SplatmapData> Splatmaps;
+
+            public LocationData(
+                BlobAssetReference<FloatBlob> heightmapBlobRef,
+                int heightmapWidth,
+                int heightmapHeight,
+                Dictionary<string, SplatmapData> splatmaps)
+            {
+                HeightmapBlobRef = heightmapBlobRef;
+                HeightmapWidth = heightmapWidth;
+                HeightmapHeight = heightmapHeight;
+                Splatmaps = splatmaps;
+            }
+        }
+
+        private readonly Dictionary<string, LocationData> locations = new Dictionary<string, LocationData>();
+        private bool isDisposed;
+
+        public void Prepare(LocationScript locationScript)
+        {
+            Debug.Assert(!isDisposed, "Static entity location data cannot be prepared after its cache is disposed.");
+            Debug.Assert(locationScript != null, "Static entity location data preparation requires a LocationScript.");
+
+            string locationKey = GetLocationKey(locationScript);
+            if (locations.ContainsKey(locationKey))
+            {
+                Debug.Log("[StaticEntityLocationDataCache] Reusing prepared data for " + locationKey + ".");
+                return;
+            }
+
+            Terrain terrain = locationScript.GetTerrain();
+            Debug.Assert(terrain != null, "Static entity location data preparation requires a Terrain.");
+            Debug.Assert(terrain.terrainData != null, "Static entity location data preparation requires TerrainData.");
+
+            TerrainData terrainData = terrain.terrainData;
+            int heightmapResolution = terrainData.heightmapResolution;
+            float[,] heightmapData = terrainData.GetHeights(0, 0, heightmapResolution, heightmapResolution);
+            BlobAssetReference<FloatBlob> heightmapBlobRef;
+            using (var blobBuilder = new BlobBuilder(Allocator.Temp))
+            {
+                ref FloatBlob heightmapBlobAsset = ref blobBuilder.ConstructRoot<FloatBlob>();
+                int length = heightmapResolution * heightmapResolution;
+                BlobBuilderArray<float> heightmapArrayBuilder = blobBuilder.Allocate(ref heightmapBlobAsset.Values, length);
+                for (int y = 0; y < heightmapResolution; y++)
+                {
+                    for (int x = 0; x < heightmapResolution; x++)
+                    {
+                        heightmapArrayBuilder[y * heightmapResolution + x] = heightmapData[y, x];
+                    }
+                }
+                heightmapBlobRef = blobBuilder.CreateBlobAssetReference<FloatBlob>(Allocator.Persistent);
+            }
+
+            Dictionary<string, SplatmapData> splatmaps = new Dictionary<string, SplatmapData>();
+            foreach (FloraHabitatPreset habitatPreset in locationScript.habitatPresets)
+            {
+                if (string.IsNullOrEmpty(habitatPreset.name))
+                {
+                    Debug.LogError("[StaticEntityLocationDataCache] A flora habitat in " + locationKey + " has no name.");
+                    continue;
+                }
+
+                Texture2D texture = habitatPreset.splatmap;
+                if (texture == null)
+                {
+                    continue;
+                }
+                if (!texture.isReadable)
+                {
+                    Debug.LogError("[StaticEntityLocationDataCache] Splatmap texture '" + texture.name +
+                                   "' for habitat '" + habitatPreset.name + "' is not readable.");
+                    continue;
+                }
+                if (splatmaps.ContainsKey(habitatPreset.name))
+                {
+                    Debug.LogError("[StaticEntityLocationDataCache] Duplicate flora habitat '" + habitatPreset.name +
+                                   "' in " + locationKey + ".");
+                    continue;
+                }
+
+                Color32[] pixels = texture.GetPixels32();
+                int fallbackIndex = -1;
+                BlobAssetReference<ByteBlob> splatmapBlobRef;
+                using (var blobBuilder = new BlobBuilder(Allocator.Temp))
+                {
+                    ref ByteBlob splatmapBlobAsset = ref blobBuilder.ConstructRoot<ByteBlob>();
+                    BlobBuilderArray<byte> splatmapArrayBuilder = blobBuilder.Allocate(ref splatmapBlobAsset.Values, pixels.Length);
+                    for (int i = 0; i < pixels.Length; i++)
+                    {
+                        byte habitatWeight = pixels[i].g;
+                        splatmapArrayBuilder[i] = habitatWeight;
+                        if (fallbackIndex < 0 && habitatWeight >= 3)
+                        {
+                            fallbackIndex = i;
+                        }
+                    }
+                    splatmapBlobRef = blobBuilder.CreateBlobAssetReference<ByteBlob>(Allocator.Persistent);
+                }
+
+                splatmaps.Add(
+                    habitatPreset.name,
+                    new SplatmapData(splatmapBlobRef, texture.width, texture.height, fallbackIndex));
+            }
+
+            locations.Add(
+                locationKey,
+                new LocationData(heightmapBlobRef, heightmapResolution, heightmapResolution, splatmaps));
+            Debug.Log("[StaticEntityLocationDataCache] Prepared " + locationKey + " with " + splatmaps.Count +
+                      " flora splatmap(s) before static entity spawning.");
+        }
+
+        public LocationData GetPrepared(LocationScript locationScript)
+        {
+            Debug.Assert(!isDisposed, "Static entity location data cannot be read after its cache is disposed.");
+            string locationKey = GetLocationKey(locationScript);
+            if (!locations.TryGetValue(locationKey, out LocationData locationData))
+            {
+                throw new InvalidOperationException("Static entity location data was not prepared for " + locationKey + ".");
+            }
+            return locationData;
+        }
+
+        public void Dispose()
+        {
+            if (isDisposed)
+            {
+                return;
+            }
+
+            foreach (LocationData locationData in locations.Values)
+            {
+                if (locationData.HeightmapBlobRef.IsCreated)
+                {
+                    locationData.HeightmapBlobRef.Dispose();
+                }
+                foreach (SplatmapData splatmapData in locationData.Splatmaps.Values)
+                {
+                    if (splatmapData.BlobRef.IsCreated)
+                    {
+                        splatmapData.BlobRef.Dispose();
+                    }
+                }
+            }
+            locations.Clear();
+            isDisposed = true;
+        }
+
+        private static string GetLocationKey(LocationScript locationScript)
+        {
+            Debug.Assert(locationScript != null, "A LocationScript is required to identify cached static entity data.");
+            string scenePath = locationScript.gameObject.scene.path;
+            Debug.Assert(!string.IsNullOrEmpty(scenePath), "Static entity location data requires a saved scene path.");
+            return scenePath;
+        }
+    }
+
     /// <summary>
     /// Component to store references to mesh habitats for a static entity group
     /// </summary>
@@ -33,6 +221,7 @@ namespace OceanViz3
     {
         private EntityQuery groupsNeedingSetupQuery;
         private EntityQuery meshHabitatsQuery;
+        private BufferLookup<MeshHabitatEntityRef> meshHabitatBufferLookup;
 
         [BurstCompile]
         public void OnCreate(ref SystemState state)
@@ -46,6 +235,7 @@ namespace OceanViz3
             meshHabitatsQuery = SystemAPI.QueryBuilder()
                 .WithAll<MeshHabitatComponent, MeshHabitatProcessedTag, MeshHabitatBlobRef>()
                 .Build();
+            meshHabitatBufferLookup = state.GetBufferLookup<MeshHabitatEntityRef>(false);
                 
             state.RequireForUpdate(groupsNeedingSetupQuery);
             // No need to require meshHabitatsQuery here, as we check its length later
@@ -56,9 +246,6 @@ namespace OceanViz3
         [BurstCompile]
         public void OnDestroy(ref SystemState state)
         {
-            // Disposal of shared heightmap blob should perhaps be handled elsewhere
-            // if it's truly shared across scenes/lifetimes.
-            // Disposal of splatmap blobs is handled by StaticEntitySpawnSystem on group destruction.
             Debug.Log("[StaticEntityDataSetupSystem] OnDestroy called.");
         }
 
@@ -67,7 +254,7 @@ namespace OceanViz3
             Debug.Log("[StaticEntityDataSetupSystem] OnUpdate Start"); // Log system start
 
             var ecb = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>().CreateCommandBuffer(state.WorldUnmanaged);
-            var meshHabitatBufferLookup = SystemAPI.GetBufferLookup<MeshHabitatEntityRef>(false); 
+            meshHabitatBufferLookup.Update(ref state);
 
             // --- Find Main Scene/Location --- 
             GameObject mainSceneObj = GameObject.Find("MainSceneScript");
@@ -88,6 +275,8 @@ namespace OceanViz3
                  return; // Might be between location loads
             }
             LocationScript locationScript = mainScene.currentLocationScript;
+            StaticEntityLocationDataCache.LocationData cachedLocationData =
+                mainScene.StaticEntityLocationCache.GetPrepared(locationScript);
             Terrain terrain = locationScript.GetTerrain();
             if (terrain == null) 
             {
@@ -108,11 +297,6 @@ namespace OceanViz3
             float terrainOffsetX = terrain.transform.position.x;
             float terrainOffsetY = terrain.transform.position.y;
             float terrainOffsetZ = terrain.transform.position.z;
-            int heightmapRes = terrainData.heightmapResolution;
-
-            // --- Shared Heightmap Blob Management --- 
-            bool heightmapBlobCreatedThisFrame = false;
-            BlobAssetReference<FloatBlob> heightmapBlobRef = BlobAssetReference<FloatBlob>.Null;
 
             // --- Mesh Habitat Lookup Preparation ---
             var allMeshHabitatEntities = meshHabitatsQuery.ToEntityArray(Allocator.Temp);
@@ -134,62 +318,16 @@ namespace OceanViz3
                 int currentGroupId = groupComponent.StaticEntitiesGroupId;
                 Debug.Log($"[StaticEntityDataSetupSystem] ---------- Processing Group {currentGroupId} (Entity: {entity}) ----------");
 
-                // --- Create/Assign Shared Heightmap Blob --- 
-                if (!heightmapBlobRef.IsCreated) // Only check/create if the shared ref isn't set yet
-                {
-                     // Check if ANY existing *processed* group already has it
-                     var existingGroupsQuery = SystemAPI.QueryBuilder().WithAll<StaticEntitiesGroupComponent, SpawnDataReadyTag>().Build();
-                     if (!existingGroupsQuery.IsEmpty)
-                     {
-                         // Iterate through the processed groups query to find one with a valid blob
-                         // We only need one, so we can break after finding it.
-                         foreach (var (existingGroup, existingEntity) in 
-                                  SystemAPI.Query<RefRO<StaticEntitiesGroupComponent>>()
-                                  .WithAll<SpawnDataReadyTag>()
-                                  .WithEntityAccess())
-                          { 
-                             if (existingGroup.ValueRO.HeightmapDataBlobRef.IsCreated)
-                             {
-                                 heightmapBlobRef = existingGroup.ValueRO.HeightmapDataBlobRef;
-                                 Debug.Log("[StaticEntityDataSetupSystem] Reusing existing shared Heightmap BlobAsset.");
-                                 break; // Found one, stop checking
-                             }
-                         }
-                     }
-                     
-                     // If still not found after checking, create it now
-                     if (!heightmapBlobRef.IsCreated)
-                     {
-                         Debug.Log("[StaticEntityDataSetupSystem] Creating new shared Heightmap BlobAsset.");
-                         using (var blobBuilder = new BlobBuilder(Allocator.Temp))
-                         {
-                            ref FloatBlob heightmapBlobAsset = ref blobBuilder.ConstructRoot<FloatBlob>();
-                            int length = heightmapRes * heightmapRes;
-                            BlobBuilderArray<float> heightmapArrayBuilder = blobBuilder.Allocate(ref heightmapBlobAsset.Values, length);
-                            float[,] heightmapData = terrainData.GetHeights(0, 0, heightmapRes, heightmapRes);
-                            for (int y = 0; y < heightmapRes; y++)
-                            {
-                                for (int x = 0; x < heightmapRes; x++)
-                                {
-                                    heightmapArrayBuilder[y * heightmapRes + x] = heightmapData[y, x];
-                                }
-                            }
-                            heightmapBlobRef = blobBuilder.CreateBlobAssetReference<FloatBlob>(Allocator.Persistent);
-                            heightmapBlobCreatedThisFrame = true; 
-                         }
-                     }
-                }
-
                 // --- Assign Terrain Data --- 
                 groupComponent.TerrainSize = terrainSize;
                 groupComponent.TerrainHeight = terrainHeight;
                 groupComponent.TerrainOffsetX = terrainOffsetX;
                 groupComponent.TerrainOffsetY = terrainOffsetY;
                 groupComponent.TerrainOffsetZ = terrainOffsetZ;
-                groupComponent.HeightmapWidth = heightmapRes;
-                groupComponent.HeightmapHeight = heightmapRes;
-                groupComponent.HeightmapDataBlobRef = heightmapBlobRef; 
-                Debug.Log($"[StaticEntityDataSetupSystem] Group {currentGroupId}: Assigned terrain data and heightmap blob (IsCreated={heightmapBlobRef.IsCreated})");
+                groupComponent.HeightmapWidth = cachedLocationData.HeightmapWidth;
+                groupComponent.HeightmapHeight = cachedLocationData.HeightmapHeight;
+                groupComponent.HeightmapDataBlobRef = cachedLocationData.HeightmapBlobRef;
+                Debug.Log($"[StaticEntityDataSetupSystem] Group {currentGroupId}: Assigned cached terrain data and heightmap blob (IsCreated={cachedLocationData.HeightmapBlobRef.IsCreated})");
                 
                 // --- Get Habitat Info & Scale --- 
                 var groupHabitatsBuffer = SystemAPI.GetBuffer<StaticEntityHabitat>(entity);
@@ -240,43 +378,29 @@ namespace OceanViz3
                 bool useSplatmap = false;
                 int splatmapWidth = 0;
                 int splatmapHeight = 0;
+                int fallbackSplatmapIndex = -1;
                 
-                Texture2D splatmapTexture = null;
                 string foundSplatmapHabitat = string.Empty;
+                StaticEntityLocationDataCache.SplatmapData cachedSplatmapData = default;
 
-                foreach (var habitatName in groupHabitats)
+                foreach (StaticEntityHabitat habitat in groupHabitatsBuffer)
                 {
-                    splatmapTexture = locationScript.GetFloraBiomeSplatmap(habitatName.ToString());
-                    if (splatmapTexture != null)
+                    string habitatName = habitat.Name.ToString();
+                    if (cachedLocationData.Splatmaps.TryGetValue(habitatName, out cachedSplatmapData))
                     {
-                        foundSplatmapHabitat = habitatName.ToString();
+                        foundSplatmapHabitat = habitatName;
                         break;
                     }
                 }
 
-                if (splatmapTexture != null)
+                if (!string.IsNullOrEmpty(foundSplatmapHabitat))
                 {
-                    if (!splatmapTexture.isReadable)
-                    {
-                        Debug.LogError($"[StaticEntityDataSetupSystem] Splatmap texture '{splatmapTexture.name}' for habitat '{foundSplatmapHabitat}' is not readable.");
-                    }
-                    else
-                    {
-                        Debug.Log($"[StaticEntityDataSetupSystem] Group {currentGroupId}: Found readable splatmap texture '{splatmapTexture.name}' for habitat '{foundSplatmapHabitat}'. Creating BlobAsset.");
-                        useSplatmap = true;
-                        splatmapWidth = splatmapTexture.width;
-                        splatmapHeight = splatmapTexture.height;
-                        Color32[] pixels = splatmapTexture.GetPixels32();
-                        int pixelLength = pixels.Length;
-                        using (var splatBlobBuilder = new BlobBuilder(Allocator.Temp))
-                        {
-                            ref ByteBlob splatmapBlobAsset = ref splatBlobBuilder.ConstructRoot<ByteBlob>();
-                            BlobBuilderArray<byte> splatmapArrayBuilder = splatBlobBuilder.Allocate(ref splatmapBlobAsset.Values, pixelLength);
-                            for (int i = 0; i < pixelLength; i++) { splatmapArrayBuilder[i] = pixels[i].g; }
-                            splatmapBlobRef = splatBlobBuilder.CreateBlobAssetReference<ByteBlob>(Allocator.Persistent);
-                            Debug.Log($"[StaticEntityDataSetupSystem] Group {currentGroupId}: Created Splatmap BlobAsset (Width={splatmapWidth}, Height={splatmapHeight}).");
-                        }
-                    }
+                    useSplatmap = true;
+                    splatmapWidth = cachedSplatmapData.Width;
+                    splatmapHeight = cachedSplatmapData.Height;
+                    fallbackSplatmapIndex = cachedSplatmapData.FallbackIndex;
+                    splatmapBlobRef = cachedSplatmapData.BlobRef;
+                    Debug.Log($"[StaticEntityDataSetupSystem] Group {currentGroupId}: Reusing cached splatmap for habitat '{foundSplatmapHabitat}'.");
                 }
                 else
                 {
@@ -287,6 +411,7 @@ namespace OceanViz3
                 groupComponent.SplatmapWidth = splatmapWidth;
                 groupComponent.SplatmapHeight = splatmapHeight;
                 groupComponent.SplatmapDataBlobRef = splatmapBlobRef;
+                groupComponent.FallbackSplatmapIndex = fallbackSplatmapIndex;
                 Debug.Log($"[StaticEntityDataSetupSystem] Group {currentGroupId}: Splatmap setup complete (UseSplatmap={useSplatmap}, BlobCreated={splatmapBlobRef.IsCreated})");
 
                 // --- Mesh Habitat Matching --- 

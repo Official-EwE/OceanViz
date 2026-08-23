@@ -9,7 +9,7 @@ TerrainLayer:
   m_Name: RockPieces
   m_DiffuseTexture: {fileID: 2800000, guid: 44a6d1140c3a77545946678985d66341, type: 3}
   m_NormalMapTexture: {fileID: 2800000, guid: 776cefa1cab338245a5cd358d8eba0e7, type: 3}
-  m_MaskMapTexture: {fileID: 2800000, guid: 0e61eb7e696ce3b4e90cca46bec5454f, type: 3}
+  m_MaskMapTexture: {fileID: 0}
   m_TileSize: {x: 4, y: 4}
   m_TileOffset: {x: 0, y: 0}
   m_Specular: {r: 0, g: 0, b: 0, a: 0}

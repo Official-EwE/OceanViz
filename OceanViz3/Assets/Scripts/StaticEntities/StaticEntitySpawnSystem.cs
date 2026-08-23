@@ -1,825 +1,891 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using Unity.Assertions;
 using Unity.Burst;
 using Unity.Collections;
-using Unity.Collections.LowLevel.Unsafe;
 using Unity.Entities;
-using Unity.Mathematics;
-using Unity.Physics;
-using Unity.Transforms;
-using Unity.Rendering;
 using Unity.Jobs;
+using Unity.Mathematics;
+using Unity.Rendering;
+using Unity.Transforms;
 using UnityEngine;
-using Random = Unity.Mathematics.Random;
-using SystemMath = System.Math;
 
 namespace OceanViz3
 {
+    internal static class StaticEntityViewVisibilityUtility
+    {
+        public static bool IsVisible(int spawnSiteIndex, int groupId, float visibilityFraction)
+        {
+            if (visibilityFraction <= 0.0f)
+            {
+                return false;
+            }
+
+            if (visibilityFraction >= 1.0f)
+            {
+                return true;
+            }
+
+            uint visibilityHash = math.hash(new uint2((uint)spawnSiteIndex, (uint)groupId));
+            float visibilityRank = visibilityHash * (1.0f / uint.MaxValue);
+            return visibilityRank < visibilityFraction;
+        }
+    }
+
     /// <summary>
-    /// System responsible for managing static entity groups and their member entities.
-    /// Static entity groups are entities that manage the spawning and destruction of static entities.
-    /// Supports spawning on both terrain and mesh habitats.
+    /// Generates deterministic static habitat sites and streams their ECS entities around the camera.
+    /// RequestedCount describes the full habitat population. Count describes only instantiated nearby entities.
     /// </summary>
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     [UpdateAfter(typeof(StaticEntityDataSetupSystem))]
     [RequireMatchingQueriesForUpdate]
     public partial struct StaticEntitySpawnSystem : ISystem
     {
-        /// <summary>
-        /// Maximum number of entities to create or destroy per update
-        /// </summary>
-        private const int MAX_ENTITIES_PER_UPDATE = 10000;
-        
-        [BurstCompile]
+        private const int MaxSitesGeneratedPerUpdate = 2048;
+        private const int MaxSitesRemovedPerUpdate = 4096;
+        private const int MaxSitesScannedPerUpdate = 10000;
+        private const int MaxShaderSitesPerUpdate = 2048;
+        private const int MaxEntityChangesPerUpdate = 256;
+        private const float StreamingRefreshDistance = 5.0f;
+        private const float EnableDistanceMultiplier = 0.95f;
+        private int nextGroupStartIndex;
+        private EntityQuery groupQuery;
+        private ComponentLookup<MeshHabitatBlobRef> meshHabitatLookup;
+        private NativeList<StaticEntitySpawnRequest> pendingSpawnRequests;
+        private NativeList<Entity> pendingDespawnRequests;
+
         public void OnCreate(ref SystemState state)
         {
             state.RequireForUpdate<StaticEntitiesGroupComponent>();
-            Debug.Log("[StaticEntitySpawnSystem] OnCreate called.");
+            state.RequireForUpdate<SceneData>();
+            nextGroupStartIndex = 0;
+            groupQuery = state.EntityManager.CreateEntityQuery(typeof(StaticEntitiesGroupComponent));
+            meshHabitatLookup = state.GetComponentLookup<MeshHabitatBlobRef>(true);
+            pendingSpawnRequests = new NativeList<StaticEntitySpawnRequest>(MaxEntityChangesPerUpdate, Allocator.Persistent);
+            pendingDespawnRequests = new NativeList<Entity>(MaxEntityChangesPerUpdate, Allocator.Persistent);
         }
-        
+
+        public void OnDestroy(ref SystemState state)
+        {
+            groupQuery.Dispose();
+            pendingSpawnRequests.Dispose();
+            pendingDespawnRequests.Dispose();
+        }
+
         public void OnUpdate(ref SystemState state)
         {
-            var localToWorldLookup = SystemAPI.GetComponentLookup<LocalToWorld>();
-            var meshHabitatBlobRefLookup = SystemAPI.GetComponentLookup<MeshHabitatBlobRef>(true);
-            var world = state.World.Unmanaged;
-            var entityManager = state.EntityManager;
-            float deltaTime = SystemAPI.Time.DeltaTime;
-            var meshHabitatBufferLookup = SystemAPI.GetBufferLookup<MeshHabitatEntityRef>(true);
+            state.Dependency.Complete();
 
+            EntityManager entityManager = state.EntityManager;
+            SceneData sceneData = SystemAPI.GetSingleton<SceneData>();
             var ecbSingleton = SystemAPI.GetSingleton<EndSimulationEntityCommandBufferSystem.Singleton>();
-            var entityCommandBuffer = ecbSingleton.CreateCommandBuffer(world);
-
-            JobHandle combinedDependencies = state.Dependency;
-
-            foreach (var (staticEntitiesGroup, staticEntitiesGroupLocalToWorld, staticEntitiesGroupEntity) in
-                     SystemAPI.Query<RefRW<StaticEntitiesGroupComponent>, RefRO<LocalToWorld>>()
-                         .WithEntityAccess())
+            EntityCommandBuffer destroyCommandBuffer = ecbSingleton.CreateCommandBuffer(state.WorldUnmanaged);
+            NativeArray<Entity> groupEntities = groupQuery.ToEntityArray(Allocator.Temp);
+            int entityChanges = 0;
+            int generatedSites = 0;
+            int removedSites = 0;
+            int reconciledSites = 0;
+            int shaderSites = 0;
+            int startIndex = 0;
+            if (groupEntities.Length > 0)
             {
-                int groupId = staticEntitiesGroup.ValueRO.StaticEntitiesGroupId;
-                // Debug.Log($"[StaticEntitySpawnSystem] Processing Group ID: {groupId}");
+                startIndex = nextGroupStartIndex % groupEntities.Length;
+            }
 
-                if (staticEntitiesGroup.ValueRO.DestroyRequested == true)
+            for (int groupOffset = 0; groupOffset < groupEntities.Length; groupOffset++)
+            {
+                int groupIndex = (startIndex + groupOffset) % groupEntities.Length;
+                Entity groupEntity = groupEntities[groupIndex];
+                StaticEntitiesGroupComponent group = entityManager.GetComponentData<StaticEntitiesGroupComponent>(groupEntity);
+
+                if (group.DestroyRequested)
                 {
-                    // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Destroy requested.");
-
-                    // Query for all static entity groups to check if this is the last one.
-                    // This is not a perfect solution. If multiple groups are destroyed in the same frame,
-                    // the heightmap blob might be leaked. However, it prevents a crash when one of
-                    // multiple groups is destroyed, which is the immediate bug. A more robust solution
-                    // would involve a centralized manager for shared blob assets.
-                    EntityQuery allGroupsQuery = SystemAPI.QueryBuilder().WithAll<StaticEntitiesGroupComponent>().Build();
-                    int totalGroupCount = allGroupsQuery.CalculateEntityCount();
-
-                    // Dispose BlobAssets associated with this group
-                    // Only dispose the shared heightmap blob if this is the last group
-                    if (staticEntitiesGroup.ValueRO.HeightmapDataBlobRef.IsCreated && totalGroupCount <= 1)
-                    {
-                        staticEntitiesGroup.ValueRW.HeightmapDataBlobRef.Dispose();
-                    }
-
-                    // The splatmap blob is not shared, so it's safe to dispose.
-                    if (staticEntitiesGroup.ValueRO.SplatmapDataBlobRef.IsCreated)
-                    {
-                        staticEntitiesGroup.ValueRW.SplatmapDataBlobRef.Dispose();
-                    }
-                    
-                    // Destroy static entities
-                    EntityQuery staticEntityQuery = SystemAPI.QueryBuilder()
-                        .WithAll<StaticEntityShared>()
-                        .WithAll<LocalToWorld>()
-                        .WithOptions(EntityQueryOptions.IncludeDisabledEntities)
-                        .Build();
-                    
-                    // Filter by shared component manually
-                    staticEntityQuery.SetSharedComponentFilter(new StaticEntityShared { 
-                        StaticEntitiesGroupId = groupId 
-                    });
-                    
-                    entityCommandBuffer.DestroyEntity(staticEntityQuery, EntityQueryCaptureMode.AtPlayback);
-                    
-                    // Destroy StaticEntitiesGroupComponent entity
-                    entityCommandBuffer.DestroyEntity(staticEntitiesGroupEntity);
-                    
-                    // Done with this StaticEntitiesGroupComponent
+                    DestroyGroup(entityManager, destroyCommandBuffer, groupEntity);
                     continue;
                 }
-                
-                var staticEntitiesGroupCopy = staticEntitiesGroup.ValueRO;
 
-                // Entity spawning/destroying
-                // Check if there is a difference between current Count and RequestedCount
-                int currentCount = staticEntitiesGroup.ValueRO.Count;
-                int requestedCount = staticEntitiesGroup.ValueRO.RequestedCount;
-                // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Current Count = {currentCount}, Requested Count = {requestedCount}");
-
-                if (currentCount != requestedCount)
+                if (!group.SpawnDataIsReady)
                 {
-                    if (!staticEntitiesGroup.ValueRO.SpawnDataIsReady)
-                    {
-                        Debug.LogWarning($"[StaticEntitySpawnSystem] Group {groupId}: Spawn data not ready, skipping spawn/destroy.");
-                        continue;
-                    }
-                    // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Spawn data is ready.");
-                
-                    // If RequestedCount > Count, instantiate more entities
-                    if (requestedCount > currentCount)
-                    {
-                        var amountToInstantiate = requestedCount - currentCount;
-                        // Limit the number of entities to create per update
-                        amountToInstantiate = SystemMath.Min(amountToInstantiate, MAX_ENTITIES_PER_UPDATE);
-
-                        // Check if the prototype is valid and has required components
-                        if (staticEntitiesGroup.ValueRO.StaticEntityPrototype == Entity.Null || 
-                            !entityManager.HasComponent<RenderMeshArray>(staticEntitiesGroup.ValueRO.StaticEntityPrototype))
-                        {
-                            Debug.LogError($"[StaticEntitySpawnSystem] Group {groupId}: Prototype entity is Null or missing RenderMeshArray. Cannot instantiate.");
-                            continue;
-                        }
-                        
-                        // Create a native array to hold the new static entities
-                        var staticEntityEntities =
-                            CollectionHelper.CreateNativeArray<Entity, RewindableAllocator>(amountToInstantiate,
-                                ref world.UpdateAllocator);
-
-                        try
-                        {
-                            // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Instantiating {amountToInstantiate} entities...");
-                            entityManager.Instantiate(staticEntitiesGroup.ValueRO.StaticEntityPrototype, staticEntityEntities);
-                            // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Instantiation successful.");
-                        } 
-                        catch (Exception ex)
-                        {
-                            Debug.LogError($"[StaticEntitySpawnSystem] Group {groupId}: Failed to instantiate static entities: {ex.Message}");
-                            // Clean up allocated array if instantiation fails
-                            if (staticEntityEntities.IsCreated) staticEntityEntities.Dispose();
-                            continue;
-                        }
-                        
-                        // Set up each new static entity with shared components and shader properties
-                        // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Setting up components for {amountToInstantiate} new entities...");
-                        for (int i = 0; i < staticEntityEntities.Length; i++)
-                        {
-                            // Set the shared component for group identification
-                            StaticEntityShared staticEntityShared = new StaticEntityShared
-                            {
-                                StaticEntitiesGroupId = groupId
-                            };
-                            entityCommandBuffer.SetSharedComponentManaged(staticEntityEntities[i], staticEntityShared);
-                            
-                            // Set up rendering components
-                            if (entityManager.HasComponent<RenderMeshArray>(staticEntitiesGroup.ValueRO.StaticEntityPrototype))
-                            {
-                                // Copy RenderMeshArray from prototype
-                                var renderMeshArray = entityManager.GetSharedComponentManaged<RenderMeshArray>(staticEntitiesGroup.ValueRO.StaticEntityPrototype);
-                                entityCommandBuffer.SetSharedComponentManaged(staticEntityEntities[i], renderMeshArray);
-                                
-                                // Initialize with LOD0
-                                var materialMeshInfo = MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0);
-                                entityCommandBuffer.SetComponent(staticEntityEntities[i], materialMeshInfo);
-                            }
-                            
-                            // Set up shader property overrides
-                            if (entityManager.HasComponent<ScreenDisplayStartOverride>(staticEntityEntities[i]))
-                            {
-                                entityCommandBuffer.SetComponent(staticEntityEntities[i], new ScreenDisplayStartOverride { Value = new float4(0, 0, 0, 0) });
-                            }
-                            
-                            if (entityManager.HasComponent<ScreenDisplayEndOverride>(staticEntityEntities[i]))
-                            {
-                                entityCommandBuffer.SetComponent(staticEntityEntities[i], new ScreenDisplayEndOverride { Value = new float4(1, 0, 0, 0) });
-                            }
-
-                            // Set up turbulence strength based on rigidity (1 - rigidity)
-                            if (entityManager.HasComponent<TurbulenceStrengthOverride>(staticEntityEntities[i]))
-                            {
-                                float turbulenceStrength = 1.0f - staticEntitiesGroup.ValueRO.Rigidity;
-                                entityCommandBuffer.SetComponent(staticEntityEntities[i], new TurbulenceStrengthOverride { Value = turbulenceStrength });
-                            }
-
-                            // Set up waves motion strength
-                            if (entityManager.HasComponent<WavesMotionStrengthOverride>(staticEntityEntities[i]))
-                            {
-                                entityCommandBuffer.SetComponent(staticEntityEntities[i], new WavesMotionStrengthOverride { Value = staticEntitiesGroup.ValueRO.WavesMotionStrength });
-                            }
-
-                            // Add culling component
-                            entityCommandBuffer.AddComponent(staticEntityEntities[i], new CullingComponent { MaxDistance = 70.0f });
-                        }
-                        // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Component setup complete.");
-
-                        // Decide how many entities to spawn on terrain vs mesh habitats
-                        int terrainSpawnCount = 0;
-                        int meshSpawnCount = 0;
-                        
-                        bool useMeshHabitats = staticEntitiesGroup.ValueRO.UseMeshHabitats;
-                        bool canSpawnOnTerrain = staticEntitiesGroup.ValueRO.UseSplatmap;
-                        
-                        // Get mesh habitat entities if available
-                        NativeList<Entity> meshHabitatEntities = new NativeList<Entity>(16, Allocator.TempJob);
-                        bool canSpawnOnMesh = false;
-                        
-                        if (useMeshHabitats && meshHabitatBufferLookup.HasBuffer(staticEntitiesGroupEntity))
-                        {
-                            // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Checking for mesh habitats in buffer...");
-                            var meshHabitatBuffer = meshHabitatBufferLookup[staticEntitiesGroupEntity];
-                            
-                            // Collect valid mesh habitat entities from the buffer
-                            for (int i = 0; i < meshHabitatBuffer.Length; i++)
-                            {
-                                Entity meshEntity = meshHabitatBuffer[i].MeshEntity;
-                                if (entityManager.Exists(meshEntity) && 
-                                    entityManager.HasComponent<MeshHabitatBlobRef>(meshEntity) &&
-                                    entityManager.GetComponentData<MeshHabitatBlobRef>(meshEntity).BlobRef.IsCreated)
-                                {
-                                    meshHabitatEntities.Add(meshEntity);
-                                }
-                                else
-                                {
-                                    Debug.LogWarning($"[StaticEntitySpawnSystem] Group {groupId}: Found invalid mesh habitat entity ({meshEntity}) in buffer.");
-                                }
-                            }
-                            
-                            if (meshHabitatEntities.Length > 0)
-                            {
-                                canSpawnOnMesh = true;
-                            }
-                        }
-                        
-                        // Distribute entities based on available habitat types
-                        if (canSpawnOnTerrain && canSpawnOnMesh)
-                        {
-                            float meshRatio = staticEntitiesGroup.ValueRO.MeshHabitatRatio;
-                            meshSpawnCount = Mathf.RoundToInt(amountToInstantiate * meshRatio);
-                            terrainSpawnCount = amountToInstantiate - meshSpawnCount;
-                            Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Distributing {amountToInstantiate} entities: Terrain={terrainSpawnCount}, Mesh={meshSpawnCount} (Ratio={meshRatio:F2})");
-                        }
-                        else if (canSpawnOnTerrain)
-                        {
-                            terrainSpawnCount = amountToInstantiate;
-                            Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Spawning {amountToInstantiate} entities on Terrain only.");
-                        }
-                        else if (canSpawnOnMesh)
-                        {
-                            meshSpawnCount = amountToInstantiate;
-                            Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Spawning {amountToInstantiate} entities on Mesh only.");
-                        }
-                        else
-                        {
-                            Debug.LogWarning($"[StaticEntitySpawnSystem] Group {groupId}: No valid terrain or mesh habitats found. Spawning 0 entities.");
-                        }
-                        
-                        // Create arrays for spawn positions
-                        NativeArray<int> terrainSpawnIndices = new NativeArray<int>(terrainSpawnCount, Allocator.TempJob);
-                        NativeArray<MeshSpawnPoint> meshSpawnPoints = new NativeArray<MeshSpawnPoint>(meshSpawnCount, Allocator.TempJob);
-                        
-                        // --- Schedule Terrain Pre-calculation Job --- 
-                        JobHandle terrainJob = default;
-                        if (terrainSpawnCount > 0)
-                        {
-                            // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Scheduling terrain index calculation job for {terrainSpawnCount} entities.");
-                            var calculateTerrainIndicesJob = new CalculateSpawnIndicesJob
-                            {
-                                SplatmapDataBlobRef = staticEntitiesGroup.ValueRO.SplatmapDataBlobRef,
-                                SplatmapWidth = staticEntitiesGroup.ValueRO.SplatmapWidth,
-                                SplatmapHeight = staticEntitiesGroup.ValueRO.SplatmapHeight,
-                                GroupNoiseOffset = staticEntitiesGroup.ValueRO.GroupNoiseOffset,
-                                NoiseScale = staticEntitiesGroup.ValueRO.NoiseScale,
-                                TerrainOffsetX = staticEntitiesGroup.ValueRO.TerrainOffsetX,
-                                TerrainOffsetZ = staticEntitiesGroup.ValueRO.TerrainOffsetZ,
-                                TerrainSize = staticEntitiesGroup.ValueRO.TerrainSize,
-                                AmountToInstantiate = terrainSpawnCount,
-                                Seed = (uint)(state.WorldUnmanaged.Time.ElapsedTime * 1000 + groupId + 1),
-                                SpawnPositionIndices = terrainSpawnIndices,
-                                UseSplatmap = staticEntitiesGroup.ValueRO.UseSplatmap
-                            };
-                            
-                            terrainJob = calculateTerrainIndicesJob.Schedule(combinedDependencies);
-                        }
-                        
-                        // --- Schedule Mesh Pre-calculation Job ---
-                        JobHandle meshJob = default;
-                        if (meshSpawnCount > 0)
-                        {
-                            // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Scheduling mesh position calculation job for {meshSpawnCount} entities.");
-                            var meshHabitatEntitiesArray = meshHabitatEntities.AsArray();
-                            var calculateMeshSpawnPointsJob = new MeshSpawnPositionJob
-                            {
-                                MeshHabitatEntities = meshHabitatEntitiesArray,
-                                MeshHabitatBlobRefs = meshHabitatBlobRefLookup,
-                                GroupNoiseOffset = staticEntitiesGroup.ValueRO.GroupNoiseOffset,
-                                NoiseScale = staticEntitiesGroup.ValueRO.NoiseScale,
-                                Seed = (uint)(state.WorldUnmanaged.Time.ElapsedTime * 1000 + groupId + 2),
-                                SpawnCount = meshSpawnCount,
-                                MeshSpawnPoints = meshSpawnPoints
-                            };
-                            
-                            meshJob = calculateMeshSpawnPointsJob.Schedule(combinedDependencies);
-                        }
-                        
-                        // Combine pre-calculation jobs
-                        JobHandle precalcJobHandle = JobHandle.CombineDependencies(terrainJob, meshJob);
-                        
-                        // --- Schedule Terrain Placement Job ---
-                        JobHandle terrainPlacementJob = default;
-                        if (terrainSpawnCount > 0)
-                        {
-                            // Additional safety check for heightmap data before scheduling the job
-                            if (!staticEntitiesGroup.ValueRO.HeightmapDataBlobRef.IsCreated)
-                            {
-                                Debug.LogWarning($"[StaticEntitySpawnSystem] Group {groupId}: HeightmapDataBlobRef is not created, skipping terrain spawning for {terrainSpawnCount} entities.");
-                                // Still need to update the count properly
-                                staticEntitiesGroupCopy.Count += terrainSpawnCount;
-                            }
-                            else
-                            {
-                                // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Scheduling terrain placement job.");
-                                var terrainEntities = staticEntityEntities.GetSubArray(0, terrainSpawnCount);
-                                var setTerrainEntityLocalToWorldJob = new SetStaticEntityLocalToWorld 
-                                {
-                                    LocalToWorldFromEntity = localToWorldLookup,
-                                    Entities = terrainEntities,
-                                    SpawnPositionIndices = terrainSpawnIndices,
-                                    MinScale = staticEntitiesGroup.ValueRO.MinScale <= 0 ? 0.8f : staticEntitiesGroup.ValueRO.MinScale,
-                                    MaxScale = staticEntitiesGroup.ValueRO.MaxScale <= 0 ? 1.2f : staticEntitiesGroup.ValueRO.MaxScale,
-                                    TerrainSize = staticEntitiesGroup.ValueRO.TerrainSize,
-                                    TerrainHeight = staticEntitiesGroup.ValueRO.TerrainHeight,
-                                    TerrainOffsetX = staticEntitiesGroup.ValueRO.TerrainOffsetX,
-                                    TerrainOffsetY = staticEntitiesGroup.ValueRO.TerrainOffsetY,
-                                    TerrainOffsetZ = staticEntitiesGroup.ValueRO.TerrainOffsetZ,
-                                    HeightmapDataBlobRef = staticEntitiesGroup.ValueRO.HeightmapDataBlobRef,
-                                    HeightmapWidth = staticEntitiesGroup.ValueRO.HeightmapWidth,
-                                    HeightmapHeight = staticEntitiesGroup.ValueRO.HeightmapHeight,
-                                    UseSplatmap = staticEntitiesGroup.ValueRO.UseSplatmap,
-                                    SplatmapWidth = staticEntitiesGroup.ValueRO.SplatmapWidth,
-                                    SplatmapHeight = staticEntitiesGroup.ValueRO.SplatmapHeight
-                                };
-                                
-                                terrainPlacementJob = setTerrainEntityLocalToWorldJob.Schedule(terrainSpawnCount, 64, precalcJobHandle);
-                            }
-                        }
-                        
-                        // --- Schedule Mesh Placement Job ---
-                        JobHandle meshPlacementJob = default;
-                        if (meshSpawnCount > 0)
-                        {
-                            // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Scheduling mesh placement job.");
-                            var meshEntities = staticEntityEntities.GetSubArray(terrainSpawnCount, meshSpawnCount);
-                            var setMeshEntityLocalToWorldJob = new SetMeshEntityLocalToWorld
-                            {
-                                LocalToWorldFromEntity = localToWorldLookup,
-                                Entities = meshEntities,
-                                SpawnPoints = meshSpawnPoints,
-                                MinScale = staticEntitiesGroup.ValueRO.MinScale <= 0 ? 0.8f : staticEntitiesGroup.ValueRO.MinScale,
-                                MaxScale = staticEntitiesGroup.ValueRO.MaxScale <= 0 ? 1.2f : staticEntitiesGroup.ValueRO.MaxScale,
-                                Seed = (uint)(state.WorldUnmanaged.Time.ElapsedTime * 1000 + groupId + 3)
-                            };
-                            
-                            meshPlacementJob = setMeshEntityLocalToWorldJob.Schedule(meshSpawnCount, 64, precalcJobHandle);
-                        }
-                        
-                        // Combine placement jobs
-                        JobHandle placementJobHandle = JobHandle.CombineDependencies(terrainPlacementJob, meshPlacementJob);
-                        
-                        // Combine all dependencies including disposals
-                        NativeList<JobHandle> disposalHandles = new NativeList<JobHandle>(4, Allocator.Temp);
-                        disposalHandles.Add(placementJobHandle);
-                        disposalHandles.Add(meshHabitatEntities.Dispose(placementJobHandle));
-                        if (terrainSpawnCount > 0) disposalHandles.Add(terrainSpawnIndices.Dispose(placementJobHandle));
-                        if (meshSpawnCount > 0) disposalHandles.Add(meshSpawnPoints.Dispose(placementJobHandle));
-                        
-                        combinedDependencies = JobHandle.CombineDependencies(disposalHandles.AsArray());
-                        disposalHandles.Dispose();
-                        
-                        // Update the staticEntitiesGroup Count
-                        staticEntitiesGroupCopy.Count += amountToInstantiate;
-                        entityCommandBuffer.SetComponent(staticEntitiesGroupEntity, staticEntitiesGroupCopy);
-                        // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Updated Count to {staticEntitiesGroupCopy.Count}.");
-                    }
-                    // If RequestedCount < Count, destroy excess entities
-                    else if (requestedCount < currentCount)
-                    {
-                        int entitiesToDestroy = currentCount - requestedCount;
-                        // Limit the number of entities to destroy per update
-                        entitiesToDestroy = SystemMath.Min(entitiesToDestroy, MAX_ENTITIES_PER_UPDATE);
-                        
-                        // Query for entities in this group
-                        EntityQuery staticEntityQuery = SystemAPI.QueryBuilder()
-                            .WithAll<StaticEntityShared>()
-                            .WithAll<LocalToWorld>()
-                            .WithOptions(EntityQueryOptions.IncludeDisabledEntities)
-                            .Build();
-                        
-                        // Filter by shared component manually
-                        staticEntityQuery.SetSharedComponentFilter(new StaticEntityShared { 
-                            StaticEntitiesGroupId = groupId 
-                        });
-                        
-                        var allGroupEntities = staticEntityQuery.ToEntityArray(Allocator.TempJob);
-                        int destroyedCount = 0;
-
-                        if (allGroupEntities.Length > 0 && entitiesToDestroy > 0)
-                        {
-                            var random = Random.CreateFromIndex((uint)(state.WorldUnmanaged.Time.ElapsedTime * 1000 + groupId + 4)); // Unique seed
-
-                            if (entitiesToDestroy >= allGroupEntities.Length)
-                            {
-                                // If we need to destroy all or more than available, destroy all
-                                for (int i = 0; i < allGroupEntities.Length; i++)
-                                {
-                                    entityCommandBuffer.DestroyEntity(allGroupEntities[i]);
-                                    destroyedCount++;
-                                }
-                            }
-                            else
-                            {
-                                // Use a list to manage entities for random removal
-                                var entitiesList = new NativeList<Entity>(allGroupEntities.Length, Allocator.Temp);
-                                entitiesList.AddRange(allGroupEntities);
-
-                                for (int i = 0; i < entitiesToDestroy && entitiesList.Length > 0; i++)
-                                {
-                                    int randomIndex = random.NextInt(0, entitiesList.Length);
-                                    entityCommandBuffer.DestroyEntity(entitiesList[randomIndex]);
-                                    entitiesList.RemoveAtSwapBack(randomIndex); // Efficient removal
-                                    destroyedCount++;
-                                }
-                                entitiesList.Dispose();
-                            }
-                        }
-                        
-                        allGroupEntities.Dispose();
-
-                        // Update the staticEntitiesGroup Count
-                        staticEntitiesGroupCopy.Count -= destroyedCount;
-                        entityCommandBuffer.SetComponent(staticEntitiesGroupEntity, staticEntitiesGroupCopy);
-                        // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Updated Count to {staticEntitiesGroupCopy.Count}.");
-                    }
+                    continue;
                 }
-                // Handle shader updates
-                else if (staticEntitiesGroup.ValueRO.ShaderUpdateRequested == true)
+
+                pendingSpawnRequests.Clear();
+                pendingDespawnRequests.Clear();
+
+                Assert.IsTrue(entityManager.HasBuffer<StaticEntitySpawnSite>(groupEntity),
+                    "StaticEntitySpawnSystem requires a StaticEntitySpawnSite buffer on every static group.");
+                DynamicBuffer<StaticEntitySpawnSite> sites = entityManager.GetBuffer<StaticEntitySpawnSite>(groupEntity);
+                Assert.AreEqual(group.GeneratedCount, sites.Length,
+                    "Static entity generated count must match its spawn-site buffer length.");
+
+                float cullingMaxDistance = MainScene.CalculateCullingMaxDistance(
+                    group.MeshLargestDimension,
+                    sceneData.CullingStartMeshSize,
+                    sceneData.CullingStartDistance,
+                    sceneData.CullingEndMeshSize,
+                    sceneData.CullingEndDistance);
+
+                bool populationReductionInProgress = group.PopulationReductionInProgress;
+                if (group.GeneratedCount > group.RequestedCount)
                 {
-                    // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: Shader update requested.");
-                    
-                    // Query for all static entities in the current group
-                    EntityQuery staticEntityQuery = SystemAPI.QueryBuilder()
-                        .WithAll<StaticEntityShared, ScreenDisplayStartOverride, ScreenDisplayEndOverride>()
-                        .WithOptions(EntityQueryOptions.IncludeDisabledEntities) // Include disabled if they might be re-enabled with shader changes
-                        .Build();
-                    staticEntityQuery.SetSharedComponentFilter(new StaticEntityShared { 
-                        StaticEntitiesGroupId = groupId 
-                    });
-
-                    NativeArray<Entity> groupMemberEntities = staticEntityQuery.ToEntityArray(Allocator.Temp);
-                    int totalCountInGroup = groupMemberEntities.Length;
-
-                    if (totalCountInGroup > 0)
-                    {
-                        var groupData = staticEntitiesGroup.ValueRO; // Use a read-only copy for group data
-
-                        for (int entityIdx = 0; entityIdx < totalCountInGroup; entityIdx++)
-                        {
-                            Entity currentEntity = groupMemberEntities[entityIdx];
-                            float4 entityScreenDisplayStart = float4.zero;
-                            float4 entityScreenDisplayEnd = float4.zero;
-
-                            for (int viewIdx = 0; viewIdx < groupData.ViewsCount; viewIdx++)
-                            {
-                                float visibilityForThisView = 0;
-                                if (viewIdx == 0) visibilityForThisView = groupData.ViewVisibilityPercentages.x;
-                                else if (viewIdx == 1) visibilityForThisView = groupData.ViewVisibilityPercentages.y;
-                                else if (viewIdx == 2) visibilityForThisView = groupData.ViewVisibilityPercentages.z;
-                                else if (viewIdx == 3) visibilityForThisView = groupData.ViewVisibilityPercentages.w;
-
-                                // Check if this entity instance falls within the percentage for this view
-                                // (float)entityIdx / totalCountInGroup gives a normalized index from 0 to nearly 1
-                                if ((float)entityIdx / totalCountInGroup < visibilityForThisView)
-                                {
-                                    var startFloat = 1.0f / groupData.ViewsCount * viewIdx;
-                                    var endFloat = 1.0f / groupData.ViewsCount * (viewIdx + 1);
-
-                                    if (viewIdx == 0) { entityScreenDisplayStart.x = startFloat; entityScreenDisplayEnd.x = endFloat; }
-                                    else if (viewIdx == 1) { entityScreenDisplayStart.y = startFloat; entityScreenDisplayEnd.y = endFloat; }
-                                    else if (viewIdx == 2) { entityScreenDisplayStart.z = startFloat; entityScreenDisplayEnd.z = endFloat; }
-                                    else if (viewIdx == 3) { entityScreenDisplayStart.w = startFloat; entityScreenDisplayEnd.w = endFloat; }
-                                }
-                                // Else, the entity is not visible in this view slice, start/end remain 0 for this view's components
-                            }
-                            
-                            // It's important to check if the components actually exist before trying to set them,
-                            // though the query should guarantee this.
-                            if (SystemAPI.HasComponent<ScreenDisplayStartOverride>(currentEntity))
-                            {
-                                entityCommandBuffer.SetComponent(currentEntity, new ScreenDisplayStartOverride { Value = entityScreenDisplayStart });
-                            }
-                            if (SystemAPI.HasComponent<ScreenDisplayEndOverride>(currentEntity))
-                            {
-                                entityCommandBuffer.SetComponent(currentEntity, new ScreenDisplayEndOverride { Value = entityScreenDisplayEnd });
-                            }
-                        }
-                    }
-                    
-                    groupMemberEntities.Dispose();
-                    // staticEntityQuery.Dispose(); // DO NOT DISPOSE - System Managed
-
-                    // Reset the flag
-                    staticEntitiesGroupCopy.ShaderUpdateRequested = false;
-                    entityCommandBuffer.SetComponent(staticEntitiesGroupEntity, staticEntitiesGroupCopy);
+                    TrimSpawnSites(
+                        entityManager,
+                        ref sites,
+                        ref group,
+                        sceneData.CameraPosition,
+                        ref entityChanges,
+                        ref removedSites,
+                        ref pendingDespawnRequests);
                 }
-                else
+                else if (group.GeneratedCount < group.RequestedCount)
                 {
-                    // Debug.Log($"[StaticEntitySpawnSystem] Group {groupId}: No density change or shader update requested.");
+                    meshHabitatLookup.Update(ref state);
+                    GenerateSpawnSites(
+                        ref state,
+                        entityManager,
+                        meshHabitatLookup,
+                        groupEntity,
+                        ref sites,
+                        ref group,
+                        sceneData.CameraPosition,
+                        cullingMaxDistance,
+                        !populationReductionInProgress,
+                        ref entityChanges,
+                        ref generatedSites,
+                        ref pendingSpawnRequests);
+                }
+
+                if (group.GeneratedCount == group.RequestedCount && populationReductionInProgress)
+                {
+                    FinishPopulationReduction(ref group, sceneData.CameraPosition);
+                }
+                else if (group.GeneratedCount == group.RequestedCount)
+                {
+                    RequestStreamingRefreshForCameraMovement(ref group, sceneData.CameraPosition);
+                    ReconcileSpawnSites(
+                        entityManager,
+                        groupEntity,
+                        ref sites,
+                        ref group,
+                        cullingMaxDistance,
+                        ref entityChanges,
+                        ref reconciledSites,
+                        ref pendingSpawnRequests,
+                        ref pendingDespawnRequests);
+                }
+
+                Assert.IsFalse(
+                    populationReductionInProgress && pendingSpawnRequests.Length > 0,
+                    "Lowering a static entity population must not enqueue entity spawns.");
+
+                UpdateShaderVisibility(entityManager, ref sites, ref group, ref shaderSites);
+                ApplyPendingEntityChanges(
+                    entityManager,
+                    groupEntity,
+                    ref group,
+                    ref pendingSpawnRequests,
+                    ref pendingDespawnRequests);
+                entityManager.SetComponentData(groupEntity, group);
+            }
+
+            if (groupEntities.Length > 0)
+            {
+                nextGroupStartIndex = (startIndex + 1) % groupEntities.Length;
+            }
+
+            groupEntities.Dispose();
+        }
+
+        private static void DestroyGroup(
+            EntityManager entityManager,
+            EntityCommandBuffer commandBuffer,
+            Entity groupEntity)
+        {
+            if (entityManager.HasBuffer<StaticEntitySpawnSite>(groupEntity))
+            {
+                DynamicBuffer<StaticEntitySpawnSite> sites = entityManager.GetBuffer<StaticEntitySpawnSite>(groupEntity);
+                for (int i = 0; i < sites.Length; i++)
+                {
+                    Entity spawnedEntity = sites[i].SpawnedEntity;
+                    if (spawnedEntity != Entity.Null && entityManager.Exists(spawnedEntity))
+                    {
+                        commandBuffer.DestroyEntity(spawnedEntity);
+                    }
                 }
             }
 
-            // Assign the final combined handle back to state.Dependency
-            state.Dependency = combinedDependencies;
+            commandBuffer.DestroyEntity(groupEntity);
         }
-    }
 
-    /// <summary>
-    /// Job that calculates the spawn indices based on splatmap probability and noise.
-    /// </summary>
-    [BurstCompile]
-    struct CalculateSpawnIndicesJob : IJob
-    {
-        [ReadOnly] public BlobAssetReference<ByteBlob> SplatmapDataBlobRef;
-        [ReadOnly] public int SplatmapWidth;
-        [ReadOnly] public int SplatmapHeight;
-        [ReadOnly] public float3 GroupNoiseOffset;
-        [ReadOnly] public float NoiseScale;
-        [ReadOnly] public float TerrainOffsetX;
-        [ReadOnly] public float TerrainOffsetZ;
-        [ReadOnly] public float TerrainSize;
-        [ReadOnly] public int AmountToInstantiate;
-        [ReadOnly] public uint Seed;
-        [ReadOnly] public bool UseSplatmap;
-
-        public NativeArray<int> SpawnPositionIndices;
-
-        private const int MAX_ATTEMPTS_PER_INDEX = 100;
-
-        public void Execute()
+        private static void TrimSpawnSites(
+            EntityManager entityManager,
+            ref DynamicBuffer<StaticEntitySpawnSite> sites,
+            ref StaticEntitiesGroupComponent group,
+            float3 cameraPosition,
+            ref int entityChanges,
+            ref int removedSites,
+            ref NativeList<Entity> pendingDespawns)
         {
-            var random = Random.CreateFromIndex(Seed);
-            int splatmapPixelCount = SplatmapWidth * SplatmapHeight;
-
-            if (!UseSplatmap || !SplatmapDataBlobRef.IsCreated || splatmapPixelCount <= 0)
+            while (group.GeneratedCount > group.RequestedCount && removedSites < MaxSitesRemovedPerUpdate)
             {
-                int maxIndex = splatmapPixelCount > 0 ? splatmapPixelCount : 1;
-                for (int i = 0; i < AmountToInstantiate; ++i)
+                int lastIndex = sites.Length - 1;
+                StaticEntitySpawnSite site = sites[lastIndex];
+                if (site.SpawnedEntity != Entity.Null)
                 {
-                    SpawnPositionIndices[i] = random.NextInt(0, maxIndex);
+                    if (entityManager.Exists(site.SpawnedEntity))
+                    {
+                        if (entityChanges >= MaxEntityChangesPerUpdate)
+                        {
+                            break;
+                        }
+
+                        pendingDespawns.Add(site.SpawnedEntity);
+                        entityChanges++;
+                    }
+
+                    group.Count--;
                 }
+
+                sites.RemoveAt(lastIndex);
+                group.GeneratedCount--;
+                removedSites++;
+            }
+
+            group.StreamingRefreshRequested = false;
+            group.StreamingScanIndex = 0;
+            group.StreamingScanCameraPosition = cameraPosition;
+            group.ShaderUpdateScanIndex = math.min(group.ShaderUpdateScanIndex, sites.Length);
+        }
+
+        private static void GenerateSpawnSites(
+            ref SystemState state,
+            EntityManager entityManager,
+            ComponentLookup<MeshHabitatBlobRef> meshHabitatLookup,
+            Entity groupEntity,
+            ref DynamicBuffer<StaticEntitySpawnSite> sites,
+            ref StaticEntitiesGroupComponent group,
+            float3 cameraPosition,
+            float cullingMaxDistance,
+            bool instantiateGeneratedSites,
+            ref int entityChanges,
+            ref int generatedSites,
+            ref NativeList<StaticEntitySpawnRequest> pendingSpawns)
+        {
+            int remainingGenerationBudget = MaxSitesGeneratedPerUpdate - generatedSites;
+            if (remainingGenerationBudget <= 0)
+            {
                 return;
             }
 
-            ref var splatmapValues = ref SplatmapDataBlobRef.Value.Values;
-
-            for (int i = 0; i < AmountToInstantiate; ++i)
+            int amountToGenerate = math.min(group.RequestedCount - group.GeneratedCount, remainingGenerationBudget);
+            NativeList<Entity> meshHabitats = new NativeList<Entity>(Allocator.TempJob);
+            if (group.UseMeshHabitats && entityManager.HasBuffer<MeshHabitatEntityRef>(groupEntity))
             {
-                int attempts = 0;
-                bool foundValid = false;
-                while (attempts < MAX_ATTEMPTS_PER_INDEX)
+                DynamicBuffer<MeshHabitatEntityRef> meshBuffer = entityManager.GetBuffer<MeshHabitatEntityRef>(groupEntity);
+                for (int i = 0; i < meshBuffer.Length; i++)
                 {
-                    attempts++;
-
-                    float normX = random.NextFloat();
-                    float normZ = random.NextFloat();
-                    float approxWorldX = TerrainOffsetX + normX * TerrainSize;
-                    float approxWorldZ = TerrainOffsetZ + normZ * TerrainSize;
-                    float noiseValue = noise.snoise(new float3(approxWorldX / NoiseScale + GroupNoiseOffset.x, approxWorldZ / NoiseScale + GroupNoiseOffset.z, GroupNoiseOffset.y));
-                    noiseValue = (noiseValue * 0.5f) + 0.5f;
-                    float noiseFactor = (noiseValue - 0.5f) * 2f + 0.5f;
-                    noiseFactor = math.clamp(noiseFactor, 0f, 1f);
-
-                    int splatX = (int)(normX * SplatmapWidth);
-                    int splatZ = (int)(normZ * SplatmapHeight);
-                    splatX = math.clamp(splatX, 0, SplatmapWidth - 1);
-                    splatZ = math.clamp(splatZ, 0, SplatmapHeight - 1);
-                    int pixelIndex = splatZ * SplatmapWidth + splatX;
-
-                    if (pixelIndex >= splatmapValues.Length) continue;
-                    float greenWeight = splatmapValues[pixelIndex] / 255f;
-
-                    if (greenWeight < 0.01f)
+                    Entity meshEntity = meshBuffer[i].MeshEntity;
+                    if (entityManager.Exists(meshEntity) && meshHabitatLookup.HasComponent(meshEntity))
                     {
-                        continue;
-                    }
-
-                    float combinedWeight = greenWeight * noiseFactor;
-                    float randomCheckValue = random.NextFloat();
-                    if (randomCheckValue < combinedWeight)
-                    {
-                        SpawnPositionIndices[i] = pixelIndex;
-                        foundValid = true;
-                        break;
-                    }
-                }
-
-                if (!foundValid)
-                {
-                    int fallbackIndex = -1;
-                    for(int pIdx = 0; pIdx < splatmapPixelCount; ++pIdx)
-                    {
-                        if (pIdx < splatmapValues.Length)
+                        MeshHabitatBlobRef habitat = meshHabitatLookup[meshEntity];
+                        if (habitat.BlobRef.IsCreated && habitat.BlobRef.Value.SurfaceArea > 0.0f &&
+                            habitat.BlobRef.Value.Triangles.Length >= 3 &&
+                            habitat.BlobRef.Value.Colors.Length == habitat.BlobRef.Value.Vertices.Length)
                         {
-                           float fallbackGreenWeight = splatmapValues[pIdx] / 255f;
-                           if (fallbackGreenWeight >= 0.01f)
-                           {
-                               fallbackIndex = pIdx;
-                               break;
-                           }
+                            meshHabitats.Add(meshEntity);
                         }
                     }
-                    SpawnPositionIndices[i] = (fallbackIndex != -1) ? fallbackIndex : random.NextInt(0, splatmapPixelCount);
                 }
+            }
+
+            bool canUseTerrain = group.UseSplatmap && group.SplatmapDataBlobRef.IsCreated &&
+                                 group.HeightmapDataBlobRef.IsCreated && group.FallbackSplatmapIndex >= 0;
+            bool canUseMesh = meshHabitats.Length > 0;
+            if (!canUseTerrain && !canUseMesh)
+            {
+                Debug.LogError("[StaticEntitySpawnSystem] Static group " + group.StaticEntitiesGroupId +
+                               " has no valid terrain or mesh habitat spawn data. Streaming cannot continue.");
+                group.SpawnDataIsReady = false;
+                meshHabitats.Dispose();
+                return;
+            }
+
+            NativeArray<StaticEntityPlacement> generatedPlacements =
+                new NativeArray<StaticEntityPlacement>(amountToGenerate, Allocator.TempJob);
+            var generateJob = new GenerateStaticSpawnSitesJob
+            {
+                StartSiteIndex = group.GeneratedCount,
+                GroupId = group.StaticEntitiesGroupId,
+                CanUseTerrain = canUseTerrain,
+                CanUseMesh = canUseMesh,
+                MeshHabitatRatio = math.saturate(group.MeshHabitatRatio),
+                SplatmapData = group.SplatmapDataBlobRef,
+                SplatmapWidth = group.SplatmapWidth,
+                SplatmapHeight = group.SplatmapHeight,
+                FallbackSplatmapIndex = group.FallbackSplatmapIndex,
+                HeightmapData = group.HeightmapDataBlobRef,
+                HeightmapWidth = group.HeightmapWidth,
+                HeightmapHeight = group.HeightmapHeight,
+                TerrainSize = group.TerrainSize,
+                TerrainHeight = group.TerrainHeight,
+                TerrainOffset = new float3(group.TerrainOffsetX, group.TerrainOffsetY, group.TerrainOffsetZ),
+                GroupNoiseOffset = group.GroupNoiseOffset,
+                NoiseScale = group.NoiseScale,
+                MinScale = group.MinScale,
+                MaxScale = group.MaxScale,
+                MeshHabitats = meshHabitats.AsArray(),
+                MeshHabitatLookup = meshHabitatLookup,
+                GeneratedPlacements = generatedPlacements
+            };
+
+            JobHandle generateHandle = generateJob.Schedule(amountToGenerate, 64, state.Dependency);
+            generateHandle.Complete();
+            state.Dependency = default;
+
+            float enableDistance = cullingMaxDistance * EnableDistanceMultiplier;
+            float enableDistanceSq = enableDistance * enableDistance;
+            for (int i = 0; i < generatedPlacements.Length; i++)
+            {
+                int siteIndex = group.GeneratedCount;
+                StaticEntityPlacement placement = generatedPlacements[i];
+                var site = new StaticEntitySpawnSite
+                {
+                    Position = placement.Position,
+                    Rotation = placement.Rotation,
+                    Scale = placement.Scale,
+                    SpawnedEntity = Entity.Null
+                };
+
+                if (instantiateGeneratedSites && entityChanges < MaxEntityChangesPerUpdate &&
+                    math.distancesq(placement.Position, cameraPosition) <= enableDistanceSq)
+                {
+                    pendingSpawns.Add(new StaticEntitySpawnRequest
+                    {
+                        SiteIndex = siteIndex,
+                        LocalToWorld = site.CreateLocalToWorld()
+                    });
+                    group.Count++;
+                    entityChanges++;
+                }
+
+                sites.Add(site);
+                group.GeneratedCount++;
+                generatedSites++;
+            }
+
+            generatedPlacements.Dispose();
+            meshHabitats.Dispose();
+
+            if (group.GeneratedCount == group.RequestedCount && instantiateGeneratedSites)
+            {
+                group.StreamingRefreshRequested = true;
+                group.StreamingScanIndex = 0;
+                group.StreamingScanCameraPosition = cameraPosition;
+            }
+        }
+
+        private static void FinishPopulationReduction(
+            ref StaticEntitiesGroupComponent group,
+            float3 cameraPosition)
+        {
+            group.PopulationReductionInProgress = false;
+            group.StreamingRefreshRequested = false;
+            group.StreamingScanIndex = 0;
+            group.StreamingScanCameraPosition = cameraPosition;
+        }
+
+        private static void RequestStreamingRefreshForCameraMovement(
+            ref StaticEntitiesGroupComponent group,
+            float3 cameraPosition)
+        {
+            if (group.StreamingRefreshRequested)
+            {
+                return;
+            }
+
+            float refreshDistanceSq = StreamingRefreshDistance * StreamingRefreshDistance;
+            if (math.distancesq(group.StreamingScanCameraPosition, cameraPosition) >= refreshDistanceSq)
+            {
+                group.StreamingRefreshRequested = true;
+                group.StreamingScanIndex = 0;
+                group.StreamingScanCameraPosition = cameraPosition;
+            }
+        }
+
+        private static void ReconcileSpawnSites(
+            EntityManager entityManager,
+            Entity groupEntity,
+            ref DynamicBuffer<StaticEntitySpawnSite> sites,
+            ref StaticEntitiesGroupComponent group,
+            float cullingMaxDistance,
+            ref int entityChanges,
+            ref int reconciledSites,
+            ref NativeList<StaticEntitySpawnRequest> pendingSpawns,
+            ref NativeList<Entity> pendingDespawns)
+        {
+            if (!group.StreamingRefreshRequested)
+            {
+                return;
+            }
+
+            float disableDistanceSq = cullingMaxDistance * cullingMaxDistance;
+            float enableDistance = cullingMaxDistance * EnableDistanceMultiplier;
+            float enableDistanceSq = enableDistance * enableDistance;
+            int remainingScanBudget = MaxSitesScannedPerUpdate - reconciledSites;
+            if (remainingScanBudget <= 0)
+            {
+                return;
+            }
+
+            int scanEnd = math.min(sites.Length, group.StreamingScanIndex + remainingScanBudget);
+
+            while (group.StreamingScanIndex < scanEnd)
+            {
+                int siteIndex = group.StreamingScanIndex;
+                StaticEntitySpawnSite site = sites[siteIndex];
+                bool entityExists = site.SpawnedEntity != Entity.Null && entityManager.Exists(site.SpawnedEntity);
+                if (site.SpawnedEntity != Entity.Null && !entityExists)
+                {
+                    site.SpawnedEntity = Entity.Null;
+                    group.Count--;
+                    sites[siteIndex] = site;
+                }
+
+                float distanceSq = math.distancesq(site.Position, group.StreamingScanCameraPosition);
+                if (entityExists && distanceSq > disableDistanceSq)
+                {
+                    if (entityChanges >= MaxEntityChangesPerUpdate)
+                    {
+                        break;
+                    }
+
+                    pendingDespawns.Add(site.SpawnedEntity);
+                    site.SpawnedEntity = Entity.Null;
+                    sites[siteIndex] = site;
+                    group.Count--;
+                    entityChanges++;
+                }
+                else if (!entityExists && distanceSq <= enableDistanceSq)
+                {
+                    if (entityChanges >= MaxEntityChangesPerUpdate)
+                    {
+                        break;
+                    }
+
+                    pendingSpawns.Add(new StaticEntitySpawnRequest
+                    {
+                        SiteIndex = siteIndex,
+                        LocalToWorld = site.CreateLocalToWorld()
+                    });
+                    group.Count++;
+                    entityChanges++;
+                }
+
+                group.StreamingScanIndex++;
+                reconciledSites++;
+            }
+
+            if (group.StreamingScanIndex >= sites.Length)
+            {
+                group.StreamingRefreshRequested = false;
+                group.StreamingScanIndex = 0;
+            }
+        }
+
+        private static void ApplyPendingEntityChanges(
+            EntityManager entityManager,
+            Entity groupEntity,
+            ref StaticEntitiesGroupComponent group,
+            ref NativeList<StaticEntitySpawnRequest> pendingSpawns,
+            ref NativeList<Entity> pendingDespawns)
+        {
+            if (pendingDespawns.Length > 0)
+            {
+                entityManager.DestroyEntity(pendingDespawns.AsArray());
+            }
+
+            if (pendingSpawns.Length == 0)
+            {
+                return;
+            }
+
+            Assert.IsTrue(group.StaticEntityPrototype != Entity.Null && entityManager.Exists(group.StaticEntityPrototype),
+                "StaticEntitySpawnSystem requires a valid static entity prototype.");
+            Assert.IsTrue(entityManager.HasComponent<RenderMeshArray>(group.StaticEntityPrototype),
+                "StaticEntitySpawnSystem requires a RenderMeshArray on the static entity prototype.");
+
+            NativeArray<Entity> spawnedEntities = new NativeArray<Entity>(pendingSpawns.Length, Allocator.Temp);
+            entityManager.Instantiate(group.StaticEntityPrototype, spawnedEntities);
+            DynamicBuffer<StaticEntitySpawnSite> refreshedSites =
+                entityManager.GetBuffer<StaticEntitySpawnSite>(groupEntity);
+
+            for (int i = 0; i < spawnedEntities.Length; i++)
+            {
+                StaticEntitySpawnRequest request = pendingSpawns[i];
+                Assert.IsTrue(request.SiteIndex >= 0 && request.SiteIndex < refreshedSites.Length,
+                    "Static entity spawn request must reference a valid spawn site.");
+                StaticEntitySpawnSite site = refreshedSites[request.SiteIndex];
+                Assert.AreEqual(Entity.Null, site.SpawnedEntity,
+                    "Static entity spawn request requires an unoccupied spawn site.");
+
+                Entity spawnedEntity = spawnedEntities[i];
+                ConfigureSpawnedSite(
+                    entityManager,
+                    spawnedEntity,
+                    groupEntity,
+                    request.SiteIndex,
+                    request.LocalToWorld,
+                    in group);
+                site.SpawnedEntity = spawnedEntity;
+                refreshedSites[request.SiteIndex] = site;
+            }
+
+            spawnedEntities.Dispose();
+        }
+
+        private static void ConfigureSpawnedSite(
+            EntityManager entityManager,
+            Entity spawnedEntity,
+            Entity groupEntity,
+            int siteIndex,
+            float4x4 localToWorld,
+            in StaticEntitiesGroupComponent group)
+        {
+            entityManager.SetComponentData(spawnedEntity, new LocalToWorld { Value = localToWorld });
+            entityManager.SetComponentData(spawnedEntity, new StaticEntitySpawnSiteIndex { Value = siteIndex });
+            if (entityManager.HasComponent<StaticEntityHoverMember>(spawnedEntity))
+            {
+                entityManager.SetComponentData(spawnedEntity, new StaticEntityHoverMember { GroupEntity = groupEntity });
+            }
+
+            SetEntityShaderVisibility(entityManager, spawnedEntity, siteIndex, in group);
+        }
+
+        private static void UpdateShaderVisibility(
+            EntityManager entityManager,
+            ref DynamicBuffer<StaticEntitySpawnSite> sites,
+            ref StaticEntitiesGroupComponent group,
+            ref int shaderSites)
+        {
+            if (!group.ShaderUpdateRequested)
+            {
+                return;
+            }
+
+            int remainingShaderBudget = MaxShaderSitesPerUpdate - shaderSites;
+            if (remainingShaderBudget <= 0)
+            {
+                return;
+            }
+
+            int scanEnd = math.min(sites.Length, group.ShaderUpdateScanIndex + remainingShaderBudget);
+            while (group.ShaderUpdateScanIndex < scanEnd)
+            {
+                int siteIndex = group.ShaderUpdateScanIndex;
+                Entity spawnedEntity = sites[siteIndex].SpawnedEntity;
+                if (spawnedEntity != Entity.Null && entityManager.Exists(spawnedEntity))
+                {
+                    SetEntityShaderVisibility(entityManager, spawnedEntity, siteIndex, in group);
+                }
+                group.ShaderUpdateScanIndex++;
+                shaderSites++;
+            }
+
+            if (group.ShaderUpdateScanIndex >= sites.Length && group.GeneratedCount == group.RequestedCount)
+            {
+                group.ShaderUpdateRequested = false;
+                group.ShaderUpdateScanIndex = 0;
+            }
+        }
+
+        private static void SetEntityShaderVisibility(
+            EntityManager entityManager,
+            Entity entity,
+            int siteIndex,
+            in StaticEntitiesGroupComponent group)
+        {
+            float4 displayStart = float4.zero;
+            float4 displayEnd = float4.zero;
+            for (int viewIndex = 0; viewIndex < group.ViewsCount; viewIndex++)
+            {
+                float visibility = GetViewValue(group.ViewVisibilityPercentages, viewIndex);
+                if (!StaticEntityViewVisibilityUtility.IsVisible(siteIndex, group.StaticEntitiesGroupId, visibility))
+                {
+                    continue;
+                }
+
+                float start = (float)viewIndex / group.ViewsCount;
+                float end = (float)(viewIndex + 1) / group.ViewsCount;
+                SetViewValue(ref displayStart, viewIndex, start);
+                SetViewValue(ref displayEnd, viewIndex, end);
+            }
+
+            entityManager.SetComponentData(entity, new ScreenDisplayStartOverride { Value = displayStart });
+            entityManager.SetComponentData(entity, new ScreenDisplayEndOverride { Value = displayEnd });
+        }
+
+        private static float GetViewValue(float4 values, int viewIndex)
+        {
+            switch (viewIndex)
+            {
+                case 0: return values.x;
+                case 1: return values.y;
+                case 2: return values.z;
+                case 3: return values.w;
+                default:
+                    Assert.IsTrue(false, "Static entity view index must be between 0 and 3.");
+                    return 0.0f;
+            }
+        }
+
+        private static void SetViewValue(ref float4 values, int viewIndex, float value)
+        {
+            switch (viewIndex)
+            {
+                case 0: values.x = value; break;
+                case 1: values.y = value; break;
+                case 2: values.z = value; break;
+                case 3: values.w = value; break;
+                default: Assert.IsTrue(false, "Static entity view index must be between 0 and 3."); break;
             }
         }
     }
 
     /// <summary>
-    /// Job responsible for initializing static entity positions and orientations when spawned on terrain.
+    /// Generates lightweight terrain or mesh placement transforms without creating ECS entities.
     /// </summary>
     [BurstCompile]
-    struct SetStaticEntityLocalToWorld : IJobParallelFor
+    internal struct GenerateStaticSpawnSitesJob : IJobParallelFor
     {
-        [NativeDisableContainerSafetyRestriction]
-        public ComponentLookup<LocalToWorld> LocalToWorldFromEntity;
+        private const int MaxPlacementAttempts = 100;
 
-        [ReadOnly] public NativeArray<Entity> Entities;
-        [ReadOnly] public float MinScale;
-        [ReadOnly] public float MaxScale;
-        [ReadOnly] public float TerrainSize;
-        [ReadOnly] public float TerrainHeight;
-        [ReadOnly] public float TerrainOffsetX;
-        [ReadOnly] public float TerrainOffsetY;
-        [ReadOnly] public float TerrainOffsetZ;
-        [ReadOnly] public BlobAssetReference<FloatBlob> HeightmapDataBlobRef;
-        [ReadOnly] public int HeightmapWidth;
-        [ReadOnly] public int HeightmapHeight;
-        [ReadOnly] public bool UseSplatmap;
+        [ReadOnly] public int StartSiteIndex;
+        [ReadOnly] public int GroupId;
+        [ReadOnly] public bool CanUseTerrain;
+        [ReadOnly] public bool CanUseMesh;
+        [ReadOnly] public float MeshHabitatRatio;
+        [ReadOnly] public BlobAssetReference<ByteBlob> SplatmapData;
         [ReadOnly] public int SplatmapWidth;
         [ReadOnly] public int SplatmapHeight;
-        [ReadOnly] public NativeArray<int> SpawnPositionIndices;
+        [ReadOnly] public int FallbackSplatmapIndex;
+        [ReadOnly] public BlobAssetReference<FloatBlob> HeightmapData;
+        [ReadOnly] public int HeightmapWidth;
+        [ReadOnly] public int HeightmapHeight;
+        [ReadOnly] public float TerrainSize;
+        [ReadOnly] public float TerrainHeight;
+        [ReadOnly] public float3 TerrainOffset;
+        [ReadOnly] public float3 GroupNoiseOffset;
+        [ReadOnly] public float NoiseScale;
+        [ReadOnly] public float MinScale;
+        [ReadOnly] public float MaxScale;
+        [ReadOnly] public NativeArray<Entity> MeshHabitats;
+        [ReadOnly] public ComponentLookup<MeshHabitatBlobRef> MeshHabitatLookup;
 
-        public void Execute(int i)
+        [WriteOnly] public NativeArray<StaticEntityPlacement> GeneratedPlacements;
+
+        public void Execute(int index)
         {
-            var entity = Entities[i];
-            var random = Random.CreateFromIndex((uint)(entity.Index + i + SpawnPositionIndices[i]));
-            
-            float3 pos;
-            float worldX, worldZ;
+            int siteIndex = StartSiteIndex + index;
+            uint seed = math.hash(new uint2((uint)GroupId, (uint)siteIndex));
+            Unity.Mathematics.Random random = Unity.Mathematics.Random.CreateFromIndex(seed);
 
-            if (UseSplatmap && SpawnPositionIndices.Length > i && HeightmapDataBlobRef.IsCreated)
+            bool useMesh = CanUseMesh && (!CanUseTerrain || random.NextFloat() < MeshHabitatRatio);
+            if (useMesh)
             {
-                int spawnIndex = SpawnPositionIndices[i];
-                int splatX = spawnIndex % SplatmapWidth;
-                int splatZ = spawnIndex / SplatmapWidth;
-                float offsetX = random.NextFloat(-0.5f, 0.5f);
-                float offsetZ = random.NextFloat(-0.5f, 0.5f);
-                float terrainNormX = ((float)splatX + offsetX + 0.5f) / SplatmapWidth;
-                float terrainNormZ = ((float)splatZ + offsetZ + 0.5f) / SplatmapHeight;
-                terrainNormX = math.clamp(terrainNormX, 0f, 0.999f);
-                terrainNormZ = math.clamp(terrainNormZ, 0f, 0.999f);
-                worldX = TerrainOffsetX + terrainNormX * TerrainSize;
-                worldZ = TerrainOffsetZ + terrainNormZ * TerrainSize;
-                float height = SampleHeightmapWithInterpolation(terrainNormX, terrainNormZ);
-                float terrainY = height * TerrainHeight;
-                pos = new float3(worldX, TerrainOffsetY + terrainY, worldZ);
+                GeneratedPlacements[index] = GenerateMeshPlacement(ref random);
             }
             else
             {
-                float normalizedX = random.NextFloat(0f, 1f);
-                float normalizedZ = random.NextFloat(0f, 1f);
-                worldX = TerrainOffsetX + normalizedX * TerrainSize;
-                worldZ = TerrainOffsetZ + normalizedZ * TerrainSize;
-                float height = SampleHeightmapWithInterpolation(normalizedX, normalizedZ);
-                float terrainY = height * TerrainHeight;
-                pos = new float3(worldX, TerrainOffsetY + terrainY, worldZ);
+                GeneratedPlacements[index] = GenerateTerrainPlacement(ref random);
             }
-            
-            float randomYaw = random.NextFloat(0f, 360f);
-            float randomPitch = random.NextFloat(-5f, 5f);
-            float randomRoll = random.NextFloat(-5f, 5f);
-            quaternion rotation = quaternion.Euler(math.radians(randomPitch), math.radians(randomYaw), math.radians(randomRoll));
-            
-            float baseScale = random.NextFloat(MinScale, MaxScale);
-            float3 scale = new float3(baseScale * random.NextFloat(0.9f, 1.1f),
-                                    baseScale,
-                                    baseScale * random.NextFloat(0.9f, 1.1f));
+        }
 
-            LocalToWorldFromEntity[entity] = new LocalToWorld
+        private StaticEntityPlacement GenerateTerrainPlacement(ref Unity.Mathematics.Random random)
+        {
+            int spawnIndex = FallbackSplatmapIndex;
+            ref BlobArray<byte> splatmapValues = ref SplatmapData.Value.Values;
+            for (int attempt = 0; attempt < MaxPlacementAttempts; attempt++)
             {
-                Value = float4x4.TRS(pos, rotation, scale)
+                int candidateIndex = random.NextInt(0, SplatmapWidth * SplatmapHeight);
+                float habitatWeight = splatmapValues[candidateIndex] / 255.0f;
+                if (habitatWeight < 0.01f)
+                {
+                    continue;
+                }
+
+                int candidateX = candidateIndex % SplatmapWidth;
+                int candidateZ = candidateIndex / SplatmapWidth;
+                float normalizedX = (candidateX + 0.5f) / SplatmapWidth;
+                float normalizedZ = (candidateZ + 0.5f) / SplatmapHeight;
+                float worldX = TerrainOffset.x + normalizedX * TerrainSize;
+                float worldZ = TerrainOffset.z + normalizedZ * TerrainSize;
+                float noiseValue = noise.snoise(new float3(
+                    worldX / NoiseScale + GroupNoiseOffset.x,
+                    worldZ / NoiseScale + GroupNoiseOffset.z,
+                    GroupNoiseOffset.y));
+                float noiseWeight = math.saturate(noiseValue + 0.5f);
+                if (random.NextFloat() <= habitatWeight * noiseWeight)
+                {
+                    spawnIndex = candidateIndex;
+                    break;
+                }
+            }
+
+            int splatX = spawnIndex % SplatmapWidth;
+            int splatZ = spawnIndex / SplatmapWidth;
+            float terrainNormalizedX = math.saturate((splatX + random.NextFloat()) / SplatmapWidth);
+            float terrainNormalizedZ = math.saturate((splatZ + random.NextFloat()) / SplatmapHeight);
+            float height = SampleHeight(terrainNormalizedX, terrainNormalizedZ);
+            float3 position = new float3(
+                TerrainOffset.x + terrainNormalizedX * TerrainSize,
+                TerrainOffset.y + height * TerrainHeight,
+                TerrainOffset.z + terrainNormalizedZ * TerrainSize);
+            quaternion rotation = quaternion.Euler(
+                math.radians(random.NextFloat(-5.0f, 5.0f)),
+                random.NextFloat(0.0f, math.PI * 2.0f),
+                math.radians(random.NextFloat(-5.0f, 5.0f)));
+            return new StaticEntityPlacement
+            {
+                Position = position,
+                Rotation = rotation,
+                Scale = GenerateScale(ref random)
             };
         }
 
-        private float SampleHeightmapWithInterpolation(float normalizedX, float normalizedZ)
+        private StaticEntityPlacement GenerateMeshPlacement(ref Unity.Mathematics.Random random)
         {
-            // Early return for invalid heightmap configuration
-            if (!HeightmapDataBlobRef.IsCreated || HeightmapWidth <= 1 || HeightmapHeight <= 1)
-                return 0.5f;
-            
-            // Try to access the blob value safely - this might be where the null reference occurs
-            ref var heightmapBlobValue = ref HeightmapDataBlobRef.Value;
-            ref var heightmapValues = ref heightmapBlobValue.Values;
-            
-            // Check if the Values array has the expected length
-            int expectedLength = HeightmapWidth * HeightmapHeight;
-            if (heightmapValues.Length != expectedLength || heightmapValues.Length == 0)
+            float totalArea = 0.0f;
+            for (int i = 0; i < MeshHabitats.Length; i++)
             {
-                return 0.5f;
+                totalArea += MeshHabitatLookup[MeshHabitats[i]].BlobRef.Value.SurfaceArea;
             }
-            
+
+            float areaSelection = random.NextFloat(0.0f, totalArea);
+            Entity selectedHabitat = MeshHabitats[MeshHabitats.Length - 1];
+            for (int i = 0; i < MeshHabitats.Length; i++)
+            {
+                Entity candidate = MeshHabitats[i];
+                areaSelection -= MeshHabitatLookup[candidate].BlobRef.Value.SurfaceArea;
+                if (areaSelection <= 0.0f)
+                {
+                    selectedHabitat = candidate;
+                    break;
+                }
+            }
+
+            MeshHabitatBlobRef habitat = MeshHabitatLookup[selectedHabitat];
+            ref MeshHabitatBlobData mesh = ref habitat.BlobRef.Value;
+            int triangleCount = mesh.Triangles.Length / 3;
+            int selectedTriangle = random.NextInt(0, triangleCount);
+            float3 localPosition = float3.zero;
+            float3 localNormal = math.up();
+
+            for (int attempt = 0; attempt < MaxPlacementAttempts; attempt++)
+            {
+                int triangleIndex = random.NextInt(0, triangleCount);
+                SampleTriangle(ref mesh, triangleIndex, ref random, out float3 candidatePosition, out float3 candidateNormal, out float density);
+                selectedTriangle = triangleIndex;
+                localPosition = candidatePosition;
+                localNormal = candidateNormal;
+                if (random.NextFloat() <= density)
+                {
+                    break;
+                }
+            }
+
+            if (math.lengthsq(localNormal) < 0.0001f)
+            {
+                SampleTriangle(ref mesh, selectedTriangle, ref random, out localPosition, out localNormal, out float _);
+            }
+
+            float3 worldPosition = math.transform(habitat.LocalToWorld, localPosition);
+            float3 worldNormal = math.normalizesafe(math.rotate(new quaternion(habitat.LocalToWorld), localNormal), math.up());
+            float3 tangent = math.normalizesafe(math.cross(worldNormal, new float3(0.37f, 0.81f, 0.21f)), math.forward());
+            quaternion alignToSurface = quaternion.LookRotationSafe(tangent, worldNormal);
+            quaternion randomYaw = quaternion.AxisAngle(worldNormal, random.NextFloat(0.0f, math.PI * 2.0f));
+            return new StaticEntityPlacement
+            {
+                Position = worldPosition,
+                Rotation = math.mul(randomYaw, alignToSurface),
+                Scale = GenerateScale(ref random)
+            };
+        }
+
+        private void SampleTriangle(
+            ref MeshHabitatBlobData mesh,
+            int triangleIndex,
+            ref Unity.Mathematics.Random random,
+            out float3 position,
+            out float3 normal,
+            out float density)
+        {
+            int firstIndex = mesh.Triangles[triangleIndex * 3];
+            int secondIndex = mesh.Triangles[triangleIndex * 3 + 1];
+            int thirdIndex = mesh.Triangles[triangleIndex * 3 + 2];
+            float3 first = mesh.Vertices[firstIndex];
+            float3 second = mesh.Vertices[secondIndex];
+            float3 third = mesh.Vertices[thirdIndex];
+
+            float u = random.NextFloat();
+            float v = random.NextFloat();
+            if (u + v > 1.0f)
+            {
+                u = 1.0f - u;
+                v = 1.0f - v;
+            }
+            float w = 1.0f - u - v;
+            position = first * u + second * v + third * w;
+            normal = math.normalizesafe(math.cross(second - first, third - first), math.up());
+            float colorWeight = mesh.Colors[firstIndex] * u + mesh.Colors[secondIndex] * v + mesh.Colors[thirdIndex] * w;
+            float noiseWeight = noise.snoise((position + GroupNoiseOffset) / NoiseScale) * 0.5f + 0.5f;
+            density = math.saturate(colorWeight * noiseWeight);
+        }
+
+        private float3 GenerateScale(ref Unity.Mathematics.Random random)
+        {
+            float minimumScale = MinScale;
+            if (minimumScale <= 0.0f)
+            {
+                minimumScale = 0.8f;
+            }
+
+            float maximumScale = MaxScale;
+            if (maximumScale < minimumScale)
+            {
+                maximumScale = minimumScale;
+            }
+            float baseScale = random.NextFloat(minimumScale, maximumScale);
+            return new float3(
+                baseScale * random.NextFloat(0.9f, 1.1f),
+                baseScale,
+                baseScale * random.NextFloat(0.9f, 1.1f));
+        }
+
+        private float SampleHeight(float normalizedX, float normalizedZ)
+        {
+            ref BlobArray<float> values = ref HeightmapData.Value.Values;
             float heightmapX = normalizedX * (HeightmapWidth - 1);
             float heightmapZ = normalizedZ * (HeightmapHeight - 1);
-            
             int x0 = (int)heightmapX;
             int z0 = (int)heightmapZ;
             int x1 = math.min(x0 + 1, HeightmapWidth - 1);
             int z1 = math.min(z0 + 1, HeightmapHeight - 1);
-            
             float tx = heightmapX - x0;
             float tz = heightmapZ - z0;
-            
-            float h00 = SampleHeightmapPoint(ref heightmapValues, x0, z0);
-            float h01 = SampleHeightmapPoint(ref heightmapValues, x0, z1);
-            float h10 = SampleHeightmapPoint(ref heightmapValues, x1, z0);
-            float h11 = SampleHeightmapPoint(ref heightmapValues, x1, z1);
-            
-            float h0 = math.lerp(h00, h10, tx);
-            float h1 = math.lerp(h01, h11, tx);
-            float finalHeight = math.lerp(h0, h1, tz);
-            
-            return finalHeight;
-        }
-        
-        private float SampleHeightmapPoint(ref BlobArray<float> values, int x, int z)
-        {
-            int index = z * HeightmapWidth + x;
-             if (index < 0 || index >= values.Length)
-                 return 0.5f;
-            return values[index];
+            float h0 = math.lerp(values[z0 * HeightmapWidth + x0], values[z0 * HeightmapWidth + x1], tx);
+            float h1 = math.lerp(values[z1 * HeightmapWidth + x0], values[z1 * HeightmapWidth + x1], tx);
+            return math.lerp(h0, h1, tz);
         }
     }
 
-    /// <summary>
-    /// Job responsible for placing static entities on mesh surfaces
-    /// </summary>
-    [BurstCompile]
-    struct SetMeshEntityLocalToWorld : IJobParallelFor
+    internal struct StaticEntityPlacement
     {
-        [NativeDisableContainerSafetyRestriction]
-        public ComponentLookup<LocalToWorld> LocalToWorldFromEntity;
-
-        [ReadOnly] public NativeArray<Entity> Entities;
-        [ReadOnly] public NativeArray<MeshSpawnPoint> SpawnPoints;
-        [ReadOnly] public float MinScale;
-        [ReadOnly] public float MaxScale;
-        [ReadOnly] public uint Seed;
-
-        public void Execute(int i)
-        {
-            var entity = Entities[i];
-            var spawnPoint = SpawnPoints[i];
-            
-            // Skip if the mesh entity is null (invalid spawn point)
-            if (spawnPoint.MeshEntity == Entity.Null)
-            {
-                return;
-            }
-            
-            var random = Random.CreateFromIndex(Seed + (uint)i);
-            
-            // Get spawn position and normal from the pre-calculated data
-            float3 position = spawnPoint.Position;
-            float3 normal = spawnPoint.Normal;
-            
-            // Calculate rotation to align with surface normal
-            quaternion alignWithNormal = quaternion.LookRotation(
-                math.cross(normal, new float3(random.NextFloat(-1f, 1f), 0, random.NextFloat(-1f, 1f))), 
-                normal
-            );
-            
-            // Add random rotation around normal axis
-            float randomYawAngle = random.NextFloat(0, math.PI * 2);
-            quaternion randomYaw = quaternion.AxisAngle(normal, randomYawAngle);
-            quaternion finalRotation = math.mul(randomYaw, alignWithNormal);
-            
-            // Random scale
-            float baseScale = random.NextFloat(MinScale, MaxScale);
-            float3 scale = new float3(
-                baseScale * random.NextFloat(0.9f, 1.1f), 
-                baseScale, 
-                baseScale * random.NextFloat(0.9f, 1.1f)
-            );
-
-            // Set LocalToWorld component
-            LocalToWorldFromEntity[entity] = new LocalToWorld
-            {
-                Value = float4x4.TRS(position, finalRotation, scale)
-            };
-        }
+        public float3 Position;
+        public quaternion Rotation;
+        public float3 Scale;
     }
-} 
+
+    internal struct StaticEntitySpawnRequest
+    {
+        public int SiteIndex;
+        public float4x4 LocalToWorld;
+    }
+}

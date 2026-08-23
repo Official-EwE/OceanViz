@@ -4,448 +4,684 @@ using Unity.Jobs;
 using Unity.Burst;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Mathematics;
-using Unity.Physics;
 using Unity.Transforms;
 using Unity.Rendering;
-using UnityEngine.Rendering.Universal;
+using Unity.Assertions;
 
 namespace OceanViz3
 {
+    public struct BoidFixedStepTime : IComponentData
+    {
+        public const float DefaultFixedStep = 1.0f / 60.0f;
+        public const int DefaultMaxStepsPerFrame = 4;
+
+        public float Accumulator;
+        public float FixedStep;
+        public float FixedElapsedTime;
+        public float CurrentFrameStartElapsedTime;
+        public int StepCount;
+        public int MaxStepsPerFrame;
+    }
+
     /// <summary>
-    /// System that calculates boid flocking behavior and updates positions using jobs.
-    /// Uses multiple jobs to handle different aspects: InitialPerBoidJob, InitialPerTargetJob, 
-    /// InitialPerObstacleJob, MergeCells, and SteerBoidJob.
+    /// Converts variable render-frame time into fixed boid simulation steps.
+    /// Large frames are clamped so boids do not try to simulate an unbounded backlog after a stall.
+    /// </summary>
+    [BurstCompile]
+    [UpdateInGroup(typeof(SimulationSystemGroup))]
+    [UpdateBefore(typeof(BoidSchoolRuntimeSyncSystem))]
+    public partial struct BoidFixedStepSystem : ISystem
+    {
+        public void OnCreate(ref SystemState state)
+        {
+            Entity entity = state.EntityManager.CreateEntity(typeof(BoidFixedStepTime));
+            state.EntityManager.SetName(entity, "Boid Fixed Step Time");
+            state.EntityManager.SetComponentData(entity, new BoidFixedStepTime
+            {
+                Accumulator = 0.0f,
+                FixedStep = BoidFixedStepTime.DefaultFixedStep,
+                FixedElapsedTime = 0.0f,
+                CurrentFrameStartElapsedTime = 0.0f,
+                StepCount = 0,
+                MaxStepsPerFrame = BoidFixedStepTime.DefaultMaxStepsPerFrame
+            });
+        }
+
+        public void OnUpdate(ref SystemState state)
+        {
+            BoidFixedStepTime time = SystemAPI.GetSingleton<BoidFixedStepTime>();
+            Assert.IsTrue(time.FixedStep > 0.0f, "Boid fixed step must be positive.");
+            Assert.IsTrue(time.MaxStepsPerFrame > 0, "Boid max steps per frame must be positive.");
+
+            float realDeltaTime = math.max(0.0f, SystemAPI.Time.DeltaTime);
+            float maxAccumulatedTime = time.FixedStep * time.MaxStepsPerFrame;
+            time.Accumulator = math.min(time.Accumulator + realDeltaTime, maxAccumulatedTime);
+            time.CurrentFrameStartElapsedTime = time.FixedElapsedTime;
+            time.StepCount = 0;
+
+            while (time.Accumulator >= time.FixedStep && time.StepCount < time.MaxStepsPerFrame)
+            {
+                time.Accumulator -= time.FixedStep;
+                time.FixedElapsedTime += time.FixedStep;
+                time.StepCount++;
+            }
+
+            if (time.StepCount == time.MaxStepsPerFrame)
+            {
+                time.Accumulator = 0.0f;
+            }
+
+            SystemAPI.SetSingleton(time);
+        }
+    }
+
+    /// <summary>
+    /// System that calculates boid flocking behavior and updates positions using one global open-water pass and one global seabed pass.
+    /// School-wide behavior is read from school-owned runtime data instead of per-boid shared component filters.
     /// </summary>
     [RequireMatchingQueriesForUpdate]
     [UpdateInGroup(typeof(SimulationSystemGroup))]
     [UpdateBefore(typeof(TransformSystemGroup))]
     public partial struct BoidSystem : ISystem
     {
-        // Bend tuning constants (shader _CurrentVector.x behavior)
-        private const float BEND_GAIN = 0.5f;                 // Multiplies signed angular velocity to get bend
-        private const float BEND_MAX_ABS = 0.3f;               // Absolute clamp for bend (match shader expectation)
-        private const float BEND_FLIP_TIME_SEC = 0.8f;         // Time to go from -max to +max (seconds)
-        private const float BEND_SLEW_RATE = (2.0f * BEND_MAX_ABS) / BEND_FLIP_TIME_SEC; // Units per second
-        private const float BEND_ANGVEL_DEADZONE = 0.0f;       // rad/s below which bend is zero
-        private const float PREDATOR_SIZE_TO_RADIUS_FACTOR = 1.0f; // Half of largest mesh dimension contributes to radius
-        
-        /// <summary>Query to get the SceneData entity</summary>
+        private const int INITIAL_HOVER_INDEX_CAPACITY = 1024;
+        private const float BEND_GAIN = 0.5f;
+        private const float BEND_MAX_ABS = 0.3f;
+        private const float BEND_FLIP_TIME_SEC = 0.4f;
+        private const float BEND_SLEW_RATE = (2.0f * BEND_MAX_ABS) / BEND_FLIP_TIME_SEC;
+        private const float BEND_ANGVEL_DEADZONE = 0.08f;
+        private const float BEND_RETURN_SPEED_MULTIPLIER = 4.0f;
+        private const float BEND_ZERO_EPSILON = 0.008f;
+        private const float PREDATOR_SIZE_TO_RADIUS_FACTOR = 1.0f;
+
+        private EntityQuery fixedStepTimeQuery;
         private EntityQuery sceneDataQuery;
+        private EntityQuery seabedSurfaceQuery;
+        private EntityQuery schoolRuntimeQuery;
+        private EntityQuery openWaterBoidsQuery;
+        private EntityQuery seabedBoidsQuery;
+        private EntityQuery obstacleQuery;
+        private EntityQuery predatorQuery;
+        private EntityQuery waterCurrentQuery;
+        private EntityQuery hoverRequestQuery;
+        private NativeParallelMultiHashMap<int, Entity> dynamicHoverIndex;
+        private JobHandle dynamicHoverReadHandle;
+        private JobHandle dynamicHoverWriteHandle;
 
-        /// <summary>Query to get the PhysicsCollider entity</summary>
-        private EntityQuery terrainColliderQuery;
+        public NativeParallelMultiHashMap<int, Entity> DynamicHoverIndex => dynamicHoverIndex;
 
-        /// <summary>
-        /// Initializes the system by setting up required queries.
-        /// </summary>
         public void OnCreate(ref SystemState state)
         {
-            // Get the singleton SceneData entity
+            fixedStepTimeQuery = state.EntityManager.CreateEntityQuery(typeof(BoidFixedStepTime));
             sceneDataQuery = state.EntityManager.CreateEntityQuery(typeof(SceneData));
-            state.RequireForUpdate(sceneDataQuery);
+            seabedSurfaceQuery = state.EntityManager.CreateEntityQuery(typeof(SeabedSurfaceData));
+            schoolRuntimeQuery = SystemAPI.QueryBuilder()
+                .WithAll<BoidSchoolRuntimeData>()
+                .Build();
 
-            // Get the PhysicsCollider entity
-            terrainColliderQuery = state.EntityManager.CreateEntityQuery(typeof(PhysicsCollider));
-            state.RequireForUpdate(terrainColliderQuery);
-        }
-
-        /// <summary>
-        /// Updates the boid simulation each frame. Handles:
-        /// - Enabling/disabling boids based on camera distance
-        /// - Processing each unique boid variant (school)
-        /// - Running jobs for flocking calculations
-        /// - Updating boid positions and rotations
-        /// </summary>
-        [BurstCompile]
-        public void OnUpdate(ref SystemState state)
-        {
-            // Main Queries
-            EntityQuery enabledBoidsQuery = SystemAPI.QueryBuilder()
+            openWaterBoidsQuery = SystemAPI.QueryBuilder()
                 .WithAllRW<LocalToWorld>()
                 .WithAllRW<CurrentVectorOverride>()
                 .WithAllRW<BoidUnique>()
-                .WithAll<BoidShared>()
-                .WithAll<AccumulatedTimeOverride>()
-                .WithAll<AnimationSpeedOverride>()
-                .Build();            
-            int enabledBoidCount = enabledBoidsQuery.CalculateEntityCount();
-            
-            EntityQuery targetQuery = SystemAPI.QueryBuilder()
-                .WithAll<BoidTarget, LocalToWorld>()
-                .Build();            
-            int targetCount = targetQuery.CalculateEntityCount();
-            
-            EntityQuery obstacleQuery = SystemAPI.QueryBuilder()
+                .WithAll<BoidSchoolMember, OpenWaterBoidTag>()
+                .WithAll<AccumulatedTimeOverride, AnimationSpeedOverride>()
+                .Build();
+
+            seabedBoidsQuery = SystemAPI.QueryBuilder()
+                .WithAllRW<LocalToWorld>()
+                .WithAllRW<CurrentVectorOverride>()
+                .WithAllRW<BoidUnique>()
+                .WithAll<BoidSchoolMember, SeabedBoidTag>()
+                .WithAll<AccumulatedTimeOverride, AnimationSpeedOverride>()
+                .Build();
+
+            obstacleQuery = SystemAPI.QueryBuilder()
                 .WithAll<BoidObstacle, LocalToWorld>()
-                .Build();            
-            int obstacleCount = obstacleQuery.CalculateEntityCount();     
-            
-            EntityQuery predatorQuery = SystemAPI.QueryBuilder()
-                .WithAll<BoidShared, BoidUnique, BoidPredator, LocalToWorld>()
-                .Build();            
-            int predatorCount = predatorQuery.CalculateEntityCount();   
-            
-            EntityQuery preyQuery = SystemAPI.QueryBuilder()
-                .WithAll<BoidShared, BoidUnique, BoidPrey, LocalToWorld>()
-                .Build();            
-            int preyCount = preyQuery.CalculateEntityCount();
-            
-            // The system requires at least one enabled boid, target and obstacle to run
-            if (enabledBoidCount == 0 || targetCount == 0 || obstacleCount == 0)
+                .Build();
+
+            predatorQuery = SystemAPI.QueryBuilder()
+                .WithAll<BoidSchoolMember, BoidUnique, BoidPredator, LocalToWorld>()
+                .Build();
+
+            waterCurrentQuery = SystemAPI.QueryBuilder()
+                .WithAll<WaterCurrentSettings>()
+                .Build();
+            hoverRequestQuery = state.EntityManager.CreateEntityQuery(typeof(EntityHoverRequest));
+            dynamicHoverIndex = new NativeParallelMultiHashMap<int, Entity>(
+                INITIAL_HOVER_INDEX_CAPACITY,
+                Allocator.Persistent);
+
+            state.RequireForUpdate(fixedStepTimeQuery);
+            state.RequireForUpdate(sceneDataQuery);
+            state.RequireForUpdate(schoolRuntimeQuery);
+        }
+
+        public void OnDestroy(ref SystemState state)
+        {
+            state.Dependency.Complete();
+            dynamicHoverReadHandle.Complete();
+            dynamicHoverWriteHandle.Complete();
+            if (dynamicHoverIndex.IsCreated)
+            {
+                dynamicHoverIndex.Dispose();
+            }
+        }
+
+        public JobHandle GetDynamicHoverReadDependency()
+        {
+            return dynamicHoverWriteHandle;
+        }
+
+        public void RegisterDynamicHoverRead(JobHandle readHandle)
+        {
+            dynamicHoverReadHandle = JobHandle.CombineDependencies(
+                dynamicHoverReadHandle,
+                readHandle);
+        }
+
+        [BurstCompile]
+        public void OnUpdate(ref SystemState state)
+        {
+            int openWaterBoidCount = openWaterBoidsQuery.CalculateEntityCount();
+            int seabedBoidCount = seabedBoidsQuery.CalculateEntityCount();
+            int totalBoidCount = openWaterBoidCount + seabedBoidCount;
+            int obstacleCount = obstacleQuery.CalculateEntityCount();
+            int predatorCount = predatorQuery.CalculateEntityCount();
+            int schoolCount = schoolRuntimeQuery.CalculateEntityCount();
+
+            if (totalBoidCount == 0 || schoolCount == 0)
             {
                 return;
             }
 
+            BoidFixedStepTime fixedStepTime = fixedStepTimeQuery.GetSingleton<BoidFixedStepTime>();
+            if (fixedStepTime.StepCount <= 0)
+            {
+                return;
+            }
+
+            Assert.IsTrue(fixedStepTime.FixedElapsedTime >= fixedStepTime.CurrentFrameStartElapsedTime, "Boid fixed elapsed time cannot go backwards.");
+
+            WaterCurrentSettings waterCurrentSettings = default;
+            int waterCurrentCount = waterCurrentQuery.CalculateEntityCount();
+            Assert.IsTrue(waterCurrentCount <= 1, "BoidSystem expects at most one WaterCurrentSettings singleton.");
+            if (waterCurrentCount == 1)
+            {
+                waterCurrentSettings = waterCurrentQuery.GetSingleton<WaterCurrentSettings>();
+            }
+
+            float fixedStep = fixedStepTime.FixedStep;
+            float fixedElapsedTime = fixedStepTime.CurrentFrameStartElapsedTime;
+            for (int stepIndex = 0; stepIndex < fixedStepTime.StepCount; stepIndex++)
+            {
+                fixedElapsedTime += fixedStep;
+                state.Dependency = ScheduleBoidSimulationStep(
+                    ref state,
+                    fixedStep,
+                    fixedElapsedTime,
+                    openWaterBoidCount,
+                    seabedBoidCount,
+                    obstacleCount,
+                    predatorCount,
+                    waterCurrentSettings);
+            }
+        }
+
+        private JobHandle ScheduleBoidSimulationStep(
+            ref SystemState state,
+            float deltaTime,
+            float elapsedTime,
+            int openWaterBoidCount,
+            int seabedBoidCount,
+            int obstacleCount,
+            int predatorCount,
+            WaterCurrentSettings waterCurrentSettings)
+        {
             var world = state.WorldUnmanaged;
 
-            // Get unique boid types list (BoidSchoolId means each school of boids will have it's own boidSettings)
-            state.EntityManager.GetAllUniqueSharedComponents(out NativeList<BoidShared> uniqueBoidTypes, world.UpdateAllocator.ToAllocator);
+            // Target positions are read on the main thread from LocalToWorld.
+            // Finish any prior fixed-step transform writes before taking that snapshot.
+            state.Dependency.Complete();
 
-            float deltaTime = math.min(0.05f, SystemAPI.Time.DeltaTime);
-
-            // Each variant of the Boid represents a different value of the SharedComponentData and is self-contained,
-            // meaning Boids of the same variant only interact with one another (meaning separation/cohesion). Thus, this loop processes each
-            // variant type individually.
-            foreach (var boidSettings in uniqueBoidTypes) // Iterate over all unique Boid variants (BoidSchoolId means each school of boids will have it's own boidSettings)
+            HoverSpatialIndexWriter hoverIndexWriter = new HoverSpatialIndexWriter
             {
-                // Filter the boidQuery to only include boids with the current boidSettings
-                enabledBoidsQuery.AddSharedComponentFilter(boidSettings); 
-
-                int boidCount = enabledBoidsQuery.CalculateEntityCount();
-                if (boidCount == 0)
-                {
-                    // Early out. If the given variant includes no Boids, move on to the next loop.
-                    // For example, variant 0 will always exit early bc it's it represents a default, uninitialized
-                    // Boid struct, which does not appear in this sample.
-                    enabledBoidsQuery.ResetFilter();
-                    continue;
-                }
-                
-                // Find the targetPosition for the current boidSettings by using the BoidSchool's targetEntity
-                float3 targetPosition = float3.zero;
-
-                // Find the targetEntity by using the BoidSchoolId and DynamicEntityId
-                foreach (var targetEntity in targetQuery.ToEntityArray(Allocator.Temp))
-                {
-                    var target = state.EntityManager.GetComponentData<BoidTarget>(targetEntity);
-                    if (target.BoidSchoolId == boidSettings.BoidSchoolId && target.DynamicEntityId == boidSettings.DynamicEntityId)
-                    {
-                        targetPosition = state.EntityManager.GetComponentData<LocalToWorld>(targetEntity).Position;
-                        break;
-                    }
-                }
-
-                // The following calculates spatial cells of neighboring Boids
-                // note: working with a sparse grid and not a dense bounded grid so there
-                // are no predefined borders of the space.
-                var hashMap                                 = new NativeParallelMultiHashMap<int, int>(boidCount, world.UpdateAllocator.ToAllocator);
-                var cellIndices               = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
-                var cellCount                 = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
-                
-                var cellTargetPositionIndex   = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
-                
-                var copyObstaclePositions   = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(obstacleCount, ref world.UpdateAllocator);
-                var cellObstaclePositionIndex = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
-                var cellObstacleDistance     = CollectionHelper.CreateNativeArray<float, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
-
-                var copyTargetPositions     = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(targetCount, ref world.UpdateAllocator);
-                
-                var copyPredatorPositions   = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(predatorCount, ref world.UpdateAllocator);
-                var copyPredatorSizes       = CollectionHelper.CreateNativeArray<float, RewindableAllocator>(predatorCount, ref world.UpdateAllocator);
-                var cellPredatorPositionIndex = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
-                var cellPredatorDistance     = CollectionHelper.CreateNativeArray<float, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
-                
-                var copyPreyPositions        = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(preyCount, ref world.UpdateAllocator);
-                
-                var cellAlignment            = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
-                var cellSeparation           = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
-                var copyObstacleSizes        = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(obstacleCount, ref world.UpdateAllocator);
-
-                // The following jobs all run in parallel because the same JobHandle is passed for their
-                // input dependencies when the jobs are scheduled; thus, they can run in any order (or concurrently).
-                // The concurrency is property of how they're scheduled, not of the job structs themselves.
-                var boidChunkBaseEntityIndexArray = enabledBoidsQuery.CalculateBaseEntityIndexArrayAsync(
-                    world.UpdateAllocator.ToAllocator, state.Dependency,
-                    out var boidChunkBaseIndexJobHandle);
-                var targetChunkBaseEntityIndexArray = targetQuery.CalculateBaseEntityIndexArrayAsync(
-                    world.UpdateAllocator.ToAllocator, state.Dependency,
-                    out var targetChunkBaseIndexJobHandle);
-                var obstacleChunkBaseEntityIndexArray = obstacleQuery.CalculateBaseEntityIndexArrayAsync(
-                    world.UpdateAllocator.ToAllocator, state.Dependency,
-                    out var obstacleChunkBaseIndexJobHandle);
-                var predatorChunkBaseEntityIndexArray = predatorQuery.CalculateBaseEntityIndexArrayAsync(
-                    world.UpdateAllocator.ToAllocator, state.Dependency,
-                    out var predatorChunkBaseIndexJobHandle);
-                var preyChunkBaseEntityIndexArray = preyQuery.CalculateBaseEntityIndexArrayAsync(
-                    world.UpdateAllocator.ToAllocator, state.Dependency,
-                    out var preyChunkBaseIndexJobHandle);
-
-                // These jobs extract the relevant position, heading component
-                // to NativeArrays so that they can be randomly accessed by the `MergeCells` and `Steer` jobs.
-                // These jobs are defined using the IJobEntity syntax.
-                var initialBoidJob = new InitialPerBoidJob
-                {
-                    ChunkBaseEntityIndices = boidChunkBaseEntityIndexArray,
-                    CellAlignment = cellAlignment,
-                    CellSeparation = cellSeparation,
-                    ParallelHashMap = hashMap.AsParallelWriter(),
-                    InverseBoidCellRadius = 1.0f / boidSettings.CellRadius,
-                };
-                var initialBoidJobHandle = initialBoidJob.ScheduleParallel(enabledBoidsQuery, boidChunkBaseIndexJobHandle);
-
-                var initialTargetJob = new InitialPerTargetJob
-                {
-                    ChunkBaseEntityIndices = targetChunkBaseEntityIndexArray,
-                    TargetPositions = copyTargetPositions,
-                };
-                var initialTargetJobHandle = initialTargetJob.ScheduleParallel(targetQuery, targetChunkBaseIndexJobHandle);
-
-                var initialObstacleJob = new InitialPerObstacleJob
-                {
-                    ChunkBaseEntityIndices = obstacleChunkBaseEntityIndexArray,
-                    ObstaclePositions = copyObstaclePositions,
-                    ObstacleSizes = copyObstacleSizes
-                };
-                var initialObstacleJobHandle = initialObstacleJob.ScheduleParallel(obstacleQuery, obstacleChunkBaseIndexJobHandle);
-                
-                var initialPredatorJob = new InitialPerPredatorJob
-                {
-                    ChunkBaseEntityIndices = predatorChunkBaseEntityIndexArray,
-                    PredatorPositions = copyPredatorPositions,
-                    PredatorSizes = copyPredatorSizes,
-                };
-                var initialPredatorJobHandle = initialPredatorJob.ScheduleParallel(predatorQuery, predatorChunkBaseIndexJobHandle);
-                
-                var initialPreyJob = new InitialPerPreyJob
-                {
-                    ChunkBaseEntityIndices = preyChunkBaseEntityIndexArray,
-                    PreyPositions = copyPreyPositions,
-                };
-                var initialPreyJobHandle = initialPreyJob.ScheduleParallel(preyQuery, preyChunkBaseIndexJobHandle);
-
-                var initialCellCountJob = new MemsetNativeArray<int>
-                {
-                    Source = cellCount,
-                    Value  = 1
-                };
-                var initialCellCountJobHandle = initialCellCountJob.Schedule(boidCount, 64, state.Dependency);
-
-                var initialCellBarrierJobHandle = JobHandle.CombineDependencies(initialBoidJobHandle, initialCellCountJobHandle);
-                var copyTargetObstacleBarrierJobHandle = JobHandle.CombineDependencies(initialTargetJobHandle, initialObstacleJobHandle);
-                
-                copyTargetObstacleBarrierJobHandle = JobHandle.CombineDependencies(copyTargetObstacleBarrierJobHandle, initialPredatorJobHandle);
-                copyTargetObstacleBarrierJobHandle = JobHandle.CombineDependencies(copyTargetObstacleBarrierJobHandle, initialPreyJobHandle);
-                
-                var mergeCellsBarrierJobHandle = JobHandle.CombineDependencies(initialCellBarrierJobHandle, copyTargetObstacleBarrierJobHandle);
-
-                var mergeCellsJob = new MergeCells
-                {
-                    cellIndices               = cellIndices,
-                    cellAlignment             = cellAlignment,
-                    cellSeparation            = cellSeparation,
-                    
-                    obstaclePositions         = copyObstaclePositions,
-                    cellObstacleDistance      = cellObstacleDistance,
-                    cellObstaclePositionIndex = cellObstaclePositionIndex,
-                    
-                    targetPositions           = copyTargetPositions,
-                    cellTargetPositionIndex   = cellTargetPositionIndex,
-                    
-                    predatorPositions         = copyPredatorPositions,
-                    cellPredatorDistance      = cellPredatorDistance,
-                    cellPredatorPositionIndex = cellPredatorPositionIndex,
-                    
-                    preyPositions             = copyPreyPositions,
-                    
-                    cellCount                 = cellCount,
-                };
-                var mergeCellsJobHandle = mergeCellsJob.Schedule(hashMap, 64, mergeCellsBarrierJobHandle);
-
-                // This reads the previously calculated boid information for all the boids of each cell to update
-                // the `localToWorld` of each of the boids based on their newly calculated headings using
-                // the standard boid flocking algorithm.
-                var steerBoidJob = new SteerBoidJob
-                {
-                    ChunkBaseEntityIndices = boidChunkBaseEntityIndexArray,
-                    CellIndices = cellIndices,
-                    CellCount = cellCount,
-                    CellAlignment = cellAlignment,
-                    CellSeparation = cellSeparation,
-                    
-                    ObstaclePositions = copyObstaclePositions,
-                    CellObstacleDistance = cellObstacleDistance,
-                    CellObstaclePositionIndex = cellObstaclePositionIndex,
-                    ObstacleDimensions = copyObstacleSizes,
-                    
-                    //TargetPositions = copyTargetPositions,
-                    TargetPosition = targetPosition,
-                    CellTargetPositionIndex = cellTargetPositionIndex,
-                    
-                    PredatorPositions = copyPredatorPositions,
-                    PredatorSizes = copyPredatorSizes,
-                    CellPredatorDistance = cellPredatorDistance,
-                    CellPredatorPositionIndex = cellPredatorPositionIndex,
-                    
-                    CurrentBoidSharedVariant = boidSettings,
-                    DeltaTime = deltaTime,
-                    MoveDistance = boidSettings.DefaultMoveSpeed * deltaTime,
-                    
-                    BoundsMax = boidSettings.BoundsMax,
-                    BoundsMin = boidSettings.BoundsMin,
-                    
-                    SeabedBound = boidSettings.SeabedBound,
-                    Prey = boidSettings.Prey,
-                    
-                    MaxVerticalAngle = boidSettings.MaxVerticalAngle,
-                    MaxTurnRate = boidSettings.MaxTurnRate,
-                };
-                var steerBoidJobHandle = steerBoidJob.ScheduleParallel(enabledBoidsQuery, mergeCellsJobHandle);
-                
-                var updateTargetVectorJob = new UpdateTargetVectorJob
-                {
-                    DeltaTime = deltaTime,
-                    BendGain = BEND_GAIN,
-                    DeadzoneRadians = 0.0f,
-                    AngularVelocityDeadzone = BEND_ANGVEL_DEADZONE,
-                    MaxBendAbs = BEND_MAX_ABS,
-                };
-                var updateTargetVectorJobHandle = updateTargetVectorJob.ScheduleParallel(enabledBoidsQuery, steerBoidJobHandle); // Making the steerBoidJobHandle a dependency of wrapBoidJob makes sure the first job is completed to run this job
-                
-                var updateAccumulatedTimeJob = new UpdateAccumulatedTimeJob
-                {
-                    DeltaTime = deltaTime
-                };
-                var updateJobHandle = updateAccumulatedTimeJob.ScheduleParallel(enabledBoidsQuery, updateTargetVectorJobHandle);
-
-                var smoothSpeedTransitionJob = new SmoothSpeedTransitionJob
-                {
-                    DeltaTime = deltaTime
-                };
-                var speedJobHandle = smoothSpeedTransitionJob.ScheduleParallel(enabledBoidsQuery, updateJobHandle);
-
-                var smoothVectorTransitionJob = new SmoothVectorTransitionJob
-                {
-                    DeltaTime = deltaTime,
-                    TransitionSpeed = BEND_SLEW_RATE
-                };
-                var vectorJobHandle = smoothVectorTransitionJob.ScheduleParallel(enabledBoidsQuery, speedJobHandle);
-                
-                state.Dependency = vectorJobHandle;
-                
-                // We pass the job handle and add the dependency so that we keep the proper ordering between the jobs
-                // as the looping iterates. For our purposes of execution, this ordering isn't necessary; however, without
-                // the add dependency call here, the safety system will throw an error, because we're accessing multiple
-                // pieces of boid data and it would think there could possibly be a race condition.
-                enabledBoidsQuery.AddDependency(state.Dependency);
-                
-                vectorJobHandle.Complete(); // Wait for the job to complete
-                
-                // Snap boids to the seabed
-                if (boidSettings.SeabedBound)
-                {
-                    foreach (Entity entity in enabledBoidsQuery.ToEntityArray(Allocator.Temp))
-                    {
-                        PhysicsWorldSingleton physicsWorld = SystemAPI.GetSingleton<PhysicsWorldSingleton>();
-
-                        var localToWorld = state.EntityManager.GetComponentData<LocalToWorld>(entity);
-                        var currentPosition = localToWorld.Position;
-                        //RefRW<LocalToWorld> localToWorld = SystemAPI.GetComponentRW<LocalToWorld>(entity);
-
-                        // Create a raycast input
-                        RaycastInput rayInput = new RaycastInput
-                        {
-                            Start = new float3(currentPosition.x, 1000f,
-                                currentPosition.z), // Start high above the terrain
-                            End = new float3(currentPosition.x, -1000f, currentPosition.z), // End below the terrain
-                            Filter = CollisionFilter.Default
-                        };
-
-                        // Perform the raycast
-                        if (physicsWorld.CollisionWorld.CastRay(rayInput, out RaycastHit hit))
-                        {
-                            quaternion newRotation = math.mul(
-                                localToWorld.Rotation,
-                                CalculateFromToRotation(localToWorld.Up, hit.SurfaceNormal)
-                            );
-
-                            localToWorld = new LocalToWorld
-                            {
-                                Value = float4x4.TRS(
-                                    hit.Position,
-                                    // math.slerp(localToWorld.Rotation, newRotation, deltaTime * 5f), 
-                                    //newRotation, // TODO: Setting the rotation according to the raycast breaks the algorithm
-                                    localToWorld.Rotation,
-                                    localToWorld.Value.Scale()
-                                )
-                            };
-                        }
-
-                        state.EntityManager.SetComponentData(entity, localToWorld);
-                    }
-                }
-
-                enabledBoidsQuery.ResetFilter();
+                Enabled = false,
+                Writer = dynamicHoverIndex.AsParallelWriter()
+            };
+            if (hoverRequestQuery.CalculateEntityCount() == 1 &&
+                hoverRequestQuery.GetSingleton<EntityHoverRequest>().Active)
+            {
+                TryBeginDynamicHoverBuild(
+                    openWaterBoidCount + seabedBoidCount,
+                    out hoverIndexWriter);
             }
 
-            uniqueBoidTypes.Dispose();
+            var localToWorldLookup = SystemAPI.GetComponentLookup<LocalToWorld>(true);
+            var schoolRuntimeLookup = SystemAPI.GetComponentLookup<BoidSchoolRuntimeData>(true);
+            SeabedSurfaceData seabedSurfaceData = default;
+            if (seabedBoidCount > 0)
+            {
+                seabedSurfaceData = seabedSurfaceQuery.GetSingleton<SeabedSurfaceData>();
+                Assert.IsTrue(seabedSurfaceData.HeightmapDataBlobRef.IsCreated, "BoidSystem found seabed-bound boids without valid terrain surface height data.");
+                Assert.IsTrue(seabedSurfaceData.NormalDataBlobRef.IsCreated, "BoidSystem found seabed-bound boids without valid terrain surface normal data.");
+            }
+
+            NativeArray<BoidSchoolRuntimeData> schoolRuntimeData = schoolRuntimeQuery.ToComponentDataArray<BoidSchoolRuntimeData>(Allocator.TempJob);
+            NativeParallelHashMap<int, int> schoolIndexToRuntimeIndex = new NativeParallelHashMap<int, int>(math.max(1, schoolRuntimeData.Length), Allocator.TempJob);
+            NativeArray<float3> targetPositions = new NativeArray<float3>(schoolRuntimeData.Length, Allocator.TempJob);
+
+            for (int i = 0; i < schoolRuntimeData.Length; i++)
+            {
+                schoolIndexToRuntimeIndex.Add(schoolRuntimeData[i].SchoolIndex, i);
+                float3 targetPosition = schoolRuntimeData[i].BoundsCenter;
+                Entity targetEntity = schoolRuntimeData[i].Target;
+                if (targetEntity != Entity.Null && localToWorldLookup.HasComponent(targetEntity))
+                {
+                    targetPosition = localToWorldLookup[targetEntity].Position;
+                }
+                targetPositions[i] = targetPosition;
+            }
+
+            var copyObstaclePositions = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(obstacleCount, ref world.UpdateAllocator);
+            var copyObstacleSizes = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(obstacleCount, ref world.UpdateAllocator);
+            var copyPredatorPositions = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(predatorCount, ref world.UpdateAllocator);
+            var copyPredatorSizes = CollectionHelper.CreateNativeArray<float, RewindableAllocator>(predatorCount, ref world.UpdateAllocator);
+
+            var obstacleChunkBaseEntityIndexArray = obstacleQuery.CalculateBaseEntityIndexArrayAsync(
+                world.UpdateAllocator.ToAllocator, state.Dependency,
+                out var obstacleChunkBaseIndexJobHandle);
+            var predatorChunkBaseEntityIndexArray = predatorQuery.CalculateBaseEntityIndexArrayAsync(
+                world.UpdateAllocator.ToAllocator, state.Dependency,
+                out var predatorChunkBaseIndexJobHandle);
+
+            var initialObstacleJob = new InitialPerObstacleJob
+            {
+                ChunkBaseEntityIndices = obstacleChunkBaseEntityIndexArray,
+                ObstaclePositions = copyObstaclePositions,
+                ObstacleSizes = copyObstacleSizes
+            };
+            var initialObstacleJobHandle = initialObstacleJob.ScheduleParallel(obstacleQuery, obstacleChunkBaseIndexJobHandle);
+
+            var initialPredatorJob = new InitialPerPredatorJob
+            {
+                ChunkBaseEntityIndices = predatorChunkBaseEntityIndexArray,
+                PredatorPositions = copyPredatorPositions,
+                PredatorSizes = copyPredatorSizes,
+                SchoolRuntimeLookup = schoolRuntimeLookup
+            };
+            var initialPredatorJobHandle = initialPredatorJob.ScheduleParallel(predatorQuery, predatorChunkBaseIndexJobHandle);
+
+            var sharedEnvironmentJobHandle = JobHandle.CombineDependencies(initialObstacleJobHandle, initialPredatorJobHandle);
+            JobHandle combinedBoidHandle = sharedEnvironmentJobHandle;
+
+            if (openWaterBoidCount > 0)
+            {
+                JobHandle openWaterHandle = ScheduleOpenWaterPass(
+                    ref state,
+                    world,
+                    deltaTime,
+                    elapsedTime,
+                    copyObstaclePositions,
+                    copyObstacleSizes,
+                    copyPredatorPositions,
+                    copyPredatorSizes,
+                    schoolRuntimeLookup,
+                    schoolRuntimeData,
+                    schoolIndexToRuntimeIndex,
+                    targetPositions,
+                    waterCurrentSettings,
+                    hoverIndexWriter,
+                    sharedEnvironmentJobHandle);
+                combinedBoidHandle = JobHandle.CombineDependencies(combinedBoidHandle, openWaterHandle);
+            }
+
+            if (seabedBoidCount > 0)
+            {
+                JobHandle seabedHandle = ScheduleSeabedPass(
+                    ref state,
+                    world,
+                    deltaTime,
+                    elapsedTime,
+                    copyObstaclePositions,
+                    copyObstacleSizes,
+                    copyPredatorPositions,
+                    copyPredatorSizes,
+                    schoolRuntimeLookup,
+                    schoolRuntimeData,
+                    schoolIndexToRuntimeIndex,
+                    targetPositions,
+                    seabedSurfaceData,
+                    hoverIndexWriter,
+                    sharedEnvironmentJobHandle);
+                combinedBoidHandle = JobHandle.CombineDependencies(combinedBoidHandle, seabedHandle);
+            }
+
+            JobHandle runtimeDisposeHandle = schoolRuntimeData.Dispose(combinedBoidHandle);
+            JobHandle targetDisposeHandle = targetPositions.Dispose(combinedBoidHandle);
+            JobHandle mapDisposeHandle = schoolIndexToRuntimeIndex.Dispose(combinedBoidHandle);
+            JobHandle disposeHandle = JobHandle.CombineDependencies(runtimeDisposeHandle, targetDisposeHandle, mapDisposeHandle);
+            JobHandle finalHandle = JobHandle.CombineDependencies(combinedBoidHandle, disposeHandle);
+            if (hoverIndexWriter.Enabled)
+            {
+                dynamicHoverWriteHandle = JobHandle.CombineDependencies(
+                    dynamicHoverWriteHandle,
+                    finalHandle);
+            }
+            return finalHandle;
         }
 
-        /// <summary>
-        /// Calculates rotation between two direction vectors.
-        /// </summary>
-        /// <returns>Quaternion representing the rotation</returns>
-        private static quaternion CalculateFromToRotation(float3 fromDirection, float3 toDirection)
+        private bool TryBeginDynamicHoverBuild(
+            int entityCount,
+            out HoverSpatialIndexWriter writer)
         {
-            // Normalize input vectors
-            fromDirection = math.normalize(fromDirection);
-            toDirection = math.normalize(toDirection);
+            writer = new HoverSpatialIndexWriter
+            {
+                Enabled = false,
+                Writer = dynamicHoverIndex.AsParallelWriter()
+            };
+            if (!dynamicHoverReadHandle.IsCompleted ||
+                !dynamicHoverWriteHandle.IsCompleted)
+            {
+                return false;
+            }
 
-            // Calculate the rotation axis (cross product of input vectors)
-            float3 rotationAxis = math.cross(fromDirection, toDirection);
+            dynamicHoverReadHandle.Complete();
+            dynamicHoverReadHandle = default;
+            dynamicHoverWriteHandle.Complete();
+            dynamicHoverWriteHandle = default;
 
-            // Calculate the angle between input vectors (dot product)
-            float dotProduct = math.dot(fromDirection, toDirection);
-            float angle = math.acos(dotProduct);
-
-            // Create the quaternion representing the rotation
-            quaternion rotation = quaternion.AxisAngle(rotationAxis, angle);
-
-            return rotation;
+            int targetCapacity = math.max(
+                INITIAL_HOVER_INDEX_CAPACITY,
+                entityCount);
+            if (dynamicHoverIndex.Capacity < targetCapacity)
+            {
+                dynamicHoverIndex.Capacity = targetCapacity;
+            }
+            dynamicHoverIndex.Clear();
+            writer = new HoverSpatialIndexWriter
+            {
+                Enabled = true,
+                Writer = dynamicHoverIndex.AsParallelWriter()
+            };
+            return true;
         }
 
-        /// <summary>
-        /// Converts a quaternion to Euler angles.
-        /// </summary>
-        private static float3 ToEuler(quaternion quaternion)
+        private JobHandle ScheduleOpenWaterPass(
+            ref SystemState state,
+            WorldUnmanaged world,
+            float deltaTime,
+            float elapsedTime,
+            NativeArray<float3> obstaclePositions,
+            NativeArray<float3> obstacleSizes,
+            NativeArray<float3> predatorPositions,
+            NativeArray<float> predatorSizes,
+            ComponentLookup<BoidSchoolRuntimeData> schoolRuntimeLookup,
+            NativeArray<BoidSchoolRuntimeData> schoolRuntimeData,
+            NativeParallelHashMap<int, int> schoolIndexToRuntimeIndex,
+            NativeArray<float3> targetPositions,
+            WaterCurrentSettings waterCurrentSettings,
+            HoverSpatialIndexWriter hoverIndexWriter,
+            JobHandle dependency)
         {
-            float4 q = quaternion.value;
-            double3 res;
-        
-            double sinr_cosp = +2.0 * (q.w * q.x + q.y * q.z);
-            double cosr_cosp = +1.0 - 2.0 * (q.x * q.x + q.y * q.y);
-            res.x = math.atan2(sinr_cosp, cosr_cosp);
-        
-            double sinp = +2.0 * (q.w * q.y - q.z * q.x);
-            if (math.abs(sinp) >= 1)
+            int boidCount = openWaterBoidsQuery.CalculateEntityCount();
+            var hashMap = new NativeParallelMultiHashMap<int, int>(boidCount, world.UpdateAllocator.ToAllocator);
+            var cellIndices = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellCount = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellObstaclePositionIndex = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellObstacleDistance = CollectionHelper.CreateNativeArray<float, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellPredatorPositionIndex = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellPredatorDistance = CollectionHelper.CreateNativeArray<float, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellAlignment = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellSeparation = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+
+            var boidChunkBaseEntityIndexArray = openWaterBoidsQuery.CalculateBaseEntityIndexArrayAsync(
+                world.UpdateAllocator.ToAllocator,
+                state.Dependency,
+                out var boidChunkBaseIndexJobHandle);
+
+            var initialBoidJob = new InitialPerBoidJob
             {
-                res.y = math.PI / 2 * math.sign(sinp);
-            }
-            else
+                ChunkBaseEntityIndices = boidChunkBaseEntityIndexArray,
+                CellAlignment = cellAlignment,
+                CellSeparation = cellSeparation,
+                ParallelHashMap = hashMap.AsParallelWriter(),
+                SchoolRuntimeLookup = schoolRuntimeLookup,
+                HoverGroupLookup = SystemAPI.GetComponentLookup<EntityHoverGroup>(true),
+                HoverIndexWriter = hoverIndexWriter
+            };
+            var initialBoidJobHandle = initialBoidJob.ScheduleParallel(openWaterBoidsQuery, boidChunkBaseIndexJobHandle);
+
+            var initialCellCountJob = new MemsetNativeArray<int>
             {
-                res.y = math.asin(sinp);
-            }
-        
-            double siny_cosp = +2.0 * (q.w * q.z + q.x * q.y);
-            double cosy_cosp = +1.0 - 2.0 * (q.y * q.y + q.z * q.z);
-            res.z = math.atan2(siny_cosp, cosy_cosp);
-        
-            return (float3)res;
+                Source = cellCount,
+                Value = 1
+            };
+            var initialCellCountJobHandle = initialCellCountJob.Schedule(boidCount, 64, state.Dependency);
+
+            var initialCellBarrierJobHandle = JobHandle.CombineDependencies(initialBoidJobHandle, initialCellCountJobHandle);
+            var mergeCellsBarrierJobHandle = JobHandle.CombineDependencies(initialCellBarrierJobHandle, dependency);
+
+            var mergeCellsJob = new MergeCells
+            {
+                CellIndices = cellIndices,
+                CellAlignment = cellAlignment,
+                CellSeparation = cellSeparation,
+                ObstaclePositions = obstaclePositions,
+                CellObstacleDistance = cellObstacleDistance,
+                CellObstaclePositionIndex = cellObstaclePositionIndex,
+                PredatorPositions = predatorPositions,
+                CellPredatorDistance = cellPredatorDistance,
+                CellPredatorPositionIndex = cellPredatorPositionIndex,
+                CellCount = cellCount
+            };
+            var mergeCellsJobHandle = mergeCellsJob.Schedule(hashMap, 64, mergeCellsBarrierJobHandle);
+
+            var steerOpenWaterBoidJob = new SteerOpenWaterBoidJob
+            {
+                ChunkBaseEntityIndices = boidChunkBaseEntityIndexArray,
+                CellIndices = cellIndices,
+                CellCount = cellCount,
+                CellAlignment = cellAlignment,
+                CellSeparation = cellSeparation,
+                ObstaclePositions = obstaclePositions,
+                CellObstacleDistance = cellObstacleDistance,
+                CellObstaclePositionIndex = cellObstaclePositionIndex,
+                ObstacleDimensions = obstacleSizes,
+                PredatorPositions = predatorPositions,
+                PredatorSizes = predatorSizes,
+                CellPredatorDistance = cellPredatorDistance,
+                CellPredatorPositionIndex = cellPredatorPositionIndex,
+                SchoolRuntimeData = schoolRuntimeData,
+                SchoolIndexToRuntimeIndex = schoolIndexToRuntimeIndex,
+                TargetPositions = targetPositions,
+                WaterCurrent = waterCurrentSettings,
+                DeltaTime = deltaTime,
+                ElapsedTime = elapsedTime
+            };
+            JobHandle finalTransformJobHandle = steerOpenWaterBoidJob.ScheduleParallel(openWaterBoidsQuery, mergeCellsJobHandle);
+
+            var postSteerBoidJob = new PostSteerBoidJob
+            {
+                DeltaTime = deltaTime,
+                ElapsedTime = elapsedTime,
+                BendGain = BEND_GAIN,
+                AngularVelocityDeadzone = BEND_ANGVEL_DEADZONE,
+                MaxBendAbs = BEND_MAX_ABS,
+                VectorTransitionSpeed = BEND_SLEW_RATE,
+                SchoolRuntimeData = schoolRuntimeData,
+                SchoolIndexToRuntimeIndex = schoolIndexToRuntimeIndex
+            };
+            JobHandle postSteerJobHandle = postSteerBoidJob.ScheduleParallel(openWaterBoidsQuery, finalTransformJobHandle);
+            openWaterBoidsQuery.AddDependency(postSteerJobHandle);
+            return postSteerJobHandle;
         }
 
-        /// <summary>
-        /// Initial job that processes each boid to prepare for flocking calculations.
-        /// Extracts position and heading data and populates the spatial hash map.
-        /// </summary>
+        private JobHandle ScheduleSeabedPass(
+            ref SystemState state,
+            WorldUnmanaged world,
+            float deltaTime,
+            float elapsedTime,
+            NativeArray<float3> obstaclePositions,
+            NativeArray<float3> obstacleSizes,
+            NativeArray<float3> predatorPositions,
+            NativeArray<float> predatorSizes,
+            ComponentLookup<BoidSchoolRuntimeData> schoolRuntimeLookup,
+            NativeArray<BoidSchoolRuntimeData> schoolRuntimeData,
+            NativeParallelHashMap<int, int> schoolIndexToRuntimeIndex,
+            NativeArray<float3> targetPositions,
+            SeabedSurfaceData seabedSurfaceData,
+            HoverSpatialIndexWriter hoverIndexWriter,
+            JobHandle dependency)
+        {
+            int boidCount = seabedBoidsQuery.CalculateEntityCount();
+            var hashMap = new NativeParallelMultiHashMap<int, int>(boidCount, world.UpdateAllocator.ToAllocator);
+            var cellIndices = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellCount = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellObstaclePositionIndex = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellObstacleDistance = CollectionHelper.CreateNativeArray<float, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellPredatorPositionIndex = CollectionHelper.CreateNativeArray<int, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellPredatorDistance = CollectionHelper.CreateNativeArray<float, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellAlignment = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+            var cellSeparation = CollectionHelper.CreateNativeArray<float3, RewindableAllocator>(boidCount, ref world.UpdateAllocator);
+
+            var boidChunkBaseEntityIndexArray = seabedBoidsQuery.CalculateBaseEntityIndexArrayAsync(
+                world.UpdateAllocator.ToAllocator,
+                state.Dependency,
+                out var boidChunkBaseIndexJobHandle);
+
+            var initialBoidJob = new InitialPerBoidJob
+            {
+                ChunkBaseEntityIndices = boidChunkBaseEntityIndexArray,
+                CellAlignment = cellAlignment,
+                CellSeparation = cellSeparation,
+                ParallelHashMap = hashMap.AsParallelWriter(),
+                SchoolRuntimeLookup = schoolRuntimeLookup,
+                HoverGroupLookup = SystemAPI.GetComponentLookup<EntityHoverGroup>(true),
+                HoverIndexWriter = hoverIndexWriter
+            };
+            var initialBoidJobHandle = initialBoidJob.ScheduleParallel(seabedBoidsQuery, boidChunkBaseIndexJobHandle);
+
+            var initialCellCountJob = new MemsetNativeArray<int>
+            {
+                Source = cellCount,
+                Value = 1
+            };
+            var initialCellCountJobHandle = initialCellCountJob.Schedule(boidCount, 64, state.Dependency);
+
+            var initialCellBarrierJobHandle = JobHandle.CombineDependencies(initialBoidJobHandle, initialCellCountJobHandle);
+            var mergeCellsBarrierJobHandle = JobHandle.CombineDependencies(initialCellBarrierJobHandle, dependency);
+
+            var mergeCellsJob = new MergeCells
+            {
+                CellIndices = cellIndices,
+                CellAlignment = cellAlignment,
+                CellSeparation = cellSeparation,
+                ObstaclePositions = obstaclePositions,
+                CellObstacleDistance = cellObstacleDistance,
+                CellObstaclePositionIndex = cellObstaclePositionIndex,
+                PredatorPositions = predatorPositions,
+                CellPredatorDistance = cellPredatorDistance,
+                CellPredatorPositionIndex = cellPredatorPositionIndex,
+                CellCount = cellCount
+            };
+            var mergeCellsJobHandle = mergeCellsJob.Schedule(hashMap, 64, mergeCellsBarrierJobHandle);
+
+            var steerSeabedBoidJob = new SteerSeabedBoidJob
+            {
+                ChunkBaseEntityIndices = boidChunkBaseEntityIndexArray,
+                CellIndices = cellIndices,
+                CellCount = cellCount,
+                CellAlignment = cellAlignment,
+                CellSeparation = cellSeparation,
+                ObstaclePositions = obstaclePositions,
+                CellObstacleDistance = cellObstacleDistance,
+                CellObstaclePositionIndex = cellObstaclePositionIndex,
+                ObstacleDimensions = obstacleSizes,
+                PredatorPositions = predatorPositions,
+                PredatorSizes = predatorSizes,
+                CellPredatorDistance = cellPredatorDistance,
+                CellPredatorPositionIndex = cellPredatorPositionIndex,
+                SchoolRuntimeData = schoolRuntimeData,
+                SchoolIndexToRuntimeIndex = schoolIndexToRuntimeIndex,
+                TargetPositions = targetPositions,
+                SeabedSurface = seabedSurfaceData,
+                DeltaTime = deltaTime,
+                ElapsedTime = elapsedTime
+            };
+            JobHandle finalTransformJobHandle = steerSeabedBoidJob.ScheduleParallel(seabedBoidsQuery, mergeCellsJobHandle);
+
+            var postSteerBoidJob = new PostSteerBoidJob
+            {
+                DeltaTime = deltaTime,
+                ElapsedTime = elapsedTime,
+                BendGain = BEND_GAIN,
+                AngularVelocityDeadzone = BEND_ANGVEL_DEADZONE,
+                MaxBendAbs = BEND_MAX_ABS,
+                VectorTransitionSpeed = BEND_SLEW_RATE,
+                SchoolRuntimeData = schoolRuntimeData,
+                SchoolIndexToRuntimeIndex = schoolIndexToRuntimeIndex
+            };
+            JobHandle postSteerJobHandle = postSteerBoidJob.ScheduleParallel(seabedBoidsQuery, finalTransformJobHandle);
+            seabedBoidsQuery.AddDependency(postSteerJobHandle);
+            return postSteerJobHandle;
+        }
+
+        private static float HashToUnitFloat(uint hash)
+        {
+            uint mantissa = hash & 0x00FFFFFFu;
+            return mantissa * (1.0f / 16777215.0f);
+        }
+
+        private static bool TryGetSchoolRuntime(int schoolIndex, NativeParallelHashMap<int, int> schoolIndexToRuntimeIndex, NativeArray<BoidSchoolRuntimeData> schoolRuntimeData, NativeArray<float3> targetPositions, out BoidSchoolRuntimeData runtimeData, out float3 targetPosition)
+        {
+            runtimeData = default;
+            targetPosition = float3.zero;
+            if (schoolIndexToRuntimeIndex.TryGetValue(schoolIndex, out int runtimeIndex) == false)
+            {
+                return false;
+            }
+
+            runtimeData = schoolRuntimeData[runtimeIndex];
+            if (targetPositions.IsCreated && runtimeIndex < targetPositions.Length)
+            {
+                targetPosition = targetPositions[runtimeIndex];
+            }
+            return true;
+        }
+
+        private static float3 GetPerBoidTargetOffset(Entity entity, in BoidSchoolRuntimeData runtimeData, float elapsedTime, bool seabedBound)
+        {
+            uint phaseXHash = math.hash(new uint4((uint)runtimeData.DynamicEntityId, (uint)runtimeData.BoidSchoolId, (uint)entity.Index, 11u));
+            uint phaseYHash = math.hash(new uint4((uint)runtimeData.DynamicEntityId, (uint)runtimeData.BoidSchoolId, (uint)entity.Index, 23u));
+            uint phaseZHash = math.hash(new uint4((uint)runtimeData.DynamicEntityId, (uint)runtimeData.BoidSchoolId, (uint)entity.Index, 37u));
+            uint freqXHash = math.hash(new uint4((uint)runtimeData.DynamicEntityId, (uint)runtimeData.BoidSchoolId, (uint)entity.Index, 101u));
+            uint freqYHash = math.hash(new uint4((uint)runtimeData.DynamicEntityId, (uint)runtimeData.BoidSchoolId, (uint)entity.Index, 211u));
+            uint freqZHash = math.hash(new uint4((uint)runtimeData.DynamicEntityId, (uint)runtimeData.BoidSchoolId, (uint)entity.Index, 307u));
+
+            float phaseX = HashToUnitFloat(phaseXHash) * (2.0f * math.PI);
+            float phaseY = HashToUnitFloat(phaseYHash) * (2.0f * math.PI);
+            float phaseZ = HashToUnitFloat(phaseZHash) * (2.0f * math.PI);
+
+            float freqX = 0.85f * math.lerp(0.71f, 1.39f, HashToUnitFloat(freqXHash));
+            float freqY = 0.85f * math.lerp(0.77f, 1.43f, HashToUnitFloat(freqYHash));
+            float freqZ = 0.85f * math.lerp(0.83f, 1.49f, HashToUnitFloat(freqZHash));
+
+            float3 offsetDirection = new float3(
+                math.sin(elapsedTime * freqX + phaseX),
+                math.sin(elapsedTime * freqY + phaseY),
+                math.sin(elapsedTime * freqZ + phaseZ));
+            offsetDirection = math.normalizesafe(offsetDirection, new float3(1.0f, 0.0f, 0.0f));
+
+            if (seabedBound)
+            {
+                offsetDirection.y = 0.0f;
+                offsetDirection = math.normalizesafe(offsetDirection, new float3(1.0f, 0.0f, 0.0f));
+                return offsetDirection * 5.75f;
+            }
+
+            return offsetDirection * 7.5f;
+        }
+
         [BurstCompile]
         partial struct InitialPerBoidJob : IJobEntity
         {
@@ -453,560 +689,634 @@ namespace OceanViz3
             [NativeDisableParallelForRestriction] public NativeArray<float3> CellAlignment;
             [NativeDisableParallelForRestriction] public NativeArray<float3> CellSeparation;
             public NativeParallelMultiHashMap<int, int>.ParallelWriter ParallelHashMap;
-            public float InverseBoidCellRadius;
-            void Execute([ChunkIndexInQuery] int chunkIndexInQuery, [EntityIndexInChunk] int entityIndexInChunk, in LocalToWorld localToWorld)
+            [ReadOnly] public ComponentLookup<BoidSchoolRuntimeData> SchoolRuntimeLookup;
+            [ReadOnly] public ComponentLookup<EntityHoverGroup> HoverGroupLookup;
+            public HoverSpatialIndexWriter HoverIndexWriter;
+
+            void Execute(
+                [ChunkIndexInQuery] int chunkIndexInQuery,
+                [EntityIndexInChunk] int entityIndexInChunk,
+                Entity entity,
+                in LocalToWorld localToWorld,
+                in BoidSchoolMember boidSchoolMember)
             {
                 int entityIndexInQuery = ChunkBaseEntityIndices[chunkIndexInQuery] + entityIndexInChunk;
                 CellAlignment[entityIndexInQuery] = localToWorld.Forward;
                 CellSeparation[entityIndexInQuery] = localToWorld.Position;
-                // Populates a hash map, where each bucket contains the indices of all Boids whose positions quantize
-                // to the same value for a given cell radius so that the information can be randomly accessed by
-                // the `MergeCells` and `Steer` jobs.
-                // This is useful in terms of the algorithm because it limits the number of comparisons that will
-                // actually occur between the different boids. Instead of for each boid, searching through all
-                // boids for those within a certain radius, this limits those by the hash-to-bucket simplification.
-                var hash = (int)math.hash(new int3(math.floor(localToWorld.Position * InverseBoidCellRadius)));
+
+                BoidSchoolRuntimeData runtimeData = SchoolRuntimeLookup[boidSchoolMember.SchoolEntity];
+                float inverseBoidCellRadius = 1.0f / math.max(0.001f, runtimeData.CellRadius);
+                int3 cell = (int3)math.floor(localToWorld.Position * inverseBoidCellRadius);
+                int hash = (int)math.hash(new int4(boidSchoolMember.SchoolIndex, cell.x, cell.y, cell.z));
                 ParallelHashMap.Add(hash, entityIndexInQuery);
+
+                if (HoverIndexWriter.Enabled &&
+                    HoverGroupLookup.HasComponent(boidSchoolMember.SchoolEntity))
+                {
+                    HoverIndexWriter.Add(
+                        entity,
+                        localToWorld,
+                        HoverGroupLookup[boidSchoolMember.SchoolEntity]);
+                }
             }
         }
 
-        /// <summary>
-        /// Job that extracts target positions for boid flocking behavior.
-        /// </summary>
         [BurstCompile]
-        partial struct InitialPerTargetJob : IJobEntity // Get positions
-        {
-            [ReadOnly] public NativeArray<int> ChunkBaseEntityIndices;
-            [NativeDisableParallelForRestriction] public NativeArray<float3> TargetPositions;
-            void Execute([ChunkIndexInQuery] int chunkIndexInQuery, [EntityIndexInChunk] int entityIndexInChunk, in LocalToWorld localToWorld)
-            {
-                int entityIndexInQuery = ChunkBaseEntityIndices[chunkIndexInQuery] + entityIndexInChunk;
-                TargetPositions[entityIndexInQuery] = localToWorld.Position;
-            }
-        }
-
-        /// <summary>
-        /// Job that extracts obstacle positions and dimensions for collision avoidance.
-        /// </summary>
-        [BurstCompile]
-        partial struct InitialPerObstacleJob : IJobEntity // Get positions and sizes
+        partial struct InitialPerObstacleJob : IJobEntity
         {
             [ReadOnly] public NativeArray<int> ChunkBaseEntityIndices;
             [NativeDisableParallelForRestriction] public NativeArray<float3> ObstaclePositions;
-            [NativeDisableParallelForRestriction] public NativeArray<float3> ObstacleSizes; // New array for obstacle sizes
+            [NativeDisableParallelForRestriction] public NativeArray<float3> ObstacleSizes;
+
             void Execute([ChunkIndexInQuery] int chunkIndexInQuery, [EntityIndexInChunk] int entityIndexInChunk, in LocalToWorld localToWorld, in BoidObstacle obstacle)
             {
                 int entityIndexInQuery = ChunkBaseEntityIndices[chunkIndexInQuery] + entityIndexInChunk;
                 ObstaclePositions[entityIndexInQuery] = localToWorld.Position;
-                ObstacleSizes[entityIndexInQuery] = obstacle.Dimensions; // Store the size of each obstacle
+                ObstacleSizes[entityIndexInQuery] = obstacle.Dimensions;
             }
         }
-        
-        /// <summary>
-        /// Job that extracts predator positions for prey avoidance behavior.
-        /// </summary>
+
         [BurstCompile]
-        partial struct InitialPerPredatorJob : IJobEntity // Get positions
+        partial struct InitialPerPredatorJob : IJobEntity
         {
             [ReadOnly] public NativeArray<int> ChunkBaseEntityIndices;
             [NativeDisableParallelForRestriction] public NativeArray<float3> PredatorPositions;
             [NativeDisableParallelForRestriction] public NativeArray<float> PredatorSizes;
-            void Execute([ChunkIndexInQuery] int chunkIndexInQuery, [EntityIndexInChunk] int entityIndexInChunk, in LocalToWorld localToWorld, in BoidPredator predator, in BoidShared boidShared)
+            [ReadOnly] public ComponentLookup<BoidSchoolRuntimeData> SchoolRuntimeLookup;
+
+            void Execute([ChunkIndexInQuery] int chunkIndexInQuery, [EntityIndexInChunk] int entityIndexInChunk, in LocalToWorld localToWorld, in BoidPredator predator, in BoidSchoolMember boidSchoolMember)
             {
                 int entityIndexInQuery = ChunkBaseEntityIndices[chunkIndexInQuery] + entityIndexInChunk;
                 PredatorPositions[entityIndexInQuery] = localToWorld.Position;
-                PredatorSizes[entityIndexInQuery] = boidShared.MeshLargestDimension;
+                BoidSchoolRuntimeData runtimeData = SchoolRuntimeLookup[boidSchoolMember.SchoolEntity];
+                PredatorSizes[entityIndexInQuery] = runtimeData.MeshLargestDimension;
             }
         }
-        
-        /// <summary>
-        /// Job that extracts prey positions for predator pursuit behavior.
-        /// </summary>
-        [BurstCompile]
-        partial struct InitialPerPreyJob : IJobEntity // Get positions
-        {
-            [ReadOnly] public NativeArray<int> ChunkBaseEntityIndices;
-            [NativeDisableParallelForRestriction] public NativeArray<float3> PreyPositions;
-            void Execute([ChunkIndexInQuery] int chunkIndexInQuery, [EntityIndexInChunk] int entityIndexInChunk, in LocalToWorld localToWorld, in BoidPrey prey)
-            {
-                int entityIndexInQuery = ChunkBaseEntityIndices[chunkIndexInQuery] + entityIndexInChunk;
-                PreyPositions[entityIndexInQuery] = localToWorld.Position;
-            }
-        }
-        
-        /// <summary>
-        /// Merges boid data within spatial cells to calculate:
-        /// - Number of boids per cell
-        /// - Accumulated alignment and separation vectors
-        /// - Nearest obstacles and targets for each cell
-        /// 
-        /// A "cell" represents a spatial bucket containing boids that are near each other,
-        /// created by quantizing boid positions to a grid using the cell radius.
-        /// </summary>
+
         [BurstCompile]
         struct MergeCells : IJobNativeParallelMultiHashMapMergedSharedKeyIndices
         {
-            public NativeArray<int>                 cellIndices;
-            public NativeArray<float3>              cellAlignment;
-            public NativeArray<float3>              cellSeparation;
-            
-            [ReadOnly] public NativeArray<float3>   obstaclePositions;
-            public NativeArray<int>                 cellObstaclePositionIndex;
-            public NativeArray<float>               cellObstacleDistance;
-            
-            public NativeArray<int>                 cellTargetPositionIndex;
-            
-            [ReadOnly] public NativeArray<float3>   predatorPositions; // Can be empty
-            public NativeArray<int>                 cellPredatorPositionIndex; // New field
-            public NativeArray<float>               cellPredatorDistance;
-            
-            public NativeArray<int>                 cellCount;
-            [ReadOnly] public NativeArray<float3>   targetPositions;
-            [ReadOnly] public NativeArray<float3>   preyPositions;
+            public NativeArray<int> CellIndices;
+            public NativeArray<float3> CellAlignment;
+            public NativeArray<float3> CellSeparation;
+            [ReadOnly] public NativeArray<float3> ObstaclePositions;
+            public NativeArray<int> CellObstaclePositionIndex;
+            public NativeArray<float> CellObstacleDistance;
+            [ReadOnly] public NativeArray<float3> PredatorPositions;
+            public NativeArray<int> CellPredatorPositionIndex;
+            public NativeArray<float> CellPredatorDistance;
+            public NativeArray<int> CellCount;
 
-            void NearestPosition(NativeArray<float3> targets, float3 position, out int nearestPositionIndex, out float nearestDistance)
+            void NearestPosition(NativeArray<float3> positions, float3 position, out int nearestPositionIndex, out float nearestDistance)
             {
                 nearestPositionIndex = 0;
-                nearestDistance      = math.lengthsq(position - targets[0]);
-                for (int i = 1; i < targets.Length; i++)
+                nearestDistance = math.lengthsq(position - positions[0]);
+                for (int i = 1; i < positions.Length; i++)
                 {
-                    var targetPosition = targets[i];
-                    var distance       = math.lengthsq(position - targetPosition);
-                    var nearest        = distance < nearestDistance;
-
-                    nearestDistance      = math.select(nearestDistance, distance, nearest);
+                    float distance = math.lengthsq(position - positions[i]);
+                    bool nearest = distance < nearestDistance;
+                    nearestDistance = math.select(nearestDistance, distance, nearest);
                     nearestPositionIndex = math.select(nearestPositionIndex, i, nearest);
                 }
+
                 nearestDistance = math.sqrt(nearestDistance);
             }
 
-            // Resolves the distance of the nearest obstacle and target and stores the cell index.
             public void ExecuteFirst(int index)
             {
-                var position = cellSeparation[index] / cellCount[index];
+                float3 position = CellSeparation[index] / CellCount[index];
 
-                int obstaclePositionIndex;
-                float obstacleDistance;
-                NearestPosition(obstaclePositions, position, out obstaclePositionIndex, out obstacleDistance);
-                cellObstaclePositionIndex[index] = obstaclePositionIndex;
-                cellObstacleDistance[index] = obstacleDistance;
-
-                int targetPositionIndex;
-                float targetDistance; // Not used
-                NearestPosition(targetPositions, position, out targetPositionIndex, out targetDistance);
-                cellTargetPositionIndex[index] = targetPositionIndex;
-
-                int predatorPositionIndex = -1;
-                float predatorDistance; // Not used
-                // Check if there are any predators
-                if (predatorPositions.Length > 0) 
+                if (ObstaclePositions.Length > 0)
                 {
-                    NearestPosition(predatorPositions, position, out predatorPositionIndex, out predatorDistance);
-                    cellPredatorPositionIndex[index] = predatorPositionIndex; // Store the index of the nearest predator
-                    cellPredatorDistance[index] = predatorDistance; // Assign the calculated distance to the array
+                    int obstaclePositionIndex;
+                    float obstacleDistance;
+                    NearestPosition(ObstaclePositions, position, out obstaclePositionIndex, out obstacleDistance);
+                    CellObstaclePositionIndex[index] = obstaclePositionIndex;
+                    CellObstacleDistance[index] = obstacleDistance;
                 }
-                else // If there are no predators, set distance to a large value
+                else
                 {
-                    cellPredatorPositionIndex[index] = -1; // Or some other indicator for no predator
-                    cellPredatorDistance[index] = float.MaxValue;
+                    CellObstaclePositionIndex[index] = -1;
+                    CellObstacleDistance[index] = float.MaxValue;
                 }
 
-                cellIndices[index] = index;
+                if (PredatorPositions.Length > 0)
+                {
+                    int predatorPositionIndex;
+                    float predatorDistance;
+                    NearestPosition(PredatorPositions, position, out predatorPositionIndex, out predatorDistance);
+                    CellPredatorPositionIndex[index] = predatorPositionIndex;
+                    CellPredatorDistance[index] = predatorDistance;
+                }
+                else
+                {
+                    CellPredatorPositionIndex[index] = -1;
+                    CellPredatorDistance[index] = float.MaxValue;
+                }
+
+                CellIndices[index] = index;
             }
 
-            // Sums the alignment and separation of the actual index being considered and stores
-            // the index of this first value where we're storing the cells.
-            // note: these items are summed so that in `Steer` their average for the cell can be resolved.
             public void ExecuteNext(int cellIndex, int index)
             {
-                cellCount[cellIndex]      += 1;
-                cellAlignment[cellIndex]  += cellAlignment[cellIndex]; // Changing ths to use cellAlignment[index] breaks boid movement
-                cellSeparation[cellIndex] += cellSeparation[cellIndex]; // Changing ths to use cellSeparation[index] breaks boid movement
-                cellIndices[index]        = cellIndex;
+                CellCount[cellIndex] += 1;
+                CellAlignment[cellIndex] += CellAlignment[index];
+                CellSeparation[cellIndex] += CellSeparation[index];
+                CellIndices[index] = cellIndex;
             }
         }
 
-        /// <summary>
-        /// Main steering job that updates each boid's position and rotation based on:
-        /// - Alignment with neighbors
-        /// - Separation from neighbors
-        /// - Target seeking
-        /// - Obstacle avoidance
-        /// - Predator avoidance (for prey)
-        /// - Bounds checking
-        /// </summary>
         [BurstCompile]
-        partial struct SteerBoidJob : IJobEntity // This runs for each boid
+        partial struct SteerOpenWaterBoidJob : IJobEntity
         {
             [ReadOnly] public NativeArray<int> ChunkBaseEntityIndices;
             [ReadOnly] public NativeArray<int> CellIndices;
             [ReadOnly] public NativeArray<int> CellCount;
             [ReadOnly] public NativeArray<float3> CellAlignment;
             [ReadOnly] public NativeArray<float3> CellSeparation;
-            
             [ReadOnly] public NativeArray<float3> ObstaclePositions;
-            [ReadOnly] public NativeArray<float> CellObstacleDistance; // Distance per cell to nearest obstacle
-            [ReadOnly] public NativeArray<int> CellObstaclePositionIndex; // Nearest obstacle index per cell index
-            [ReadOnly] public NativeArray<float3> ObstacleDimensions; 
-            
-            [ReadOnly] public float3 TargetPosition;
-            [ReadOnly] public NativeArray<int> CellTargetPositionIndex; // Nearest target index per cell index
-            
+            [ReadOnly] public NativeArray<float> CellObstacleDistance;
+            [ReadOnly] public NativeArray<int> CellObstaclePositionIndex;
+            [ReadOnly] public NativeArray<float3> ObstacleDimensions;
             [ReadOnly] public NativeArray<float3> PredatorPositions;
             [ReadOnly] public NativeArray<float> PredatorSizes;
-            [ReadOnly] public NativeArray<float> CellPredatorDistance; // Distance per cell to nearest predator
-            [ReadOnly] public NativeArray<int> CellPredatorPositionIndex; // Nearest predator index per cell index
-            
-            [ReadOnly] public BoidShared CurrentBoidSharedVariant;
+            [ReadOnly] public NativeArray<float> CellPredatorDistance;
+            [ReadOnly] public NativeArray<int> CellPredatorPositionIndex;
+            [ReadOnly] public NativeArray<BoidSchoolRuntimeData> SchoolRuntimeData;
+            [ReadOnly] public NativeParallelHashMap<int, int> SchoolIndexToRuntimeIndex;
+            [ReadOnly] public NativeArray<float3> TargetPositions;
+            [ReadOnly] public WaterCurrentSettings WaterCurrent;
             [ReadOnly] public float DeltaTime;
-            [ReadOnly] public float MoveDistance;
-            [ReadOnly] public float3 BoundsMax;
-            [ReadOnly] public float3 BoundsMin;
-            [ReadOnly] public bool SeabedBound; // Will do the steering in 2D only
-            [ReadOnly] public bool Prey;
-            [ReadOnly] public bool Disabled;
-            
-            [ReadOnly] public float MaxVerticalAngle;
-            [ReadOnly] public float MaxTurnRate;
-            
+            [ReadOnly] public float ElapsedTime;
+
             private const float BoundsForce = 0.01f;
-            
-            void Execute([ChunkIndexInQuery] int chunkIndexInQuery, [EntityIndexInChunk] int entityIndexInChunk, Entity entity, ref LocalToWorld localToWorld, ref BoidUnique boidUnique)
+
+            void Execute([ChunkIndexInQuery] int chunkIndexInQuery, [EntityIndexInChunk] int entityIndexInChunk, Entity entity, ref LocalToWorld localToWorld, ref BoidUnique boidUnique, in BoidSchoolMember boidSchoolMember)
             {
-                if (Disabled || boidUnique.Disabled)
+                if (boidUnique.Disabled)
                 {
                     return;
                 }
 
-                if (SeabedBound == false)
+                if (BoidSystem.TryGetSchoolRuntime(boidSchoolMember.SchoolIndex, SchoolIndexToRuntimeIndex, SchoolRuntimeData, TargetPositions, out BoidSchoolRuntimeData runtimeData, out float3 targetPosition) == false)
                 {
-                    int entityIndexInQuery = ChunkBaseEntityIndices[chunkIndexInQuery] + entityIndexInChunk;
-                    var forward                           = localToWorld.Forward;
-                    var currentPosition                   = localToWorld.Position;
-                    var cellIndex                         = CellIndices[entityIndexInQuery];
-                    var neighborCount                     = CellCount[cellIndex];
-                    var alignment                         = CellAlignment[cellIndex];
-                    var separation                        = CellSeparation[cellIndex];
-                    
-                    var nearestObstaclePositionIndex      = CellObstaclePositionIndex[cellIndex];
-                    var nearestObstacleDistance           = CellObstacleDistance[cellIndex];
-                    var nearestObstaclePosition           = ObstaclePositions[nearestObstaclePositionIndex];
-                    
-                    
-                    var nearestTargetPositionIndex        = CellTargetPositionIndex[cellIndex];
-                    var nearestTargetPosition              = TargetPosition;
+                    return;
+                }
 
-                    // Setting up the directions for the three main biocrowds influencing directions adjusted based
-                    // on the predefined weights:
-                    // 1) alignment - how much should it move in a direction similar to those around it?
-                    // note: we use `alignment/neighborCount`, because we need the average alignment in this case; however
-                    // alignment is currently the summation of all those of the boids within the cellIndex being considered.
-                    var alignmentResult     = CurrentBoidSharedVariant.AlignmentWeight
-                                            * math.normalizesafe((alignment / neighborCount) - forward);
-                    // 2) separation - how close is it to other boids and are there too many or too few for comfort?
-                    // note: here separation represents the summed possible center of the cell. We perform the multiplication
-                    // so that both `currentPosition` and `separation` are weighted to represent the cell as a whole and not
-                    // the current individual boid.
-                    var separationResult    = CurrentBoidSharedVariant.SeparationWeight
-                                            * math.normalizesafe((currentPosition * neighborCount) - separation);
-                    // 3) target - is it still towards its destination?
-                    var targetHeading       = CurrentBoidSharedVariant.TargetWeight
-                                            * math.normalizesafe(nearestTargetPosition - currentPosition);
+                int entityIndexInQuery = ChunkBaseEntityIndices[chunkIndexInQuery] + entityIndexInChunk;
+                float3 forward = localToWorld.Forward;
+                float3 currentPosition = localToWorld.Position;
+                int cellIndex = CellIndices[entityIndexInQuery];
+                int neighborCount = CellCount[cellIndex];
+                float3 alignment = CellAlignment[cellIndex];
+                float3 separation = CellSeparation[cellIndex];
+                int nearestObstaclePositionIndex = CellObstaclePositionIndex[cellIndex];
+                float nearestObstacleDistance = CellObstacleDistance[cellIndex];
+                float3 nearestObstaclePosition = currentPosition;
+                if (nearestObstaclePositionIndex >= 0)
+                {
+                    nearestObstaclePosition = ObstaclePositions[nearestObstaclePositionIndex];
+                }
 
-                    // creating the obstacle avoidant vector s.t. it's pointing towards the nearest obstacle
-                    // but at the specified 'ObstacleAversionDistance'. If this distance is greater than the
-                    // current distance to the obstacle, the direction becomes inverted. This simulates the
-                    // idea that if `currentPosition` is too close to an obstacle, the weight of this pushes
-                    // the current boid to escape in the fastest direction; however, if the obstacle isn't
-                    // too close, the weighting denotes that the boid doesnt need to escape but will move
-                    // slower if still moving in that direction (note: we end up not using this move-slower
-                    // case, because of `targetForward`'s decision to not use obstacle avoidance if an obstacle
-                    // isn't close enough).
-                    // var obstacleSteering                  = currentPosition - nearestObstaclePosition;
-                    // var avoidObstacleHeading              = (nearestObstaclePosition + math.normalizesafe(obstacleSteering)
-                    //     * CurrentBoidVariant.ObstacleAversionDistance) - currentPosition;
+                float3 alignmentResult = runtimeData.AlignmentWeight * math.normalizesafe((alignment / neighborCount) - forward);
+                float3 separationResult = runtimeData.SeparationWeight * math.normalizesafe((currentPosition * neighborCount) - separation);
+                float3 perBoidTargetOffset = BoidSystem.GetPerBoidTargetOffset(entity, runtimeData, ElapsedTime, false);
+                float3 boidTargetPosition = targetPosition + perBoidTargetOffset;
+                float3 targetHeading = runtimeData.TargetWeight * math.normalizesafe(boidTargetPosition - currentPosition);
 
-                    float3 obstacleSteering;
-                    float3 avoidObstacleHeading;
-                    float nearestObstacleDistanceFromRadius;
-                    bool preyInPredatorRange = false; // New variable for direct predator range check
-                    bool predatorDataAvailable = false;
-                    float3 avoidPredatorHeading = float3.zero;
-                    float nearestPredatorDistance = 0f;
-                    float nearestPredatorDistanceFromRadius = 0f;
-                    
-                    // If the boid is prey and there are predators
-                    // Regular obstacle avoidance parameters
-                    float obstacleEffectiveRadius = CurrentBoidSharedVariant.ObstacleAversionDistance + ObstacleDimensions[nearestObstaclePositionIndex].x;
-                    obstacleSteering = currentPosition - nearestObstaclePosition;
+                float obstacleEffectiveRadius = 0.0f;
+                float3 avoidObstacleHeading = float3.zero;
+                float nearestObstacleDistanceFromRadius = float.MaxValue;
+                if (nearestObstaclePositionIndex >= 0)
+                {
+                    obstacleEffectiveRadius = runtimeData.ObstacleAversionDistance + ObstacleDimensions[nearestObstaclePositionIndex].x;
+                    float3 obstacleSteering = currentPosition - nearestObstaclePosition;
                     avoidObstacleHeading = (nearestObstaclePosition + math.normalizesafe(obstacleSteering) * obstacleEffectiveRadius) - currentPosition;
                     nearestObstacleDistanceFromRadius = nearestObstacleDistance - obstacleEffectiveRadius;
+                }
 
-                    // Predator avoidance parameters (if applicable)
-                    if (Prey == true && PredatorPositions.Length > 0)
+                bool preyInPredatorRange = false;
+                bool predatorDataAvailable = false;
+                float3 avoidPredatorHeading = float3.zero;
+                float nearestPredatorDistance = 0.0f;
+                float nearestPredatorDistanceFromRadius = 0.0f;
+
+                if (runtimeData.Prey && PredatorPositions.Length > 0)
+                {
+                    int nearestPredatorPositionIndex = CellPredatorPositionIndex[cellIndex];
+                    if (nearestPredatorPositionIndex >= 0)
                     {
-                        var nearestPredatorPositionIndex = CellPredatorPositionIndex[cellIndex];
                         nearestPredatorDistance = CellPredatorDistance[cellIndex];
-                        var nearestPredatorPosition = PredatorPositions[nearestPredatorPositionIndex];
-
-                        // Check if prey is within predator detection range (independent of obstacles)
-                        float predatorHalf = 0f;
+                        float3 nearestPredatorPosition = PredatorPositions[nearestPredatorPositionIndex];
+                        float predatorHalf = 0.0f;
                         if (PredatorSizes.Length > 0)
                         {
                             predatorHalf = PredatorSizes[nearestPredatorPositionIndex] * PREDATOR_SIZE_TO_RADIUS_FACTOR;
                         }
-                        float predatorDetectionRange = CurrentBoidSharedVariant.ObstacleAversionDistance + 2.0f + predatorHalf;
+
+                        float predatorDetectionRange = runtimeData.ObstacleAversionDistance + 2.0f + predatorHalf;
                         preyInPredatorRange = nearestPredatorDistance < predatorDetectionRange;
 
-                        // Build predator avoidance heading for soft switching
-                        float predatorEffectiveRadius = CurrentBoidSharedVariant.ObstacleAversionDistance + predatorHalf;
+                        float predatorEffectiveRadius = runtimeData.ObstacleAversionDistance + predatorHalf;
                         float3 predatorSteering = currentPosition - nearestPredatorPosition;
                         avoidPredatorHeading = (nearestPredatorPosition + math.normalizesafe(predatorSteering) * predatorEffectiveRadius) - currentPosition;
                         nearestPredatorDistanceFromRadius = nearestPredatorDistance - predatorEffectiveRadius;
                         predatorDataAvailable = true;
                     }
-                    
-                    // the updated heading direction. If not needing to be avoidant (ie obstacle is not within
-                    // predefined radius) then go with the usual defined heading that uses the amalgamation of
-                    // the weighted alignment, separation, and target direction vectors.
-                    var normalHeading = math.normalizesafe(alignmentResult + separationResult + targetHeading);
-                    // Smooth blend between normal and avoidance based on penetration depth into the avoidance radius
-                    float obstacleBlendWidth = math.max(0.001f, obstacleEffectiveRadius * 0.5f);
-                    float tObstacle = math.saturate(-nearestObstacleDistanceFromRadius / obstacleBlendWidth);
-
-                    float tPredator = 0f;
-                    float3 blendedAvoidHeading = avoidObstacleHeading;
-                    if (predatorDataAvailable)
-                    {
-                        int nearestPredatorPositionIndex2 = CellPredatorPositionIndex[cellIndex];
-                        float predatorHalf2 = 0f;
-                        if (PredatorSizes.Length > 0 && nearestPredatorPositionIndex2 >= 0 && nearestPredatorPositionIndex2 < PredatorSizes.Length)
-                        {
-                            predatorHalf2 = PredatorSizes[nearestPredatorPositionIndex2] * PREDATOR_SIZE_TO_RADIUS_FACTOR;
-                        }
-                        float predatorEffectiveRadius = (CurrentBoidSharedVariant.ObstacleAversionDistance + predatorHalf2);
-                        float predatorBlendWidth = math.max(0.001f, predatorEffectiveRadius * 0.5f);
-                        tPredator = math.saturate(-nearestPredatorDistanceFromRadius / predatorBlendWidth);
-
-                        // Softly switch between obstacle and predator avoid headings based on relative distances
-                        float switchBand = math.max(obstacleBlendWidth, predatorBlendWidth);
-                        float switchWeight = 0.5f + (nearestObstacleDistance - nearestPredatorDistance) / (2f * switchBand);
-                        switchWeight = math.saturate(switchWeight);
-                        blendedAvoidHeading = math.normalizesafe(math.lerp(avoidObstacleHeading, avoidPredatorHeading, switchWeight));
-                    }
-
-                    float tAvoid = math.max(tObstacle, tPredator);
-                    var targetForward = math.normalizesafe(math.lerp(normalHeading, blendedAvoidHeading, tAvoid));
-
-                    // updates using the newly calculated heading direction
-                    var nextHeading = math.normalizesafe(forward + DeltaTime * (targetForward - forward) * MaxTurnRate);
-                    
-                    // Correct the vertical component of the nextHeading
-                    float3 horizontalHeading = new float3(nextHeading.x, 0, nextHeading.z);
-                    float horizontalMagnitude = math.length(horizontalHeading);
-                    
-                    if (horizontalMagnitude > 0.0001f) // Avoid division by zero
-                    {
-                        float currentVerticalAngle = math.degrees(math.asin(nextHeading.y));
-                        float clampedVerticalAngle = math.clamp(currentVerticalAngle, -MaxVerticalAngle, MaxVerticalAngle);
-                        
-                        float3 newHeading = math.normalize(horizontalHeading) * math.cos(math.radians(clampedVerticalAngle));
-                        newHeading.y = math.sin(math.radians(clampedVerticalAngle));
-                        
-                        nextHeading = math.normalize(newHeading);
-                    }
-                    
-                    // Check if the boid is outside the bounds
-                    bool isOutsideBounds = currentPosition.x < BoundsMin.x || currentPosition.y < BoundsMin.y || currentPosition.z < BoundsMin.z ||
-                                           currentPosition.x > BoundsMax.x || currentPosition.y > BoundsMax.y || currentPosition.z > BoundsMax.z;
-
-                    // Fade-in bounds pull based on penetration depth past the bounds
-                    float dx = math.max(0f, math.max(BoundsMin.x - currentPosition.x, currentPosition.x - BoundsMax.x));
-                    float dy = math.max(0f, math.max(BoundsMin.y - currentPosition.y, currentPosition.y - BoundsMax.y));
-                    float dz = math.max(0f, math.max(BoundsMin.z - currentPosition.z, currentPosition.z - BoundsMax.z));
-                    float distanceOutside = math.length(new float3(dx, dy, dz));
-                    float boundsMargin = math.max(0.001f, CurrentBoidSharedVariant.CellRadius * 2.0f);
-                    float tBound = math.saturate(distanceOutside / boundsMargin);
-                    if (tBound > 0f)
-                    {
-                        float3 directionToCenter = math.normalizesafe(new float3((BoundsMax + BoundsMin) / 2) - currentPosition);
-                        nextHeading = math.normalizesafe(nextHeading + directionToCenter * (BoundsForce * tBound));
-                    }
-
-                    // After all forces are applied (including bounds force)
-                    // Calculate the angle between current forward and the proposed nextHeading
-                    float angle = math.acos(math.clamp(math.dot(math.normalize(forward), math.normalize(nextHeading)), -1f, 1f));
-                    
-                    // Calculate the maximum angle allowed to turn this frame based on MaxTurnRate
-                    float maxAngleThisFrame = MaxTurnRate * DeltaTime;
-                    
-                    // If the angle exceeds the maximum allowed angle, limit it
-                    if (angle > maxAngleThisFrame)
-                    {
-                        // Get the rotation axis
-                        float3 axis = math.normalize(math.cross(forward, nextHeading));
-                        // Create a quaternion for the maximum allowed rotation
-                        quaternion maxRotation = quaternion.AxisAngle(axis, maxAngleThisFrame);
-                        // Apply the maximum allowed rotation to the current forward vector
-                        nextHeading = math.rotate(maxRotation, forward);
-                    }
-
-                    // Manage speed modifiers for prey based on predator proximity
-                    if (Prey)
-                    {
-                        if (preyInPredatorRange)
-                        {
-                            // Set target speed when in predator range
-                            boidUnique.TargetSpeedModifier = 3.0f;
-                            // Note: EscapingPredator component should be enabled via EntityCommandBuffer
-                            // in a separate system or job that can handle structural changes
-                        }
-                        // Note: Speed reset should only happen when transitioning out of escape state
-                        // This should be handled by checking the EscapingPredator component state
-                        // and only resetting speeds when that component is disabled
-                    }
-
-                    // Apply the individual speed modifier when updating the position
-                    float individualMoveDistance = MoveDistance * boidUnique.MoveSpeedModifier;
-
-                    // Update the boid's position and rotation
-                    localToWorld.Value = float4x4.TRS(
-                        new float3(localToWorld.Position + (nextHeading * individualMoveDistance)),
-                        quaternion.LookRotationSafe(nextHeading, math.up()),
-                        localToWorld.Value.Scale()
-                    );
                 }
-                else if (SeabedBound == true)
+
+                float3 normalHeading = math.normalizesafe(alignmentResult + separationResult + targetHeading);
+                float obstacleBlendWidth = 0.001f;
+                float tObstacle = 0.0f;
+                if (nearestObstaclePositionIndex >= 0)
                 {
-                    int entityIndexInQuery = ChunkBaseEntityIndices[chunkIndexInQuery] + entityIndexInChunk;
-                    var forward = new float3(localToWorld.Forward.x, 0, localToWorld.Forward.z);
-                    var currentPosition = new float3(localToWorld.Position.x, 0, localToWorld.Position.z);
-                    var cellIndex = CellIndices[entityIndexInQuery];
-                    var neighborCount = CellCount[cellIndex];
-                    var alignment = new float3(CellAlignment[cellIndex].x, 0, CellAlignment[cellIndex].z);
-                    var separation = new float3(CellSeparation[cellIndex].x, 0, CellSeparation[cellIndex].z);
-                    var nearestObstacleDistance = CellObstacleDistance[cellIndex];
-                    var nearestObstaclePositionIndex = CellObstaclePositionIndex[cellIndex];
-                    var nearestTargetPositionIndex = CellTargetPositionIndex[cellIndex];
-                    var nearestObstaclePosition = new float3(ObstaclePositions[nearestObstaclePositionIndex].x, 0, ObstaclePositions[nearestObstaclePositionIndex].z);
-                    var nearestTargetPosition = TargetPosition;
-
-                    // Added predator detection logic for SeabedBound boids
-                    bool preyInPredatorRange = false;
-                    if (Prey && PredatorPositions.Length > 0)
-                    {
-                        var nearestPredatorPositionDataIndex = CellPredatorPositionIndex[cellIndex]; // Note: This index is into PredatorPositions
-                        var nearestPredatorDist = CellPredatorDistance[cellIndex]; 
-                        // var nearestPredatorPos = PredatorPositions[nearestPredatorPositionDataIndex]; // Position of the nearest predator
-
-                        int nearestPredatorIndex2D = CellPredatorPositionIndex[cellIndex];
-                        float predatorHalf2D = 0f;
-                        if (PredatorSizes.Length > 0 && nearestPredatorIndex2D >= 0 && nearestPredatorIndex2D < PredatorSizes.Length)
-                        {
-                            predatorHalf2D = PredatorSizes[nearestPredatorIndex2D] * PREDATOR_SIZE_TO_RADIUS_FACTOR;
-                        }
-                        float predatorDetectionRange = CurrentBoidSharedVariant.ObstacleAversionDistance + 15.0f + predatorHalf2D; 
-                        preyInPredatorRange = nearestPredatorDist < predatorDetectionRange;
-                    }
-                    
-                    var alignmentResult = CurrentBoidSharedVariant.AlignmentWeight * math.normalizesafe((alignment / neighborCount) - forward);
-                    var separationResult = CurrentBoidSharedVariant.SeparationWeight * math.normalizesafe((currentPosition * neighborCount) - separation);
-                    var targetHeading = CurrentBoidSharedVariant.TargetWeight * math.normalizesafe(nearestTargetPosition - currentPosition);
-                    var obstacleSteering = currentPosition - nearestObstaclePosition;
-                    
-                    float obstacleEffectiveRadius2D = CurrentBoidSharedVariant.ObstacleAversionDistance + ObstacleDimensions[nearestObstaclePositionIndex].x;
-                    var avoidObstacleHeading = (nearestObstaclePosition + math.normalizesafe(obstacleSteering) * obstacleEffectiveRadius2D) - currentPosition;
-                    var nearestObstacleDistanceFromRadius = nearestObstacleDistance - obstacleEffectiveRadius2D;
-                    var normalHeading = math.normalizesafe(alignmentResult + separationResult + targetHeading);
-
-                    float blendWidth2D = math.max(0.001f, obstacleEffectiveRadius2D * 0.5f);
-                    float t2D = math.saturate(-nearestObstacleDistanceFromRadius / blendWidth2D);
-                    var targetForward = math.normalizesafe(math.lerp(normalHeading, avoidObstacleHeading, t2D));
-
-                    var nextHeading = math.normalizesafe(forward + DeltaTime * (targetForward - forward) * MaxTurnRate);
-
-                    // After all forces are applied (including bounds force)
-                    // Calculate the angle between current forward and the proposed nextHeading
-                    float angle = math.acos(math.clamp(math.dot(math.normalize(forward), math.normalize(nextHeading)), -1f, 1f));
-                    
-                    // Calculate the maximum angle allowed to turn this frame based on MaxTurnRate
-                    float maxAngleThisFrame = MaxTurnRate * DeltaTime;
-                    
-                    // If the angle exceeds the maximum allowed angle, limit it
-                    if (angle > maxAngleThisFrame)
-                    {
-                        // Get the rotation axis
-                        float3 axis = math.normalize(math.cross(forward, nextHeading));
-                        // Create a quaternion for the maximum allowed rotation
-                        quaternion maxRotation = quaternion.AxisAngle(axis, maxAngleThisFrame);
-                        // Apply the maximum allowed rotation to the current forward vector
-                        nextHeading = math.rotate(maxRotation, forward);
-                    }
-
-                    // Manage speed modifiers for prey based on predator proximity
-                    if (Prey)
-                    {
-                        if (preyInPredatorRange)
-                        {
-                            boidUnique.TargetSpeedModifier = 3.0f;
-                            // Note: EscapingPredator component should be enabled via EntityCommandBuffer
-                            // in a separate system or job that can handle structural changes
-                        }
-                    }
-
-                    // Apply the individual speed modifier when updating the position
-                    float individualMoveDistance = MoveDistance * boidUnique.MoveSpeedModifier;
-
-                    // Update the boid's position and rotation
-                    localToWorld.Value = float4x4.TRS(
-                        new float3(localToWorld.Position.x + (nextHeading.x * individualMoveDistance), 0, localToWorld.Position.z + (nextHeading.z * individualMoveDistance)),
-                        quaternion.LookRotationSafe(nextHeading, math.up()),
-                        localToWorld.Value.Scale());
+                    obstacleBlendWidth = math.max(0.001f, obstacleEffectiveRadius * 0.5f);
+                    tObstacle = math.saturate(-nearestObstacleDistanceFromRadius / obstacleBlendWidth);
                 }
 
+                float tPredator = 0.0f;
+                float3 blendedAvoidHeading = normalHeading;
+                if (nearestObstaclePositionIndex >= 0)
+                {
+                    blendedAvoidHeading = avoidObstacleHeading;
+                }
+                if (predatorDataAvailable)
+                {
+                    int nearestPredatorPositionIndex2 = CellPredatorPositionIndex[cellIndex];
+                    float predatorHalf2 = 0.0f;
+                    if (PredatorSizes.Length > 0 && nearestPredatorPositionIndex2 >= 0 && nearestPredatorPositionIndex2 < PredatorSizes.Length)
+                    {
+                        predatorHalf2 = PredatorSizes[nearestPredatorPositionIndex2] * PREDATOR_SIZE_TO_RADIUS_FACTOR;
+                    }
+
+                    float predatorEffectiveRadius = runtimeData.ObstacleAversionDistance + predatorHalf2;
+                    float predatorBlendWidth = math.max(0.001f, predatorEffectiveRadius * 0.5f);
+                    tPredator = math.saturate(-nearestPredatorDistanceFromRadius / predatorBlendWidth);
+
+                    float switchBand = math.max(obstacleBlendWidth, predatorBlendWidth);
+                    float switchWeight = 0.5f + (nearestObstacleDistance - nearestPredatorDistance) / (2.0f * switchBand);
+                    switchWeight = math.saturate(switchWeight);
+                    blendedAvoidHeading = math.normalizesafe(math.lerp(avoidObstacleHeading, avoidPredatorHeading, switchWeight));
+                }
+
+                float tAvoid = math.max(tObstacle, tPredator);
+                float3 targetForward = math.normalizesafe(math.lerp(normalHeading, blendedAvoidHeading, tAvoid));
+                float3 nextHeading = math.normalizesafe(forward + DeltaTime * (targetForward - forward) * runtimeData.MaxTurnRate);
+
+                float3 horizontalHeading = new float3(nextHeading.x, 0.0f, nextHeading.z);
+                float horizontalMagnitude = math.length(horizontalHeading);
+                if (horizontalMagnitude > 0.0001f)
+                {
+                    float currentVerticalAngle = math.degrees(math.asin(nextHeading.y));
+                    float maxVerticalAngle = math.max(0.0f, runtimeData.MaxVerticalAngle + boidUnique.MaxVerticalAngleOffset);
+                    float clampedVerticalAngle = math.clamp(currentVerticalAngle, -maxVerticalAngle, maxVerticalAngle);
+                    float3 newHeading = math.normalize(horizontalHeading) * math.cos(math.radians(clampedVerticalAngle));
+                    newHeading.y = math.sin(math.radians(clampedVerticalAngle));
+                    nextHeading = math.normalize(newHeading);
+                }
+
+                ApplyBoundarySteering(runtimeData, currentPosition, ref nextHeading);
+
+                float angle = math.acos(math.clamp(math.dot(math.normalize(forward), math.normalize(nextHeading)), -1.0f, 1.0f));
+                float maxAngleThisFrame = runtimeData.MaxTurnRate * DeltaTime;
+                if (angle > maxAngleThisFrame)
+                {
+                    float3 axis = math.normalize(math.cross(forward, nextHeading));
+                    quaternion maxRotation = quaternion.AxisAngle(axis, maxAngleThisFrame);
+                    nextHeading = math.rotate(maxRotation, forward);
+                }
+
+                if (runtimeData.Prey)
+                {
+                    if (preyInPredatorRange)
+                    {
+                        boidUnique.TargetSpeedModifier = 3.0f;
+                    }
+                    else if (boidUnique.TargetSpeedModifier > runtimeData.SpeedModifierMax)
+                    {
+                        boidUnique.TargetSpeedModifier = runtimeData.SpeedModifierMax;
+                    }
+                }
+
+                float3 localScale = localToWorld.Value.Scale();
+                float3 swimVelocity = nextHeading * runtimeData.DefaultMoveSpeed * boidUnique.MoveSpeedModifier;
+                float3 currentVelocity = WaterCurrentUtility.SampleHorizontalCurrentVelocity(
+                    WaterCurrent,
+                    currentPosition,
+                    localScale,
+                    ElapsedTime,
+                    runtimeData.DefaultMoveSpeed,
+                    runtimeData.MeshLargestDimension,
+                    runtimeData.ScaleMin,
+                    runtimeData.WaterCurrentInfluence,
+                    runtimeData.Predator);
+                float3 nextPosition = currentPosition + ((swimVelocity + currentVelocity) * DeltaTime);
+                nextPosition = ApplyBoundaryPositionCorrection(runtimeData, currentPosition, nextPosition, ref nextHeading);
+                localToWorld.Value = float4x4.TRS(
+                    nextPosition,
+                    quaternion.LookRotationSafe(nextHeading, math.up()),
+                    localScale);
+            }
+
+            private static void ApplyBoundarySteering(in BoidSchoolRuntimeData runtimeData, float3 currentPosition, ref float3 nextHeading)
+            {
+                if (runtimeData.Boundary.Hardness <= 0.0f)
+                {
+                    return;
+                }
+
+                if (BoidBoundaryUtility.TryProjectInside(runtimeData.Boundary, currentPosition, out float3 projectedPosition, out float3 _, out float distanceOutside) == false)
+                {
+                    return;
+                }
+
+                float boundsMargin = math.max(0.001f, runtimeData.CellRadius * 2.0f);
+                float tBound = math.saturate(distanceOutside / boundsMargin);
+                float3 directionInside = math.normalizesafe(projectedPosition - currentPosition, runtimeData.BoundsCenter - currentPosition);
+                nextHeading = math.normalizesafe(nextHeading + directionInside * (BoundsForce * tBound));
+            }
+
+            private static float3 ApplyBoundaryPositionCorrection(in BoidSchoolRuntimeData runtimeData, float3 currentPosition, float3 nextPosition, ref float3 nextHeading)
+            {
+                float hardness = math.saturate(runtimeData.Boundary.Hardness);
+                if (hardness <= 0.0f)
+                {
+                    return nextPosition;
+                }
+
+                if (BoidBoundaryUtility.TryProjectInside(runtimeData.Boundary, nextPosition, out float3 projectedPosition, out float3 outwardNormal, out float _) == false)
+                {
+                    return nextPosition;
+                }
+
+                float correctionStrength = hardness * hardness * hardness;
+                if (correctionStrength <= 0.0001f)
+                {
+                    return nextPosition;
+                }
+
+                float3 correctedPosition = math.lerp(nextPosition, projectedPosition, correctionStrength);
+                float outwardAmount = math.dot(nextHeading, outwardNormal);
+                if (outwardAmount > 0.0f)
+                {
+                    float3 fallbackHeading = math.normalizesafe(runtimeData.BoundsCenter - currentPosition, nextHeading);
+                    nextHeading = math.normalizesafe(nextHeading - (outwardNormal * outwardAmount * correctionStrength), fallbackHeading);
+                }
+
+                return correctedPosition;
             }
         }
-        
-        /// <summary>
-        /// Updates the target vector used by the shader.
-        /// Option A: use angular velocity (turn rate) as bend signal.
-        /// </summary>
+
         [BurstCompile]
-        partial struct UpdateTargetVectorJob : IJobEntity
+        partial struct SteerSeabedBoidJob : IJobEntity
+        {
+            private const float BoundsForce = 0.01f;
+
+            [ReadOnly] public NativeArray<int> ChunkBaseEntityIndices;
+            [ReadOnly] public NativeArray<int> CellIndices;
+            [ReadOnly] public NativeArray<int> CellCount;
+            [ReadOnly] public NativeArray<float3> CellAlignment;
+            [ReadOnly] public NativeArray<float3> CellSeparation;
+            [ReadOnly] public NativeArray<float3> ObstaclePositions;
+            [ReadOnly] public NativeArray<float> CellObstacleDistance;
+            [ReadOnly] public NativeArray<int> CellObstaclePositionIndex;
+            [ReadOnly] public NativeArray<float3> ObstacleDimensions;
+            [ReadOnly] public NativeArray<float3> PredatorPositions;
+            [ReadOnly] public NativeArray<float> PredatorSizes;
+            [ReadOnly] public NativeArray<float> CellPredatorDistance;
+            [ReadOnly] public NativeArray<int> CellPredatorPositionIndex;
+            [ReadOnly] public NativeArray<BoidSchoolRuntimeData> SchoolRuntimeData;
+            [ReadOnly] public NativeParallelHashMap<int, int> SchoolIndexToRuntimeIndex;
+            [ReadOnly] public NativeArray<float3> TargetPositions;
+            [ReadOnly] public SeabedSurfaceData SeabedSurface;
+            [ReadOnly] public float DeltaTime;
+            [ReadOnly] public float ElapsedTime;
+
+            void Execute([ChunkIndexInQuery] int chunkIndexInQuery, [EntityIndexInChunk] int entityIndexInChunk, Entity entity, ref LocalToWorld localToWorld, ref BoidUnique boidUnique, in BoidSchoolMember boidSchoolMember)
+            {
+                if (boidUnique.Disabled)
+                {
+                    return;
+                }
+
+                if (BoidSystem.TryGetSchoolRuntime(boidSchoolMember.SchoolIndex, SchoolIndexToRuntimeIndex, SchoolRuntimeData, TargetPositions, out BoidSchoolRuntimeData runtimeData, out float3 targetPosition) == false)
+                {
+                    return;
+                }
+
+                int entityIndexInQuery = ChunkBaseEntityIndices[chunkIndexInQuery] + entityIndexInChunk;
+                float3 worldForward = localToWorld.Forward;
+                float3 forward = new float3(worldForward.x, 0.0f, worldForward.z);
+                float3 currentPosition = new float3(localToWorld.Position.x, 0.0f, localToWorld.Position.z);
+                int cellIndex = CellIndices[entityIndexInQuery];
+                int neighborCount = CellCount[cellIndex];
+                float3 alignment = new float3(CellAlignment[cellIndex].x, 0.0f, CellAlignment[cellIndex].z);
+                float3 separation = new float3(CellSeparation[cellIndex].x, 0.0f, CellSeparation[cellIndex].z);
+                float nearestObstacleDistance = CellObstacleDistance[cellIndex];
+                int nearestObstaclePositionIndex = CellObstaclePositionIndex[cellIndex];
+                float3 nearestObstaclePosition = currentPosition;
+                if (nearestObstaclePositionIndex >= 0)
+                {
+                    nearestObstaclePosition = new float3(ObstaclePositions[nearestObstaclePositionIndex].x, 0.0f, ObstaclePositions[nearestObstaclePositionIndex].z);
+                }
+                float3 nearestTargetPosition = new float3(targetPosition.x, 0.0f, targetPosition.z);
+
+                bool preyInPredatorRange = false;
+                if (runtimeData.Prey && PredatorPositions.Length > 0)
+                {
+                    int nearestPredatorPositionDataIndex = CellPredatorPositionIndex[cellIndex];
+                    if (nearestPredatorPositionDataIndex >= 0)
+                    {
+                        float nearestPredatorDist = CellPredatorDistance[cellIndex];
+                        float predatorHalf2D = 0.0f;
+                        if (PredatorSizes.Length > 0 && nearestPredatorPositionDataIndex < PredatorSizes.Length)
+                        {
+                            predatorHalf2D = PredatorSizes[nearestPredatorPositionDataIndex] * PREDATOR_SIZE_TO_RADIUS_FACTOR;
+                        }
+
+                        float predatorDetectionRange = runtimeData.ObstacleAversionDistance + 15.0f + predatorHalf2D;
+                        preyInPredatorRange = nearestPredatorDist < predatorDetectionRange;
+                    }
+                }
+
+                float3 alignmentResult = runtimeData.AlignmentWeight * math.normalizesafe((alignment / neighborCount) - forward);
+                float3 separationResult = runtimeData.SeparationWeight * math.normalizesafe((currentPosition * neighborCount) - separation);
+                float3 perBoidTargetOffset = BoidSystem.GetPerBoidTargetOffset(entity, runtimeData, ElapsedTime, true);
+                float3 boidTargetPosition = nearestTargetPosition + perBoidTargetOffset;
+                float3 targetHeading = runtimeData.TargetWeight * math.normalizesafe(boidTargetPosition - currentPosition);
+                float obstacleEffectiveRadius2D = 0.0f;
+                float3 avoidObstacleHeading = float3.zero;
+                float nearestObstacleDistanceFromRadius = float.MaxValue;
+                if (nearestObstaclePositionIndex >= 0)
+                {
+                    float3 obstacleSteering = currentPosition - nearestObstaclePosition;
+                    obstacleEffectiveRadius2D = runtimeData.ObstacleAversionDistance + ObstacleDimensions[nearestObstaclePositionIndex].x;
+                    avoidObstacleHeading = (nearestObstaclePosition + math.normalizesafe(obstacleSteering) * obstacleEffectiveRadius2D) - currentPosition;
+                    nearestObstacleDistanceFromRadius = nearestObstacleDistance - obstacleEffectiveRadius2D;
+                }
+                float3 normalHeading = math.normalizesafe(alignmentResult + separationResult + targetHeading);
+
+                float t2D = 0.0f;
+                if (nearestObstaclePositionIndex >= 0)
+                {
+                    float blendWidth2D = math.max(0.001f, obstacleEffectiveRadius2D * 0.5f);
+                    t2D = math.saturate(-nearestObstacleDistanceFromRadius / blendWidth2D);
+                }
+                float3 targetForward = math.normalizesafe(math.lerp(normalHeading, avoidObstacleHeading, t2D), normalHeading);
+                float3 nextHeading = math.normalizesafe(forward + DeltaTime * (targetForward - forward) * runtimeData.MaxTurnRate);
+                ApplyBoundarySteering(runtimeData, localToWorld.Position, ref nextHeading);
+
+                float angle = math.acos(math.clamp(math.dot(math.normalize(forward), math.normalize(nextHeading)), -1.0f, 1.0f));
+                float maxAngleThisFrame = runtimeData.MaxTurnRate * DeltaTime;
+                if (angle > maxAngleThisFrame)
+                {
+                    float3 axis = math.normalize(math.cross(forward, nextHeading));
+                    quaternion maxRotation = quaternion.AxisAngle(axis, maxAngleThisFrame);
+                    nextHeading = math.rotate(maxRotation, forward);
+                }
+
+                if (runtimeData.Prey)
+                {
+                    if (preyInPredatorRange)
+                    {
+                        boidUnique.TargetSpeedModifier = 3.0f;
+                    }
+                    else if (boidUnique.TargetSpeedModifier > runtimeData.SpeedModifierMax)
+                    {
+                        boidUnique.TargetSpeedModifier = runtimeData.SpeedModifierMax;
+                    }
+                }
+
+                float3 localScale = localToWorld.Value.Scale();
+                float3 swimVelocity = nextHeading * runtimeData.DefaultMoveSpeed * boidUnique.MoveSpeedModifier;
+                float3 nextSamplePosition = new float3(
+                    localToWorld.Position.x + (swimVelocity.x * DeltaTime),
+                    localToWorld.Position.y,
+                    localToWorld.Position.z + (swimVelocity.z * DeltaTime));
+                nextSamplePosition = ApplyBoundaryPositionCorrection(runtimeData, localToWorld.Position, nextSamplePosition, ref nextHeading);
+                SeabedSurfaceUtility.SampleSurface(SeabedSurface, nextSamplePosition, out float3 snappedPosition, out float3 surfaceNormal);
+                quaternion surfaceRotation = SeabedSurfaceUtility.AlignForwardToSurface(
+                    new float3(nextHeading.x, 0.0f, nextHeading.z),
+                    surfaceNormal,
+                    localToWorld.Forward);
+
+                localToWorld.Value = float4x4.TRS(
+                    snappedPosition,
+                    surfaceRotation,
+                    localScale);
+            }
+
+            private static void ApplyBoundarySteering(in BoidSchoolRuntimeData runtimeData, float3 currentPosition, ref float3 nextHeading)
+            {
+                if (runtimeData.Boundary.Hardness <= 0.0f)
+                {
+                    return;
+                }
+
+                if (BoidBoundaryUtility.TryProjectInside(runtimeData.Boundary, currentPosition, out float3 projectedPosition, out float3 _, out float distanceOutside) == false)
+                {
+                    return;
+                }
+
+                float boundsMargin = math.max(0.001f, runtimeData.CellRadius * 2.0f);
+                float tBound = math.saturate(distanceOutside / boundsMargin);
+                float3 directionInside = projectedPosition - currentPosition;
+                directionInside.y = 0.0f;
+                directionInside = math.normalizesafe(directionInside, new float3(runtimeData.BoundsCenter.x - currentPosition.x, 0.0f, runtimeData.BoundsCenter.z - currentPosition.z));
+                nextHeading = math.normalizesafe(nextHeading + directionInside * (BoundsForce * tBound));
+            }
+
+            private static float3 ApplyBoundaryPositionCorrection(in BoidSchoolRuntimeData runtimeData, float3 currentPosition, float3 nextPosition, ref float3 nextHeading)
+            {
+                float hardness = math.saturate(runtimeData.Boundary.Hardness);
+                if (hardness <= 0.0f)
+                {
+                    return nextPosition;
+                }
+
+                if (BoidBoundaryUtility.TryProjectInside(runtimeData.Boundary, nextPosition, out float3 projectedPosition, out float3 outwardNormal, out float _) == false)
+                {
+                    return nextPosition;
+                }
+
+                float correctionStrength = hardness * hardness * hardness;
+                if (correctionStrength <= 0.0001f)
+                {
+                    return nextPosition;
+                }
+
+                float3 correctedPosition = math.lerp(nextPosition, projectedPosition, correctionStrength);
+                outwardNormal.y = 0.0f;
+                outwardNormal = math.normalizesafe(outwardNormal);
+                float outwardAmount = math.dot(nextHeading, outwardNormal);
+                if (outwardAmount > 0.0f)
+                {
+                    float3 fallbackHeading = math.normalizesafe(new float3(runtimeData.BoundsCenter.x - currentPosition.x, 0.0f, runtimeData.BoundsCenter.z - currentPosition.z), nextHeading);
+                    nextHeading = math.normalizesafe(nextHeading - (outwardNormal * outwardAmount * correctionStrength), fallbackHeading);
+                }
+
+                return correctedPosition;
+            }
+        }
+
+        [BurstCompile]
+        partial struct PostSteerBoidJob : IJobEntity
         {
             public float DeltaTime;
-            public float BendGain; // scales the x component fed to the shader
-            public float DeadzoneRadians; // legacy angle deadzone (unused for angular velocity)
-            public float AngularVelocityDeadzone; // rad/s deadzone
-            public float MaxBendAbs; // clamp target bend magnitude
+            public float ElapsedTime;
+            public float BendGain;
+            public float AngularVelocityDeadzone;
+            public float MaxBendAbs;
+            public float VectorTransitionSpeed;
+            [ReadOnly] public NativeArray<BoidSchoolRuntimeData> SchoolRuntimeData;
+            [ReadOnly] public NativeParallelHashMap<int, int> SchoolIndexToRuntimeIndex;
 
-            void Execute(ref BoidUnique boidUnique, in LocalToWorld localToWorld)
+            private static float HashToUnitFloat(uint hash)
             {
-                // Normalize forward vectors
+                uint mantissa = hash & 0x00FFFFFFu;
+                return mantissa * (1.0f / 16777215.0f);
+            }
+
+            void Execute(
+                Entity entity,
+                ref BoidUnique boidUnique,
+                in BoidSchoolMember boidSchoolMember,
+                in LocalToWorld localToWorld,
+                ref AccumulatedTimeOverride accumulatedTimeOverride,
+                ref AnimationSpeedOverride animationSpeedOverride,
+                ref CurrentVectorOverride currentVector)
+            {
+                if (BoidSystem.TryGetSchoolRuntime(boidSchoolMember.SchoolIndex, SchoolIndexToRuntimeIndex, SchoolRuntimeData, default, out BoidSchoolRuntimeData runtimeData, out float3 _) == false)
+                {
+                    return;
+                }
+
+                UpdateTargetVector(ref boidUnique, localToWorld);
+                UpdateAnimationTime(ref accumulatedTimeOverride, ref animationSpeedOverride, runtimeData, boidUnique);
+                SmoothSpeed(entity, ref boidUnique, runtimeData);
+                SmoothVector(ref currentVector, boidUnique);
+            }
+
+            private void UpdateTargetVector(ref BoidUnique boidUnique, in LocalToWorld localToWorld)
+            {
                 float3 currentForward = math.normalizesafe(localToWorld.Forward);
                 float3 previousForward = math.normalizesafe(boidUnique.PreviousHeading);
-
-                // Horizontal plane (Y up)
                 float3 up = new float3(0, 1, 0);
                 float3 currentForwardHorizontal = math.normalizesafe(new float3(currentForward.x, 0, currentForward.z));
                 float3 previousForwardHorizontal = math.normalizesafe(new float3(previousForward.x, 0, previousForward.z));
-
-                // Angular displacement this frame (radians)
                 float deltaAngle = SignedAngleBetween(previousForwardHorizontal, currentForwardHorizontal, up);
-                // Convert to angular velocity (radians/sec)
-                float angularVelocity = 0f;
-                if (DeltaTime > 0f)
+                float angularVelocity = 0.0f;
+                if (DeltaTime > 0.0f)
                 {
                     angularVelocity = deltaAngle / DeltaTime;
                 }
 
-                // Optional micro deadzone on angular velocity
-                if (AngularVelocityDeadzone > 0f)
+                if (AngularVelocityDeadzone > 0.0f)
                 {
                     float absW = math.abs(angularVelocity);
                     if (absW <= AngularVelocityDeadzone)
                     {
-                        angularVelocity = 0f;
+                        angularVelocity = 0.0f;
                     }
                     else
                     {
@@ -1015,84 +1325,64 @@ namespace OceanViz3
                     }
                 }
 
-                // Apply gain to produce shader bend
                 float bend = angularVelocity * BendGain;
-                // Clamp to avoid targets beyond shader-visible range
                 bend = math.clamp(bend, -MaxBendAbs, MaxBendAbs);
-
-                // Write only x component for shader bending
                 boidUnique.TargetVector = new float3(bend, 0, 0);
-
-                // Persist for next frame
                 boidUnique.PreviousHeading = currentForward;
             }
 
-            // Helper function to calculate the signed angle
-            private float SignedAngleBetween(float3 from, float3 to, float3 axis)
+            private static float SignedAngleBetween(float3 from, float3 to, float3 axis)
             {
-                float unsignedAngle = math.acos(math.clamp(math.dot(from, to), -1f, 1f));
+                float unsignedAngle = math.acos(math.clamp(math.dot(from, to), -1.0f, 1.0f));
                 float3 crossProduct = math.cross(from, to);
                 float sign = math.sign(math.dot(crossProduct, axis));
-                return unsignedAngle * sign; // Angle in radians
+                return unsignedAngle * sign;
             }
-        }
-        
-        /// <summary>
-        /// Updates the accumulated time used for shader animation.
-        /// Handles animation speed scaling based on movement speed.
-        /// </summary>
-        [BurstCompile]
-        public partial struct UpdateAccumulatedTimeJob : IJobEntity
-        {
-            public float DeltaTime;
 
-            void Execute(ref AccumulatedTimeOverride accumulatedTimeOverride, in BoidShared boidShared, in BoidUnique boidUnique, ref AnimationSpeedOverride animationSpeedOverride)
+            private void UpdateAnimationTime(ref AccumulatedTimeOverride accumulatedTimeOverride, ref AnimationSpeedOverride animationSpeedOverride, in BoidSchoolRuntimeData runtimeData, in BoidUnique boidUnique)
             {
-                // Shader uses both AccumulatedTime and AnimationSpeed
-                accumulatedTimeOverride.Value += DeltaTime * boidShared.DefaultAnimationSpeed * boidUnique.MoveSpeedModifier;
-                animationSpeedOverride.Value = boidShared.DefaultAnimationSpeed * boidUnique.MoveSpeedModifier;
-            
-                if (accumulatedTimeOverride.Value >= 1000000)
+                accumulatedTimeOverride.Value += DeltaTime * runtimeData.DefaultAnimationSpeed * boidUnique.MoveSpeedModifier;
+                animationSpeedOverride.Value = runtimeData.DefaultAnimationSpeed * boidUnique.MoveSpeedModifier;
+                if (accumulatedTimeOverride.Value >= 1000000.0f)
                 {
-                    accumulatedTimeOverride.Value -= 1000000;
+                    accumulatedTimeOverride.Value -= 1000000.0f;
                 }
             }
-        }
-        
-        /// <summary>
-        /// Smoothly transitions between different movement speeds.
-        /// </summary>
-        [BurstCompile]
-        public partial struct SmoothSpeedTransitionJob : IJobEntity
-        {
-            public float DeltaTime;
 
-            void Execute(ref BoidUnique boidUnique, in BoidShared boidShared)
+            private void SmoothSpeed(Entity entity, ref BoidUnique boidUnique, in BoidSchoolRuntimeData runtimeData)
             {
-                // Exponential smoothing that behaves well near zero speeds
-                float k = math.max(0.0001f, boidShared.StateTransitionSpeed);
-                float alpha = 1f - math.exp(-k * DeltaTime);
-                boidUnique.MoveSpeedModifier = math.lerp(boidUnique.MoveSpeedModifier, boidUnique.TargetSpeedModifier, alpha);
+                float targetSpeed = boidUnique.TargetSpeedModifier;
+                if (runtimeData.SpeedJitterAmplitude > 0.0f && runtimeData.SpeedJitterFrequency > 0.0f)
+                {
+                    if (targetSpeed <= runtimeData.SpeedModifierMax)
+                    {
+                        uint phaseHash = math.hash(new uint4((uint)runtimeData.DynamicEntityId, (uint)runtimeData.BoidSchoolId, (uint)entity.Index, 17u));
+                        float phase = HashToUnitFloat(phaseHash) * (2.0f * math.PI);
+                        float oscillation = math.sin(phase + ElapsedTime * runtimeData.SpeedJitterFrequency);
+                        float scale = 1.0f + runtimeData.SpeedJitterAmplitude * oscillation;
+                        targetSpeed *= scale;
+                        targetSpeed = math.clamp(targetSpeed, runtimeData.SpeedModifierMin, runtimeData.SpeedModifierMax);
+                    }
+                }
+
+                float k = math.max(0.0001f, runtimeData.StateTransitionSpeed);
+                float alpha = 1.0f - math.exp(-k * DeltaTime);
+                boidUnique.MoveSpeedModifier = math.lerp(boidUnique.MoveSpeedModifier, targetSpeed, alpha);
             }
-        }
-        
-        /// <summary>
-        /// Smoothly transitions between different vector states for animation.
-        /// </summary>
-        [BurstCompile]
-        public partial struct SmoothVectorTransitionJob : IJobEntity
-        {
-            public float DeltaTime;
-            public float TransitionSpeed; // Slew rate (units per second)
 
-            void Execute(ref CurrentVectorOverride currentVector, in BoidUnique boidUnique, in BoidShared boidShared)
+            private void SmoothVector(ref CurrentVectorOverride currentVector, in BoidUnique boidUnique)
             {
-                // Constant slew rate to avoid sudden sign flips; symmetric for +/-
-                // Always slew toward a clamped target so we don't chase unreachable values
                 float xTarget = math.clamp(boidUnique.TargetVector.x, -BEND_MAX_ABS, BEND_MAX_ABS);
-                float3 target = new float3(xTarget, 0f, 0f);
+                float dynamicTransitionSpeed = VectorTransitionSpeed;
+                if (math.abs(xTarget) <= BEND_ZERO_EPSILON)
+                {
+                    xTarget = 0.0f;
+                    dynamicTransitionSpeed = VectorTransitionSpeed * BEND_RETURN_SPEED_MULTIPLIER;
+                }
+
+                float3 target = new float3(xTarget, 0.0f, 0.0f);
                 float3 diff = target - currentVector.Value;
-                float maxStep = TransitionSpeed * DeltaTime; // amount we can move this frame
+                float maxStep = dynamicTransitionSpeed * DeltaTime;
                 float dist = math.length(diff);
                 if (dist <= maxStep)
                 {
@@ -1110,28 +1400,55 @@ namespace OceanViz3
     [UpdateInGroup(typeof(PresentationSystemGroup))]
     public partial struct BoidLODSystem : ISystem
     {
+        private const float DEFAULT_LOD1_DISTANCE = LODDebugSettings.DefaultLOD1Distance;
+        private const float DEFAULT_LOD2_DISTANCE = LODDebugSettings.DefaultLOD2Distance;
+
         private EntityQuery sceneDataQuery;
+        private EntityQuery lodDebugSettingsQuery;
+        private EntityQuery missingLODStateQuery;
 
         [BurstCompile]
         private partial struct LODJob : IJobEntity
         {
             [ReadOnly] public float3 CameraPosition;
-            
-            void Execute(in BoidShared boidShared, in LocalToWorld localToWorld, ref MaterialMeshInfo materialMeshInfo)
+            [ReadOnly] public int ForcedLOD;
+            [ReadOnly] public float LOD1DistanceSq;
+            [ReadOnly] public float LOD2DistanceSq;
+            [ReadOnly] public ComponentLookup<BoidSchoolRuntimeData> SchoolRuntimeLookup;
+
+            void Execute(in BoidSchoolMember boidSchoolMember, in LocalToWorld localToWorld, ref MaterialMeshInfo materialMeshInfo, ref LODState lodState)
             {
-                if (boidShared.NumberOfLODs <= 0)
+                BoidSchoolRuntimeData runtimeData = SchoolRuntimeLookup[boidSchoolMember.SchoolEntity];
+                if (runtimeData.NumberOfLODs <= 0)
+                {
                     return;
+                }
 
-                float distanceToCamera = math.length(localToWorld.Position - CameraPosition);
-                
                 int lodLevel = 0;
-                if (boidShared.NumberOfLODs > 2 && distanceToCamera > 60.0f)
-                    lodLevel = 2;
-                else if (boidShared.NumberOfLODs > 1 && distanceToCamera > 30.0f)
-                    lodLevel = 1;
+                if (ForcedLOD >= 0)
+                {
+                    lodLevel = ForcedLOD;
+                }
+                else
+                {
+                    float distanceToCameraSq = math.distancesq(localToWorld.Position, CameraPosition);
+                    if (runtimeData.NumberOfLODs > 2 && distanceToCameraSq > LOD2DistanceSq)
+                    {
+                        lodLevel = 2;
+                    }
+                    else if (runtimeData.NumberOfLODs > 1 && distanceToCameraSq > LOD1DistanceSq)
+                    {
+                        lodLevel = 1;
+                    }
+                }
 
-                lodLevel = math.clamp(lodLevel, 0, boidShared.NumberOfLODs - 1);
-                
+                lodLevel = math.clamp(lodLevel, 0, runtimeData.NumberOfLODs - 1);
+                if (lodState.CurrentLOD == lodLevel)
+                {
+                    return;
+                }
+
+                lodState.CurrentLOD = lodLevel;
                 materialMeshInfo = MaterialMeshInfo.FromRenderMeshArrayIndices(0, lodLevel);
             }
         }
@@ -1139,20 +1456,66 @@ namespace OceanViz3
         public void OnCreate(ref SystemState state)
         {
             sceneDataQuery = state.EntityManager.CreateEntityQuery(typeof(SceneData));
+            lodDebugSettingsQuery = state.EntityManager.CreateEntityQuery(typeof(LODDebugSettings));
+            missingLODStateQuery = SystemAPI.QueryBuilder()
+                .WithAll<BoidSchoolMember, LocalToWorld, MaterialMeshInfo>()
+                .WithNone<LODState>()
+                .Build();
+
+            if (lodDebugSettingsQuery.CalculateEntityCount() == 0)
+            {
+                Entity lodDebugSettingsEntity = state.EntityManager.CreateEntity(typeof(LODDebugSettings));
+                state.EntityManager.SetName(lodDebugSettingsEntity, "LOD Debug Settings");
+                state.EntityManager.SetComponentData(lodDebugSettingsEntity, LODDebugSettings.CreateDefault());
+            }
+
             state.RequireForUpdate(sceneDataQuery);
+            state.RequireForUpdate(lodDebugSettingsQuery);
         }
 
         [BurstCompile]
         public void OnUpdate(ref SystemState state)
         {
-            var sceneData = sceneDataQuery.GetSingleton<SceneData>();
-            
+            int missingLODStateCount = missingLODStateQuery.CalculateEntityCount();
+            if (missingLODStateCount > 0)
+            {
+                state.EntityManager.AddComponent<LODState>(missingLODStateQuery);
+            }
+
+            SceneData sceneData = sceneDataQuery.GetSingleton<SceneData>();
+            LODDebugSettings lodDebugSettings = lodDebugSettingsQuery.GetSingleton<LODDebugSettings>();
+            int forcedLOD = lodDebugSettings.ForcedLOD;
+            float lod1Distance = DEFAULT_LOD1_DISTANCE;
+            float lod2Distance = DEFAULT_LOD2_DISTANCE;
+
+            if (lodDebugSettings.DebugOverridesEnabled)
+            {
+                lod1Distance = lodDebugSettings.LOD1Distance;
+                lod2Distance = lodDebugSettings.LOD2Distance;
+            }
+
+            if (forcedLOD < LODDebugSettings.AutoLOD)
+            {
+                forcedLOD = LODDebugSettings.AutoLOD;
+            }
+            if (lod1Distance < 0.0f)
+            {
+                lod1Distance = 0.0f;
+            }
+            if (lod2Distance < lod1Distance)
+            {
+                lod2Distance = lod1Distance;
+            }
+
             var job = new LODJob
             {
-                CameraPosition = sceneData.CameraPosition
+                CameraPosition = sceneData.CameraPosition,
+                ForcedLOD = forcedLOD,
+                LOD1DistanceSq = lod1Distance * lod1Distance,
+                LOD2DistanceSq = lod2Distance * lod2Distance,
+                SchoolRuntimeLookup = SystemAPI.GetComponentLookup<BoidSchoolRuntimeData>(true)
             };
-            
-            job.ScheduleParallel();
+            state.Dependency = job.ScheduleParallel(state.Dependency);
         }
     }
 }

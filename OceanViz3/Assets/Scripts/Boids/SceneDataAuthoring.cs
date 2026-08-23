@@ -20,6 +20,12 @@ namespace OceanViz3
         /// </summary>
         public float3 CameraPosition;
 
+        [Header("Culling (Size-Aware)")]
+        public float CullingStartMeshSize = 1.0f;
+        public float CullingStartDistance = 70.0f;
+        public float CullingEndMeshSize = 10.0f;
+        public float CullingEndDistance = 200.0f;
+
         class Baker : Baker<SceneDataAuthoring>
         {
             public override void Bake(SceneDataAuthoring authoring)
@@ -27,7 +33,11 @@ namespace OceanViz3
                 var entity = GetEntity(TransformUsageFlags.None);
                 AddComponent(entity, new SceneData
                 {
-                    CameraPosition = authoring.CameraPosition
+                    CameraPosition = authoring.CameraPosition,
+                    CullingStartMeshSize = authoring.CullingStartMeshSize,
+                    CullingStartDistance = authoring.CullingStartDistance,
+                    CullingEndMeshSize = authoring.CullingEndMeshSize,
+                    CullingEndDistance = authoring.CullingEndDistance
                 });
             }
         }
@@ -43,5 +53,13 @@ namespace OceanViz3
         /// The position for the main camera in the scene
         /// </summary>
         public float3 CameraPosition;
+
+        /// <summary>
+        /// Size-aware culling mapping parameters (sampled at spawn time).
+        /// </summary>
+        public float CullingStartMeshSize;
+        public float CullingStartDistance;
+        public float CullingEndMeshSize;
+        public float CullingEndDistance;
     }
 }

@@ -27,7 +27,7 @@ public class GroupPresetsManager : MonoBehaviour
         {
             if (instance == null)
             {
-                instance = FindObjectOfType<GroupPresetsManager>();
+                instance = UnityEngine.Object.FindFirstObjectByType<GroupPresetsManager>();
                 if (instance == null)
                 {
                     GameObject go = new GameObject("GroupPresetsManager");
@@ -134,14 +134,29 @@ public class GroupPresetsManager : MonoBehaviour
             
             if (wrapper != null && wrapper.presets != null)
             {
+                HashSet<string> presetNames = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var preset in wrapper.presets)
                 {
                     if (preset is DynamicEntityPreset dynamicPreset)
                     {
+                        if (!presetNames.Add(dynamicPreset.name))
+                        {
+                            string duplicateMessage = $"[GroupPresetsManager] Duplicate dynamic preset name '{dynamicPreset.name}' in {Path.GetFileName(filePath)}.";
+                            Debug.Assert(false, duplicateMessage);
+                            Debug.LogError(duplicateMessage);
+                            continue;
+                        }
+
                         // Validate dynamic preset
                         if (dynamicPreset.habitats == null || dynamicPreset.habitats.Length == 0)
                         {
                             Debug.LogError($"[GroupPresetsManager] Invalid preset in {Path.GetFileName(filePath)}: {dynamicPreset.name} has no habitats defined");
+                            continue;
+                        }
+                        Debug.Assert(dynamicPreset.water_current_influence >= -1.0f, $"[GroupPresetsManager] Invalid preset in {Path.GetFileName(filePath)}: {dynamicPreset.name} water_current_influence must be -1 or non-negative");
+                        if (dynamicPreset.water_current_influence < -1.0f)
+                        {
+                            Debug.LogError($"[GroupPresetsManager] Invalid preset in {Path.GetFileName(filePath)}: {dynamicPreset.name} water_current_influence must be -1 or non-negative");
                             continue;
                         }
                         Debug.Log($"[GroupPresetsManager] Loaded dynamic preset: {dynamicPreset.name} with {dynamicPreset.habitats.Length} habitats: {string.Join(", ", dynamicPreset.habitats)}");
@@ -188,10 +203,19 @@ public class GroupPresetsManager : MonoBehaviour
             
             if (wrapper != null && wrapper.presets != null)
             {
+                HashSet<string> presetNames = new HashSet<string>(StringComparer.Ordinal);
                 foreach (var preset in wrapper.presets)
                 {
                     if (preset is StaticEntityPreset staticPreset)
                     {
+                        if (!presetNames.Add(staticPreset.name))
+                        {
+                            string duplicateMessage = $"[GroupPresetsManager] Duplicate static preset name '{staticPreset.name}' in {Path.GetFileName(filePath)}.";
+                            Debug.Assert(false, duplicateMessage);
+                            Debug.LogError(duplicateMessage);
+                            continue;
+                        }
+
                         // Validate static preset
                         if (staticPreset.habitats == null || staticPreset.habitats.Length == 0)
                         {

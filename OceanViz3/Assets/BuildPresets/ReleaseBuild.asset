@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b8f2a05e90845b4aa771e1134d90ad3, type: 3}
+  m_Name: ReleaseBuild
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::OceanViz3.Editor.OceanVizBuildContentPreset
+  selectedDynamicEntityNames:
+  - Atlantic Blue Marlin
+  - Atlantic Bonito
+  - Atlantic Sailfish
+  - Blue Shark
+  - Cod
+  - Common Bottlenose Dolphin
+  - Common Cuttlefish
+  - Common Dentex
+  - Common Dolphin
+  - Common Octopus
+  - Damselfish
+  - European Anchovy
+  - European Hake
+  - European Pilchard
+  - European Squid
+  - Fin Whale
+  - Great White Shark
+  - Green Crab
+  - Grouper
+  - Little Tunny
+  - Loggerhead Sea Turtle
+  - Mahi Mahi
+  - Manta Ray
+  - Mediterranean Parrotfish
+  - Monk Seal
+  - Ocean Sunfish
+  - Red Mullet
+  - Sea Bass
+  - Seabird Shearwater
+  - Shortfin Mako
+  - Striped Dolphin
+  - Swordfish
+  - Thresher Shark
+  - Whale Shark
+  selectedStaticEntityNames:
+  - Bladderwrack
+  - Caulerpa Taxifolia
+  - Coralline Algae
+  - Cystoseira
+  - European Flat Oyster
+  - Fishing Net
+  - Gorgonian Coral
+  - Halimeda Algae
+  - Kelp
+  - Old Tire
+  - Padina Pavonica
+  - Pectinida
+  - Posidonia Oceanica
+  - Red Algae
+  - Red Coral
+  - Rusted Wheel Rim
+  - Sargassum
+  - Sea Lettuce
+  - Wrecked Boat
+  - WW2 Airplane
+  selectedLocationNames:
+  - Mediterranean
+  - NorthSea
+  - Pelagic

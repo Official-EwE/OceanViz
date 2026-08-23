@@ -48,7 +48,19 @@ namespace OceanViz3
                     DestroyRequested = false,
                     ShaderUpdateRequested = false,
                     NumberOfLODs = -1,
+                    WaterCurrentInfluence = -1.0f,
                 });
+                AddComponent(entity, new BoidSchoolRuntimeData
+                {
+                    SchoolIndex = -1,
+                    WaterCurrentInfluence = -1.0f,
+                    Target = Entity.Null
+                });
+                AddComponent(entity, new BoidSchoolSpawnPrototype
+                {
+                    Value = Entity.Null
+                });
+                AddBuffer<BoidSchoolOwnedBoid>(entity);
             }
         }
     }
@@ -69,6 +81,8 @@ namespace OceanViz3
         public float3 BoundsCenter;
         /// <summary>Size of the boid school bounds</summary>
         public float3 BoundsSize;
+        /// <summary>Collider-derived shape and hardness used to keep boids inside the school boundary</summary>
+        public BoidBoundaryData Boundary;
         /// <summary>Current number of boids in the school</summary>
         public int Count;
         /// <summary>Target number of boids for this school</summary>
@@ -98,6 +112,8 @@ namespace OceanViz3
         public bool Predator;
         /// <summary>Whether this school consists of prey boids</summary>
         public bool Prey;
+        /// <summary>Per-species water current strength multiplier. -1 means use the global size-based default.</summary>
+        public float WaterCurrentInfluence;
         /// <summary>Radius for spatial partitioning cells</summary>
         public float CellRadius;
         /// <summary>Maximum rate at which boids can turn</summary>
@@ -114,6 +130,16 @@ namespace OceanViz3
         public float SpeedModifierMin;
         /// <summary>Maximum speed modifier</summary>
         public float SpeedModifierMax;
+        /// <summary>Controls how tightly boids cluster on spawn. 0 = evenly spread across bounds, 1 = all at center</summary>
+        public float SpawnClustering;
+        /// <summary>Minimum spawn scale for boids in this school</summary>
+        public float ScaleMin;
+        /// <summary>Maximum spawn scale for boids in this school</summary>
+        public float ScaleMax;
+        /// <summary>Amplitude for deterministic speed oscillation (0.1 = +/-10% around target speed)</summary>
+        public float SpeedJitterAmplitude;
+        /// <summary>Frequency for deterministic speed oscillation (radians per second)</summary>
+        public float SpeedJitterFrequency;
         #endregion
 
         #region Target Properties

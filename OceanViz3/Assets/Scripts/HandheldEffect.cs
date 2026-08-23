@@ -1,6 +1,10 @@
 using UnityEngine;
 using OceanViz3;
 
+/// <summary>
+/// Adds subtle noise-based floating motion to the camera while simulation time is running.
+/// The current camera transform is held unchanged while the simulation is paused.
+/// </summary>
 public class UnderwaterCameraEffect : MonoBehaviour
 {
     public float amplitude = 1.0f; // The amplitude of the noise
@@ -29,6 +33,11 @@ public class UnderwaterCameraEffect : MonoBehaviour
 
     void Update()
     {
+        if (Time.timeScale == 0.0f)
+        {
+            return;
+        }
+
         // Check if swim mode is active
         bool swimModeActive = cameraRig != null && cameraRig.isActive;
         

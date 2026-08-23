@@ -3,7 +3,6 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine;
 
 namespace OceanViz3
 {
@@ -15,6 +14,8 @@ namespace OceanViz3
     [UpdateInGroup(typeof(SimulationSystemGroup), OrderFirst = true)] // Run early
     public partial struct DistanceCullingSystem : ISystem
     {
+        private const float ENABLE_DISTANCE_MULTIPLIER = 0.95f;
+
         private EntityQuery sceneDataQuery;
         private EntityQuery cullingEnabledQuery;
         private EntityQuery cullingDisabledQuery;
@@ -35,6 +36,7 @@ namespace OceanViz3
                 .WithAll<CullingComponent, LocalToWorld, Disabled>() // Require disabled entities
                 .WithOptions(EntityQueryOptions.IncludeDisabledEntities) // Necessary to find disabled entities
                 .Build();
+
         }
 
         [BurstCompile]
@@ -42,12 +44,10 @@ namespace OceanViz3
         {
             int enabledCount = cullingEnabledQuery.CalculateEntityCount();
             int disabledCount = cullingDisabledQuery.CalculateEntityCount();
-
             if (enabledCount == 0 && disabledCount == 0) return;
 
             SceneData sceneData = sceneDataQuery.GetSingleton<SceneData>();
             float3 cameraPosition = sceneData.CameraPosition;
-
             // Get the ECB system singleton *inside OnUpdate*
             var ecbSingleton = SystemAPI.GetSingleton<BeginSimulationEntityCommandBufferSystem.Singleton>();
 
@@ -67,9 +67,10 @@ namespace OceanViz3
             var enableJob = new EnableInRangeJob
             {
                 CameraPosition = cameraPosition,
+                EnableDistanceMultiplier = ENABLE_DISTANCE_MULTIPLIER,
                 ECB = ecbParallel
             };
-            var enableHandle = enableJob.ScheduleParallel(cullingDisabledQuery, disableHandle); // Chain dependencies
+            var enableHandle = enableJob.ScheduleParallel(cullingDisabledQuery, disableHandle);
 
             state.Dependency = enableHandle;
         }
@@ -103,13 +104,15 @@ namespace OceanViz3
         partial struct EnableInRangeJob : IJobEntity
         {
             [ReadOnly] public float3 CameraPosition;
+            [ReadOnly] public float EnableDistanceMultiplier;
             public EntityCommandBuffer.ParallelWriter ECB;
 
             // Reads CullingComponent and LocalToWorld for currently DISABLED entities.
             // The presence of the Disabled component is implicit from the query.
             void Execute([ChunkIndexInQuery] int chunkIndex, Entity entity, in CullingComponent cullingData, in LocalToWorld localToWorld)
             {
-                float maxDistanceSq = cullingData.MaxDistance * cullingData.MaxDistance;
+                float enableDistance = cullingData.MaxDistance * EnableDistanceMultiplier;
+                float maxDistanceSq = enableDistance * enableDistance;
                 float distanceSq = math.distancesq(localToWorld.Position, CameraPosition);
 
                 if (distanceSq <= maxDistanceSq)
@@ -119,4 +122,4 @@ namespace OceanViz3
             }
         }
     }
-} 
+}

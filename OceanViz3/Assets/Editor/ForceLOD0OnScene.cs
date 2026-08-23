@@ -7,14 +7,14 @@ public static class ForceLOD0OnScene
     [MenuItem("Tools/LOD/Force Highest LOD")]
     static void ForceHighest()
     {
-        foreach (var l in Object.FindObjectsOfType<LODGroup>())
+        foreach (var l in Object.FindObjectsByType<LODGroup>(FindObjectsSortMode.None))
             l.ForceLOD(0); // editor-only
     }
 
     [MenuItem("Tools/LOD/Restore LODs")]
     static void Restore()
     {
-        foreach (var l in Object.FindObjectsOfType<LODGroup>())
+        foreach (var l in Object.FindObjectsByType<LODGroup>(FindObjectsSortMode.None))
             l.ForceLOD(-1);
     }
 }

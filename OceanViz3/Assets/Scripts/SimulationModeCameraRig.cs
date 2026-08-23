@@ -7,6 +7,7 @@ using Unity.Mathematics;
 /// Handles mouse look and WASD movement with additional vertical movement using Q/E keys.
 /// Supports configurable movement inertia to slow acceleration when starting to move and
 /// to keep a bit of momentum after releasing movement keys until the rig stops.
+/// Camera movement uses unscaled frame time so it remains controllable while simulation time is paused.
 /// </summary>
 namespace OceanViz3
 {
@@ -166,15 +167,18 @@ public class SimulationModeCameraRig : MonoBehaviour
 
         desiredVelocity.y += verticalMovement;
 
+        // Camera controls stay responsive when simulation time is paused.
+        float cameraDeltaTime = Time.unscaledDeltaTime;
+
         // Smooth acceleration/deceleration using inertia (frame-rate independent)
         float inertiaClamped = Mathf.Clamp01(inertia);
         float responsePerSecond = Mathf.Lerp(20f, 2f, inertiaClamped);
-        float smoothingFactor = 1f - Mathf.Exp(-responsePerSecond * Time.deltaTime);
+        float smoothingFactor = 1f - Mathf.Exp(-responsePerSecond * cameraDeltaTime);
         currentVelocity = Vector3.Lerp(currentVelocity, desiredVelocity, smoothingFactor);
 
         if (controller != null)
         {
-            controller.Move(currentVelocity * Time.deltaTime);
+            controller.Move(currentVelocity * cameraDeltaTime);
         }
 
 

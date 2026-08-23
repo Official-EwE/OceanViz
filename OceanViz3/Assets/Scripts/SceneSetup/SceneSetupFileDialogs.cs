@@ -1,131 +1,55 @@
 using System;
-using System.IO;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 namespace OceanViz3
 {
     /// <summary>
-    /// Platform-specific file dialogs for saving/loading scene setup files.
-    /// In the editor this uses Unity's EditorUtility panels; in runtime builds this uses UnityStandaloneFileBrowser.
+    /// Opens the project-owned scene setup browser from the running game interface.
+    /// It selects one <c>.ov3scene</c> file and reports it through a callback.
     /// </summary>
-    public static class SceneSetupFileDialogs
+    public sealed class SceneSetupFileDialogs
     {
         public const string SceneSetupExtension = "ov3scene";
 
-        public static bool TryGetSavePath(string initialDirectory, out string savePath)
+        private readonly SceneSetupFileBrowser browser;
+
+        public SceneSetupFileDialogs(VisualElement parent)
         {
-            savePath = null;
-
-#if UNITY_EDITOR
-            // In-editor, use Unity's built-in file panels.
-            string directory = initialDirectory;
-            if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
+            Debug.Assert(parent != null, "[SceneSetupFileDialogs] A parent visual element is required.");
+            if (parent == null)
             {
-                directory = Application.dataPath;
+                throw new ArgumentNullException(nameof(parent));
             }
 
-            string path = UnityEditor.EditorUtility.SaveFilePanel(
-                "Save OceanViz3 Scene Setup",
-                directory,
-                "scene_setup",
-                SceneSetupExtension);
-
-            if (string.IsNullOrEmpty(path))
-            {
-                return false;
-            }
-
-            savePath = path;
-            return true;
-#else
-            string directory = initialDirectory;
-            if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
-            {
-                directory = Application.persistentDataPath;
-            }
-
-            var extensionList = new[]
-            {
-                new SFB.ExtensionFilter("OceanViz3 Scene Setup", SceneSetupExtension),
-                new SFB.ExtensionFilter("All Files", "*")
-            };
-
-            string path = SFB.StandaloneFileBrowser.SaveFilePanel(
-                "Save OceanViz3 Scene Setup",
-                directory,
-                "scene_setup",
-                extensionList);
-
-            if (string.IsNullOrEmpty(path))
-            {
-                return false;
-            }
-
-            savePath = path;
-            return true;
-#endif
+            browser = new SceneSetupFileBrowser(parent, SceneSetupExtension);
         }
 
-        public static bool TryGetOpenPath(string initialDirectory, out string openPath)
+        public void ShowSavePath(string initialDirectory, Action<string> pathSelected)
         {
-            openPath = null;
-
-#if UNITY_EDITOR
-            // In-editor, use Unity's built-in file panels.
-            string directory = initialDirectory;
-            if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
+            Debug.Assert(pathSelected != null, "[SceneSetupFileDialogs] Save callback is required.");
+            if (pathSelected == null)
             {
-                directory = Application.dataPath;
+                throw new ArgumentNullException(nameof(pathSelected));
             }
 
-            string path = UnityEditor.EditorUtility.OpenFilePanel(
-                "Load OceanViz3 Scene Setup",
-                directory,
-                SceneSetupExtension);
+            browser.ShowSave(initialDirectory, pathSelected);
+        }
 
-            if (string.IsNullOrEmpty(path))
+        public void ShowOpenPath(string initialDirectory, Action<string> pathSelected)
+        {
+            Debug.Assert(pathSelected != null, "[SceneSetupFileDialogs] Open callback is required.");
+            if (pathSelected == null)
             {
-                return false;
+                throw new ArgumentNullException(nameof(pathSelected));
             }
 
-            openPath = path;
-            return true;
-#else
-            string directory = initialDirectory;
-            if (string.IsNullOrEmpty(directory) || !Directory.Exists(directory))
-            {
-                directory = Application.persistentDataPath;
-            }
+            browser.ShowOpen(initialDirectory, pathSelected);
+        }
 
-            var extensionList = new[]
-            {
-                new SFB.ExtensionFilter("OceanViz3 Scene Setup", SceneSetupExtension),
-                new SFB.ExtensionFilter("All Files", "*")
-            };
-
-            string[] paths = SFB.StandaloneFileBrowser.OpenFilePanel(
-                "Load OceanViz3 Scene Setup",
-                directory,
-                extensionList,
-                false);
-
-            if (paths == null || paths.Length == 0)
-            {
-                return false;
-            }
-
-            string path = paths[0];
-            if (string.IsNullOrEmpty(path))
-            {
-                return false;
-            }
-
-            openPath = path;
-            return true;
-#endif
+        public bool Close()
+        {
+            return browser.Close();
         }
     }
 }
-
-
-

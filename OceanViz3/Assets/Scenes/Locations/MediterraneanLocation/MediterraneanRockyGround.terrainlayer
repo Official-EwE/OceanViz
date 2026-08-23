@@ -9,7 +9,7 @@ TerrainLayer:
   m_Name: MediterraneanRockyGround
   m_DiffuseTexture: {fileID: 2800000, guid: f1688acfaf7a8314d883cb02bdf043ae, type: 3}
   m_NormalMapTexture: {fileID: 2800000, guid: 6950c021a95466e4a8688e0df545fc71, type: 3}
-  m_MaskMapTexture: {fileID: 2800000, guid: eac37c5cf3705c641bcb13247653c87c, type: 3}
+  m_MaskMapTexture: {fileID: 0}
   m_TileSize: {x: 3, y: 3}
   m_TileOffset: {x: 0, y: 0}
   m_Specular: {r: 0, g: 0, b: 0, a: 0}

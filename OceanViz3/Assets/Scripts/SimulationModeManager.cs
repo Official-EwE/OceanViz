@@ -8,7 +8,6 @@ using Unity.Entities;
 using Unity.VisualScripting;
 using Unity.Mathematics;
 using Unity.Transforms;
-using System.Reflection.Emit;
 using Unity.Collections;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
@@ -22,6 +21,22 @@ using Unity.Rendering;
 
 namespace OceanViz3
 {
+    /// <summary>
+    /// Represents a group whose per-view visibility and size can be edited through the shared Views Setup popup.
+    /// </summary>
+    internal interface IViewsSetupTarget
+    {
+        string DisplayName { get; }
+
+        event Action ViewsSetupChanged;
+
+        int[] GetViewVisibilityPercentagesCopy();
+        float[] GetViewSizeMultipliersCopy();
+
+        void SetViewVisibilityPercentage(int viewIndex, int value);
+        void SetViewSizeMultiplier(int viewIndex, float value);
+    }
+
     public class SimulationModeManager : AppModeManager
     {
         [Header("UI")]
@@ -62,14 +77,48 @@ namespace OceanViz3
         private DropdownField locationsDropdownField;
         private VisualElement addDynamicRowButton;
         private VisualElement addStaticRowButton;
+        private EventCallback<ChangeEvent<string>> dynamicSpeciesChangeCallback;
+        private EventCallback<ChangeEvent<string>> staticSpeciesChangeCallback;
+        private readonly HashSet<string> availableDynamicSpeciesNames = new HashSet<string>();
+        private readonly HashSet<string> availableStaticSpeciesNames = new HashSet<string>();
         public VisualTreeAsset DynamicGroupDataRow;
         public VisualTreeAsset StaticGroupDataRow;
+        public VisualTreeAsset ViewsSetupPopup;
+
+        private VisualElement viewsSetupPopupContainer;
+        private VisualElement viewsSetupPopupRoot;
+        private VisualElement viewsSetupPopupCard;
+        private Label viewsSetupTitleLabel;
+        private Button closeViewsSetupButton;
+        private readonly List<SliderInt> viewsSetupSliders = new List<SliderInt>();
+        private readonly List<Label> viewsSetupSliderValueLabels = new List<Label>();
+        private readonly List<Slider> viewsSetupSizeSliders = new List<Slider>();
+        private readonly List<Label> viewsSetupSizeSliderValueLabels = new List<Label>();
+        private IViewsSetupTarget activeViewsSetupTarget;
+        private Toggle lodDebugEnabledToggle;
+        private DropdownField lodForceDropdownField;
+        private Slider lod1DistanceSlider;
+        private Slider lod2DistanceSlider;
+        private Label lod1DistanceValueLabel;
+        private Label lod2DistanceValueLabel;
+        private Label lodDebugStatusLabel;
+        private Button lodDebugHeaderButton;
+        private VisualElement lodDebugContent;
+        private bool lodDebugPanelOpen;
+        private Entity lodDebugSettingsEntity;
         
         private EventCallback<ChangeEvent<string>> locationChangeCallback;
 
         private EntityManager entityManager;
         private bool isHudless;
         private bool isAutomaticCameraModeActive;
+        private Button playSimulationButton;
+        private Button pauseSimulationButton;
+        private bool isSimulationPaused;
+        private EntityHoverController entityHoverController;
+        private SceneSetupFileDialogs sceneSetupFileDialogs;
+        private bool useSyntheticEntityHover;
+        private Vector2 syntheticEntityHoverScreenPosition;
 
         public override void Setup(MainScene mainScene)
         {
@@ -78,10 +127,15 @@ namespace OceanViz3
             entityManager = World.DefaultGameObjectInjectionWorld.EntityManager;
 
             mainGui = mainGUIUIDocument.GetComponent<UIDocument>().rootVisualElement;
+            entityHoverController = new EntityHoverController();
+            entityHoverController.Setup(mainScene, this, mainGui);
+            sceneSetupFileDialogs = new SceneSetupFileDialogs(mainGui);
 
             // Main Menu Button
             var mainMenuButton = mainGui.Q<Button>("MainMenuButton");
             mainMenuButton.RegisterCallback<ClickEvent>((evt) => this.mainScene.ToggleMainMenu());
+
+            SetupSimulationPlaybackControls();
 
             // LocationsDropdownField
             locationsDropdownField = mainGui.Q<DropdownField>("LocationsDropdownField");
@@ -100,6 +154,9 @@ namespace OceanViz3
             //// Presets
             if (DynamicGroupDataRow == null){Debug.LogError("[SimulationModeManager] DynamicGroupDataRow is null");}
             if (StaticGroupDataRow == null){Debug.LogError("[SimulationModeManager] StaticGroupDataRow is null");}
+            if (ViewsSetupPopup == null){Debug.LogError("[SimulationModeManager] ViewsSetupPopup is null");}
+
+            SetupViewsSetupPopup();
 
             // Read StreamingAssets folder to populate the presets lists
             GroupPresetsManager.Instance.UpdatePresets();
@@ -121,6 +178,11 @@ namespace OceanViz3
                 addStaticRowDropdownField.choices.Add(staticEntityPreset.name);
             }
 
+            addDynamicRowDropdownField.formatListItemCallback = FormatDynamicSpeciesChoice;
+            addDynamicRowDropdownField.formatSelectedValueCallback = FormatDynamicSpeciesChoice;
+            addStaticRowDropdownField.formatListItemCallback = FormatStaticSpeciesChoice;
+            addStaticRowDropdownField.formatSelectedValueCallback = FormatStaticSpeciesChoice;
+
             // Set the default value of the dropdown to the first element of the choices list
             addDynamicRowDropdownField.value = addDynamicRowDropdownField.choices[0];
             addStaticRowDropdownField.value = addStaticRowDropdownField.choices[0];
@@ -130,12 +192,21 @@ namespace OceanViz3
             addDynamicRowButton.RegisterCallback<ClickEvent>((evt) => SpawnSelectedDynamicPreset());
             addStaticRowButton = mainGui.Q<Button>("AddStaticRowButton");
             addStaticRowButton.RegisterCallback<ClickEvent>((evt) => SpawnSelectedStaticPreset());
+            dynamicSpeciesChangeCallback = (evt) => RefreshSpeciesAddButtonStates();
+            staticSpeciesChangeCallback = (evt) => RefreshSpeciesAddButtonStates();
+            addDynamicRowDropdownField.RegisterValueChangedCallback(dynamicSpeciesChangeCallback);
+            addStaticRowDropdownField.RegisterValueChangedCallback(staticSpeciesChangeCallback);
+            MeshHabitatSetupSystem.AvailabilityChanged -= OnMeshHabitatAvailabilityChanged;
+            MeshHabitatSetupSystem.AvailabilityChanged += OnMeshHabitatAvailabilityChanged;
+            RefreshSpeciesAvailabilityUI();
 
             // ViewCount buttons callbacks
             mainGui.Q<Button>("SetViews1").RegisterCallback<ClickEvent>((evt) => SetViewCountAndUpdateGUIState(1));
             mainGui.Q<Button>("SetViews2").RegisterCallback<ClickEvent>((evt) => SetViewCountAndUpdateGUIState(2));
             mainGui.Q<Button>("SetViews3").RegisterCallback<ClickEvent>((evt) => SetViewCountAndUpdateGUIState(3));
             mainGui.Q<Button>("SetViews4").RegisterCallback<ClickEvent>((evt) => SetViewCountAndUpdateGUIState(4));
+
+            SetupLODDebugPanel();
             
             // Swim mode
             mainGui.Q<Button>("ActivateSwimModeButton").RegisterCallback<ClickEvent>((evt) => ActivateSwimMode());
@@ -156,6 +227,699 @@ namespace OceanViz3
             if (loadSceneButton != null)
             {
                 loadSceneButton.RegisterCallback<ClickEvent>((evt) => LoadSceneSetup());
+            }
+        }
+
+        /// <summary>
+        /// Connects the top-screen Play and Pause buttons to the shared Unity simulation clock.
+        /// </summary>
+        private void SetupSimulationPlaybackControls()
+        {
+            playSimulationButton = mainGui.Q<Button>("PlaySimulationButton");
+            pauseSimulationButton = mainGui.Q<Button>("PauseSimulationButton");
+            Debug.Assert(playSimulationButton != null, "[SimulationModeManager] PlaySimulationButton not found in UI.");
+            Debug.Assert(pauseSimulationButton != null, "[SimulationModeManager] PauseSimulationButton not found in UI.");
+
+            playSimulationButton.generateVisualContent += DrawPlaySimulationIcon;
+            pauseSimulationButton.generateVisualContent += DrawPauseSimulationIcon;
+            playSimulationButton.clicked += PlaySimulation;
+            pauseSimulationButton.clicked += PauseSimulation;
+            SetSimulationPaused(false);
+        }
+
+        private void DrawPlaySimulationIcon(MeshGenerationContext context)
+        {
+            Rect contentRect = playSimulationButton.contentRect;
+            Vector2 center = contentRect.center;
+            Painter2D painter = context.painter2D;
+            painter.fillColor = Color.white;
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(center.x - 3.5f, center.y - 5.0f));
+            painter.LineTo(new Vector2(center.x + 4.5f, center.y));
+            painter.LineTo(new Vector2(center.x - 3.5f, center.y + 5.0f));
+            painter.ClosePath();
+            painter.Fill();
+        }
+
+        private void DrawPauseSimulationIcon(MeshGenerationContext context)
+        {
+            Rect contentRect = pauseSimulationButton.contentRect;
+            Vector2 center = contentRect.center;
+            Painter2D painter = context.painter2D;
+            painter.fillColor = Color.white;
+            DrawFilledRectangle(painter, center.x - 4.5f, center.y - 5.0f, 3.0f, 10.0f);
+            DrawFilledRectangle(painter, center.x + 1.5f, center.y - 5.0f, 3.0f, 10.0f);
+        }
+
+        private static void DrawFilledRectangle(Painter2D painter, float x, float y, float width, float height)
+        {
+            painter.BeginPath();
+            painter.MoveTo(new Vector2(x, y));
+            painter.LineTo(new Vector2(x + width, y));
+            painter.LineTo(new Vector2(x + width, y + height));
+            painter.LineTo(new Vector2(x, y + height));
+            painter.ClosePath();
+            painter.Fill();
+        }
+
+        private void PlaySimulation()
+        {
+            SetSimulationPaused(false);
+        }
+
+        private void PauseSimulation()
+        {
+            SetSimulationPaused(true);
+        }
+
+        private void SetSimulationPaused(bool paused)
+        {
+            isSimulationPaused = paused;
+            if (isSimulationPaused)
+            {
+                Time.timeScale = 0.0f;
+            }
+            else
+            {
+                Time.timeScale = 1.0f;
+            }
+
+            playSimulationButton.SetEnabled(isSimulationPaused);
+            pauseSimulationButton.SetEnabled(!isSimulationPaused);
+        }
+
+        private void SetupLODDebugPanel()
+        {
+            if (!ShouldShowLODDebugPanel())
+            {
+                return;
+            }
+
+            EnsureLODDebugSettingsEntity();
+
+            VisualElement dataFeeder = mainGui.Q<VisualElement>("DataFeeder");
+            Debug.Assert(dataFeeder != null, "[SimulationModeManager] DataFeeder not found in Simulation UI.");
+            if (dataFeeder == null)
+            {
+                return;
+            }
+
+            LODDebugSettings settings = GetLODDebugSettings();
+
+            VisualElement panel = new VisualElement();
+            panel.name = "LODDebugPanel";
+            panel.style.flexGrow = 0;
+            panel.style.flexShrink = 0;
+            panel.style.paddingTop = 4;
+            panel.style.paddingRight = 4;
+            panel.style.paddingBottom = 4;
+            panel.style.paddingLeft = 4;
+            panel.style.borderTopWidth = 1;
+            panel.style.borderTopColor = new Color(0.12f, 0.12f, 0.12f, 1.0f);
+
+            lodDebugHeaderButton = new Button(ToggleLODDebugPanel);
+            lodDebugHeaderButton.style.unityFontStyleAndWeight = FontStyle.Bold;
+            lodDebugHeaderButton.style.unityTextAlign = TextAnchor.MiddleCenter;
+            panel.Add(lodDebugHeaderButton);
+
+            lodDebugContent = new VisualElement();
+            panel.Add(lodDebugContent);
+
+            lodDebugEnabledToggle = new Toggle("Override LOD distances");
+            lodDebugEnabledToggle.SetValueWithoutNotify(settings.DebugOverridesEnabled);
+            lodDebugEnabledToggle.RegisterValueChangedCallback(OnLODDebugEnabledChanged);
+            lodDebugContent.Add(lodDebugEnabledToggle);
+
+            lodForceDropdownField = new DropdownField("Force");
+            lodForceDropdownField.choices = new List<string> { "Auto", "LOD 0", "LOD 1", "LOD 2" };
+            lodForceDropdownField.SetValueWithoutNotify(GetLODForceDropdownValue(settings.ForcedLOD));
+            lodForceDropdownField.RegisterValueChangedCallback(OnLODForceDropdownChanged);
+            lodDebugContent.Add(lodForceDropdownField);
+
+            lod1DistanceSlider = new Slider("LOD1", 0.0f, 200.0f);
+            lod1DistanceSlider.SetValueWithoutNotify(settings.LOD1Distance);
+            lod1DistanceSlider.RegisterValueChangedCallback(OnLOD1DistanceChanged);
+            lodDebugContent.Add(lod1DistanceSlider);
+
+            lod1DistanceValueLabel = new Label();
+            lodDebugContent.Add(lod1DistanceValueLabel);
+
+            lod2DistanceSlider = new Slider("LOD2", 0.0f, 300.0f);
+            lod2DistanceSlider.SetValueWithoutNotify(settings.LOD2Distance);
+            lod2DistanceSlider.RegisterValueChangedCallback(OnLOD2DistanceChanged);
+            lodDebugContent.Add(lod2DistanceSlider);
+
+            lod2DistanceValueLabel = new Label();
+            lodDebugContent.Add(lod2DistanceValueLabel);
+
+            lodDebugStatusLabel = new Label();
+            lodDebugStatusLabel.style.whiteSpace = WhiteSpace.Normal;
+            lodDebugStatusLabel.style.fontSize = 10;
+            lodDebugContent.Add(lodDebugStatusLabel);
+
+            Button resetButton = new Button(ResetLODDebugSettings);
+            resetButton.text = "Reset LOD Debug";
+            lodDebugContent.Add(resetButton);
+
+            Label note = new Label("Dynamic ECS boids only. Static LOD switching is not implemented.");
+            note.style.whiteSpace = WhiteSpace.Normal;
+            note.style.fontSize = 10;
+            lodDebugContent.Add(note);
+
+            RefreshLODDebugValueLabels(settings);
+            SetLODDebugPanelOpen(false);
+            dataFeeder.Add(panel);
+        }
+
+        private bool ShouldShowLODDebugPanel()
+        {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            return true;
+#else
+            return false;
+#endif
+        }
+
+        private void ToggleLODDebugPanel()
+        {
+            SetLODDebugPanelOpen(!lodDebugPanelOpen);
+        }
+
+        private void SetLODDebugPanelOpen(bool open)
+        {
+            lodDebugPanelOpen = open;
+
+            if (lodDebugContent != null)
+            {
+                if (lodDebugPanelOpen)
+                {
+                    lodDebugContent.style.display = DisplayStyle.Flex;
+                }
+                else
+                {
+                    lodDebugContent.style.display = DisplayStyle.None;
+                }
+            }
+
+            if (lodDebugHeaderButton != null)
+            {
+                if (lodDebugPanelOpen)
+                {
+                    lodDebugHeaderButton.text = "LOD Debug v";
+                }
+                else
+                {
+                    lodDebugHeaderButton.text = "LOD Debug >";
+                }
+            }
+        }
+
+        private void EnsureLODDebugSettingsEntity()
+        {
+            Debug.Assert(entityManager != null, "[SimulationModeManager] EntityManager is null; cannot setup LOD debug settings.");
+            if (entityManager == null)
+            {
+                return;
+            }
+
+            if (lodDebugSettingsEntity != Entity.Null && entityManager.Exists(lodDebugSettingsEntity))
+            {
+                return;
+            }
+
+            EntityQuery query = entityManager.CreateEntityQuery(typeof(LODDebugSettings));
+            int settingsCount = query.CalculateEntityCount();
+            if (settingsCount == 0)
+            {
+                lodDebugSettingsEntity = entityManager.CreateEntity(typeof(LODDebugSettings));
+                entityManager.SetName(lodDebugSettingsEntity, "LOD Debug Settings");
+                entityManager.SetComponentData(lodDebugSettingsEntity, LODDebugSettings.CreateDefault());
+                query.Dispose();
+                return;
+            }
+
+            if (settingsCount == 1)
+            {
+                lodDebugSettingsEntity = query.GetSingletonEntity();
+                query.Dispose();
+                return;
+            }
+
+            Debug.LogError("[SimulationModeManager] Multiple LODDebugSettings singletons found.");
+            Debug.Assert(false, "[SimulationModeManager] Multiple LODDebugSettings singletons found.");
+            NativeArray<Entity> settingsEntities = query.ToEntityArray(Allocator.Temp);
+            lodDebugSettingsEntity = settingsEntities[0];
+            settingsEntities.Dispose();
+            query.Dispose();
+        }
+
+        private LODDebugSettings GetLODDebugSettings()
+        {
+            EnsureLODDebugSettingsEntity();
+            Debug.Assert(lodDebugSettingsEntity != Entity.Null, "[SimulationModeManager] LOD debug settings entity is missing.");
+            if (lodDebugSettingsEntity == Entity.Null)
+            {
+                return LODDebugSettings.CreateDefault();
+            }
+
+            return entityManager.GetComponentData<LODDebugSettings>(lodDebugSettingsEntity);
+        }
+
+        private void SetLODDebugSettings(LODDebugSettings settings)
+        {
+            EnsureLODDebugSettingsEntity();
+            Debug.Assert(lodDebugSettingsEntity != Entity.Null, "[SimulationModeManager] LOD debug settings entity is missing.");
+            if (lodDebugSettingsEntity == Entity.Null)
+            {
+                return;
+            }
+
+            entityManager.SetComponentData(lodDebugSettingsEntity, settings);
+        }
+
+        private void OnLODDebugEnabledChanged(ChangeEvent<bool> evt)
+        {
+            LODDebugSettings settings = GetLODDebugSettings();
+            settings.DebugOverridesEnabled = evt.newValue;
+            SetLODDebugSettings(settings);
+            RefreshLODDebugValueLabels(settings);
+            Debug.Log("[SimulationModeManager] LOD distance overrides " + GetEnabledText(settings.DebugOverridesEnabled) + ".");
+        }
+
+        private void OnLODForceDropdownChanged(ChangeEvent<string> evt)
+        {
+            LODDebugSettings settings = GetLODDebugSettings();
+            settings.ForcedLOD = GetForcedLODFromDropdownValue(evt.newValue);
+            SetLODDebugSettings(settings);
+            RefreshLODDebugValueLabels(settings);
+            Debug.Log("[SimulationModeManager] LOD force mode set to " + GetLODForceDropdownValue(settings.ForcedLOD) + ". Dynamic entities without that LOD asset will clamp to their highest available LOD.");
+        }
+
+        private void OnLOD1DistanceChanged(ChangeEvent<float> evt)
+        {
+            LODDebugSettings settings = GetLODDebugSettings();
+            settings.LOD1Distance = Mathf.Max(0.0f, evt.newValue);
+            if (settings.LOD2Distance < settings.LOD1Distance)
+            {
+                settings.LOD2Distance = settings.LOD1Distance;
+                if (lod2DistanceSlider != null)
+                {
+                    lod2DistanceSlider.SetValueWithoutNotify(settings.LOD2Distance);
+                }
+            }
+
+            SetLODDebugSettings(settings);
+            RefreshLODDebugValueLabels(settings);
+            Debug.Log("[SimulationModeManager] LOD1 debug distance set to " + settings.LOD1Distance.ToString("F1") + "m.");
+        }
+
+        private void OnLOD2DistanceChanged(ChangeEvent<float> evt)
+        {
+            LODDebugSettings settings = GetLODDebugSettings();
+            settings.LOD2Distance = Mathf.Max(0.0f, evt.newValue);
+            if (settings.LOD2Distance < settings.LOD1Distance)
+            {
+                settings.LOD2Distance = settings.LOD1Distance;
+                if (lod2DistanceSlider != null)
+                {
+                    lod2DistanceSlider.SetValueWithoutNotify(settings.LOD2Distance);
+                }
+            }
+
+            SetLODDebugSettings(settings);
+            RefreshLODDebugValueLabels(settings);
+            Debug.Log("[SimulationModeManager] LOD2 debug distance set to " + settings.LOD2Distance.ToString("F1") + "m.");
+        }
+
+        private void ResetLODDebugSettings()
+        {
+            LODDebugSettings settings = LODDebugSettings.CreateDefault();
+            SetLODDebugSettings(settings);
+
+            if (lodDebugEnabledToggle != null)
+            {
+                lodDebugEnabledToggle.SetValueWithoutNotify(settings.DebugOverridesEnabled);
+            }
+
+            if (lodForceDropdownField != null)
+            {
+                lodForceDropdownField.SetValueWithoutNotify(GetLODForceDropdownValue(settings.ForcedLOD));
+            }
+
+            if (lod1DistanceSlider != null)
+            {
+                lod1DistanceSlider.SetValueWithoutNotify(settings.LOD1Distance);
+            }
+
+            if (lod2DistanceSlider != null)
+            {
+                lod2DistanceSlider.SetValueWithoutNotify(settings.LOD2Distance);
+            }
+
+            RefreshLODDebugValueLabels(settings);
+            Debug.Log("[SimulationModeManager] LOD debug settings reset.");
+        }
+
+        private string GetLODForceDropdownValue(int forcedLOD)
+        {
+            if (forcedLOD == 0)
+            {
+                return "LOD 0";
+            }
+
+            if (forcedLOD == 1)
+            {
+                return "LOD 1";
+            }
+
+            if (forcedLOD == 2)
+            {
+                return "LOD 2";
+            }
+
+            return "Auto";
+        }
+
+        private int GetForcedLODFromDropdownValue(string value)
+        {
+            if (value == "LOD 0")
+            {
+                return 0;
+            }
+
+            if (value == "LOD 1")
+            {
+                return 1;
+            }
+
+            if (value == "LOD 2")
+            {
+                return 2;
+            }
+
+            return LODDebugSettings.AutoLOD;
+        }
+
+        private void RefreshLODDebugValueLabels(LODDebugSettings settings)
+        {
+            if (lod1DistanceValueLabel != null)
+            {
+                lod1DistanceValueLabel.text = "LOD1 starts after " + settings.LOD1Distance.ToString("F1") + "m";
+            }
+
+            if (lod2DistanceValueLabel != null)
+            {
+                lod2DistanceValueLabel.text = "LOD2 starts after " + settings.LOD2Distance.ToString("F1") + "m";
+            }
+
+            if (lodDebugStatusLabel != null)
+            {
+                string distanceMode = "Default distances";
+                if (settings.DebugOverridesEnabled)
+                {
+                    distanceMode = "Debug distances";
+                }
+
+                lodDebugStatusLabel.text = "Force: " + GetLODForceDropdownValue(settings.ForcedLOD) + ". " + distanceMode + ". Force works without enabling distance overrides.";
+            }
+        }
+
+        private string GetEnabledText(bool enabled)
+        {
+            if (enabled)
+            {
+                return "enabled";
+            }
+
+            return "disabled";
+        }
+
+        private void SetupViewsSetupPopup()
+        {
+            Debug.Assert(mainGui != null, "[SimulationModeManager] mainGui must exist before setting up the Views Setup popup.");
+            Debug.Assert(ViewsSetupPopup != null, "[SimulationModeManager] ViewsSetupPopup asset is not assigned.");
+            if (mainGui == null || ViewsSetupPopup == null)
+            {
+                return;
+            }
+
+            viewsSetupPopupContainer = ViewsSetupPopup.CloneTree();
+            viewsSetupPopupContainer.style.position = Position.Absolute;
+            viewsSetupPopupContainer.style.left = 0;
+            viewsSetupPopupContainer.style.top = 0;
+            viewsSetupPopupContainer.style.right = 0;
+            viewsSetupPopupContainer.style.bottom = 0;
+            viewsSetupPopupContainer.pickingMode = PickingMode.Ignore;
+            mainGui.Add(viewsSetupPopupContainer);
+
+            viewsSetupPopupRoot = viewsSetupPopupContainer.Q<VisualElement>("ViewsSetupPopupRoot");
+            Debug.Assert(viewsSetupPopupRoot != null, "[SimulationModeManager] ViewsSetupPopupRoot not found.");
+            if (viewsSetupPopupRoot == null)
+            {
+                return;
+            }
+            viewsSetupPopupRoot.pickingMode = PickingMode.Ignore;
+
+            viewsSetupPopupCard = viewsSetupPopupRoot.Q<VisualElement>("ViewsSetupPopupCard");
+            Debug.Assert(viewsSetupPopupCard != null, "[SimulationModeManager] ViewsSetupPopupCard not found.");
+            if (viewsSetupPopupCard != null)
+            {
+                viewsSetupPopupCard.pickingMode = PickingMode.Position;
+            }
+
+            viewsSetupTitleLabel = viewsSetupPopupRoot.Q<Label>("ViewsSetupTitleLabel");
+            Debug.Assert(viewsSetupTitleLabel != null, "[SimulationModeManager] ViewsSetupTitleLabel not found.");
+
+            closeViewsSetupButton = viewsSetupPopupRoot.Q<Button>("CloseViewsSetupButton");
+            Debug.Assert(closeViewsSetupButton != null, "[SimulationModeManager] CloseViewsSetupButton not found.");
+            if (closeViewsSetupButton != null)
+            {
+                closeViewsSetupButton.RegisterCallback<ClickEvent>((evt) => CloseViewsSetupPopup());
+            }
+
+            viewsSetupSliders.Clear();
+            viewsSetupSliderValueLabels.Clear();
+            viewsSetupSizeSliders.Clear();
+            viewsSetupSizeSliderValueLabels.Clear();
+            for (int i = 0; i < 4; i++)
+            {
+                SliderInt slider = viewsSetupPopupRoot.Q<SliderInt>("PopulationPercentageSliderInt" + i);
+                Debug.Assert(slider != null, "[SimulationModeManager] Views Setup slider not found for index " + i);
+                if (slider == null)
+                {
+                    continue;
+                }
+
+                int sliderIndex = i;
+                slider.RegisterValueChangedCallback((evt) => OnViewsSetupSliderChanged(sliderIndex, evt));
+                viewsSetupSliders.Add(slider);
+
+                Label sliderValueLabel = viewsSetupPopupRoot.Q<Label>("PopulationPercentageValueLabel" + i);
+                Debug.Assert(sliderValueLabel != null, "[SimulationModeManager] Views Setup slider value label not found for index " + i);
+                viewsSetupSliderValueLabels.Add(sliderValueLabel);
+
+                Slider sizeSlider = viewsSetupPopupRoot.Q<Slider>("ViewSizeSlider" + i);
+                Debug.Assert(sizeSlider != null, "[SimulationModeManager] Views Setup size slider not found for index " + i);
+                if (sizeSlider == null)
+                {
+                    continue;
+                }
+
+                sizeSlider.RegisterValueChangedCallback((evt) => OnViewsSetupSizeSliderChanged(sliderIndex, evt));
+                viewsSetupSizeSliders.Add(sizeSlider);
+
+                Label sizeSliderValueLabel = viewsSetupPopupRoot.Q<Label>("ViewSizeValueLabel" + i);
+                Debug.Assert(sizeSliderValueLabel != null, "[SimulationModeManager] Views Setup size slider value label not found for index " + i);
+                viewsSetupSizeSliderValueLabels.Add(sizeSliderValueLabel);
+            }
+
+            viewsSetupPopupRoot.style.display = DisplayStyle.None;
+        }
+
+        private void RegisterViewsSetupButton(VisualElement dataRow, IViewsSetupTarget target)
+        {
+            Debug.Assert(dataRow != null, "[SimulationModeManager] Cannot register Views Setup button for a null row.");
+            Debug.Assert(target != null, "[SimulationModeManager] Cannot register Views Setup button for a null target.");
+            if (dataRow == null || target == null)
+            {
+                return;
+            }
+
+            Button viewsSetupButton = dataRow.Q<Button>("ViewsSetupButton");
+            Debug.Assert(viewsSetupButton != null, "[SimulationModeManager] ViewsSetupButton not found in row.");
+            if (viewsSetupButton == null)
+            {
+                return;
+            }
+
+            viewsSetupButton.RegisterCallback<ClickEvent>((evt) => OpenViewsSetupPopup(target));
+        }
+
+        private void OnViewsSetupSliderChanged(int viewIndex, ChangeEvent<int> evt)
+        {
+            Debug.Assert(activeViewsSetupTarget != null, "[SimulationModeManager] Cannot update popup slider without an active target.");
+            if (activeViewsSetupTarget == null)
+            {
+                return;
+            }
+
+            SetViewsSetupSliderValueLabel(viewIndex, evt.newValue);
+            activeViewsSetupTarget.SetViewVisibilityPercentage(viewIndex, evt.newValue);
+        }
+
+        private void OnViewsSetupSizeSliderChanged(int viewIndex, ChangeEvent<float> evt)
+        {
+            Debug.Assert(activeViewsSetupTarget != null, "[SimulationModeManager] Cannot update popup size slider without an active target.");
+            if (activeViewsSetupTarget == null)
+            {
+                return;
+            }
+
+            SetViewsSetupSizeSliderValueLabel(viewIndex, evt.newValue);
+            activeViewsSetupTarget.SetViewSizeMultiplier(viewIndex, evt.newValue);
+        }
+
+        private void SetViewsSetupSliderValueLabel(int viewIndex, int value)
+        {
+            if (viewIndex < 0 || viewIndex >= viewsSetupSliderValueLabels.Count)
+            {
+                return;
+            }
+
+            Label valueLabel = viewsSetupSliderValueLabels[viewIndex];
+            if (valueLabel != null)
+            {
+                valueLabel.text = value + "%";
+            }
+        }
+
+        private void SetViewsSetupSizeSliderValueLabel(int viewIndex, float value)
+        {
+            if (viewIndex < 0 || viewIndex >= viewsSetupSizeSliderValueLabels.Count)
+            {
+                return;
+            }
+
+            Label valueLabel = viewsSetupSizeSliderValueLabels[viewIndex];
+            if (valueLabel != null)
+            {
+                valueLabel.text = value.ToString("0.00") + "x";
+            }
+        }
+
+        private void OpenViewsSetupPopup(IViewsSetupTarget target)
+        {
+            Debug.Assert(target != null, "[SimulationModeManager] Cannot open Views Setup popup for a null target.");
+            Debug.Assert(viewsSetupPopupRoot != null, "[SimulationModeManager] Views Setup popup has not been created.");
+            if (target == null || viewsSetupPopupRoot == null)
+            {
+                return;
+            }
+
+            if (activeViewsSetupTarget != null)
+            {
+                activeViewsSetupTarget.ViewsSetupChanged -= RefreshViewsSetupPopup;
+            }
+
+            activeViewsSetupTarget = target;
+            activeViewsSetupTarget.ViewsSetupChanged += RefreshViewsSetupPopup;
+            viewsSetupPopupRoot.style.display = DisplayStyle.Flex;
+            RefreshViewsSetupPopup();
+        }
+
+        private void CloseViewsSetupPopup()
+        {
+            if (activeViewsSetupTarget != null)
+            {
+                activeViewsSetupTarget.ViewsSetupChanged -= RefreshViewsSetupPopup;
+                activeViewsSetupTarget = null;
+            }
+
+            if (viewsSetupPopupRoot != null)
+            {
+                viewsSetupPopupRoot.style.display = DisplayStyle.None;
+            }
+        }
+
+        private void RefreshViewsSetupPopup()
+        {
+            Debug.Assert(viewsSetupPopupRoot != null, "[SimulationModeManager] Cannot refresh a missing Views Setup popup.");
+            if (viewsSetupPopupRoot == null)
+            {
+                return;
+            }
+
+            if (activeViewsSetupTarget == null)
+            {
+                viewsSetupPopupRoot.style.display = DisplayStyle.None;
+                return;
+            }
+
+            if (viewsSetupTitleLabel != null)
+            {
+                viewsSetupTitleLabel.text = activeViewsSetupTarget.DisplayName;
+            }
+
+            int[] visibilityPercentages = activeViewsSetupTarget.GetViewVisibilityPercentagesCopy();
+            float[] sizeMultipliers = activeViewsSetupTarget.GetViewSizeMultipliersCopy();
+            for (int i = 0; i < viewsSetupSliders.Count; i++)
+            {
+                SliderInt slider = viewsSetupSliders[i];
+                if (slider == null)
+                {
+                    continue;
+                }
+
+                if (i < views.Count)
+                {
+                    if (slider.parent != null)
+                    {
+                        slider.parent.style.display = DisplayStyle.Flex;
+                    }
+                }
+                else
+                {
+                    if (slider.parent != null)
+                    {
+                        slider.parent.style.display = DisplayStyle.None;
+                    }
+                }
+
+                if (i < visibilityPercentages.Length)
+                {
+                    slider.SetValueWithoutNotify(visibilityPercentages[i]);
+                    SetViewsSetupSliderValueLabel(i, visibilityPercentages[i]);
+                }
+            }
+
+            for (int i = 0; i < viewsSetupSizeSliders.Count; i++)
+            {
+                Slider slider = viewsSetupSizeSliders[i];
+                if (slider == null)
+                {
+                    continue;
+                }
+
+                if (i < views.Count)
+                {
+                    if (slider.parent != null)
+                    {
+                        slider.parent.style.display = DisplayStyle.Flex;
+                    }
+                }
+                else
+                {
+                    if (slider.parent != null)
+                    {
+                        slider.parent.style.display = DisplayStyle.None;
+                    }
+                }
+
+                if (i < sizeMultipliers.Length)
+                {
+                    slider.SetValueWithoutNotify(sizeMultipliers[i]);
+                    SetViewsSetupSizeSliderValueLabel(i, sizeMultipliers[i]);
+                }
             }
         }
 
@@ -187,13 +951,7 @@ namespace OceanViz3
                 Directory.CreateDirectory(initialDir);
             }
 
-            string path;
-            bool ok = SceneSetupFileDialogs.TryGetSavePath(initialDir, out path);
-            if (!ok)
-            {
-                return;
-            }
-            SaveSceneSetupToPath(path);
+            sceneSetupFileDialogs.ShowSavePath(initialDir, SaveSceneSetupToPath);
         }
 
         private void SaveSceneSetupToPath(string path)
@@ -238,13 +996,7 @@ namespace OceanViz3
                 Directory.CreateDirectory(initialDir);
             }
 
-            string path;
-            bool ok = SceneSetupFileDialogs.TryGetOpenPath(initialDir, out path);
-            if (!ok)
-            {
-                return;
-            }
-            LoadSceneSetupFromPath(path);
+            sceneSetupFileDialogs.ShowOpenPath(initialDir, LoadSceneSetupFromPath);
         }
 
         private void LoadSceneSetupFromPath(string path)
@@ -298,12 +1050,18 @@ namespace OceanViz3
             {
                 SetViewCountAndUpdateGUIState(1);
             }
-            
+
+            // The initial location is loaded before Simulation mode becomes active,
+            // so its location-ready callback cannot refresh the species pickers.
+            RefreshSpeciesAvailabilityUI();
             UpdateHudVisibility();
         }
 
         public override void ExitMode()
         {
+            sceneSetupFileDialogs.Close();
+            SetSimulationPaused(false);
+            entityHoverController.Deactivate();
             mainGui.style.display = DisplayStyle.None;
             if (cameraRig != null)
             {
@@ -311,12 +1069,20 @@ namespace OceanViz3
                 {
                     DectivateSwimMode();
                 }
+
+                if (isAutomaticCameraModeActive)
+                {
+                    DectivateAutomaticCameraMode();
+                }
+
                 cameraRig.SetActive(false);
             }
         }
 
         public override void EnterMenu()
         {
+            sceneSetupFileDialogs.Close();
+            entityHoverController.Deactivate();
             mainGui.style.display = DisplayStyle.None;
         }
 
@@ -340,10 +1106,76 @@ namespace OceanViz3
                     DectivateAutomaticCameraMode();
                 }
             }
+
+            entityHoverController.Update(
+                IsEntityHoverInteractionAllowed(),
+                views.Count,
+                useSyntheticEntityHover,
+                syntheticEntityHoverScreenPosition);
+        }
+
+        private bool IsEntityHoverInteractionAllowed()
+        {
+            if (mainGui == null)
+            {
+                return false;
+            }
+
+            if (useSyntheticEntityHover)
+            {
+                return true;
+            }
+
+            if (!mainScene.EntityHoverEnabled)
+            {
+                return false;
+            }
+
+            if (Application.isBatchMode || isHudless || isAutomaticCameraModeActive)
+            {
+                return false;
+            }
+
+            if (mainGui.resolvedStyle.display == DisplayStyle.None ||
+                mainGui.resolvedStyle.opacity < 0.5f)
+            {
+                return false;
+            }
+
+            if (cameraRig == null)
+            {
+                return false;
+            }
+
+            SimulationModeCameraRig rig = cameraRig.GetComponent<SimulationModeCameraRig>();
+            Debug.Assert(rig != null, "[SimulationModeManager] Simulation camera rig controller is required for entity hover.");
+            return rig != null && !rig.isActive;
+        }
+
+        public void SetSyntheticEntityHoverForBenchmark(bool enabled, Vector2 screenPosition)
+        {
+            Debug.Assert(
+                Application.isEditor || Debug.isDebugBuild || Application.isBatchMode,
+                "[SimulationModeManager] Synthetic entity hover is only intended for benchmark-capable builds.");
+            useSyntheticEntityHover = enabled;
+            syntheticEntityHoverScreenPosition = screenPosition;
+            if (!enabled)
+            {
+                entityHoverController.Deactivate();
+            }
         }
         
         public override void OnLocationReady()
         {
+            entityHoverController.Clear();
+            EntityHoverSpatialIndexSystem hoverIndexSystem =
+                World.DefaultGameObjectInjectionWorld.GetExistingSystemManaged<EntityHoverSpatialIndexSystem>();
+            if (hoverIndexSystem != null)
+            {
+                hoverIndexSystem.RequestStaticRebuild();
+            }
+            RefreshSpeciesAvailabilityUI();
+
             // After the new location is loaded, update all dynamic entities groups
             foreach (DynamicEntitiesGroup group in dynamicEntitiesGroups)
             {
@@ -386,6 +1218,16 @@ namespace OceanViz3
                     mainScene.simulationAPI.RunPendingExecutors();
                 }
             }
+
+            // Restore turbidity slider state based on current swim mode status
+            if (cameraRig != null)
+            {
+                var cameraRigController = cameraRig.GetComponent<SimulationModeCameraRig>();
+                if (cameraRigController != null && cameraRigController.isActive)
+                {
+                    SetTurbiditySliderInteractivity(false);
+                }
+            }
         }
 
         private void OnLocationLocationDropdownFieldChanged(string locationName)
@@ -409,19 +1251,24 @@ namespace OceanViz3
                 // Force reload of the group to update entities
                 if (group != null)
                 {
-                    group.ReloadGroup(new ClickEvent());
+                    _ = group.ReloadGroup(new ClickEvent());
                 }
             }
         }
         
         public void SpawnSelectedDynamicPreset()
         {
+            if (!IsDynamicSpeciesAvailable(addDynamicRowDropdownField.value))
+            {
+                Debug.LogWarning("[SimulationModeManager] Cannot add dynamic species without matching boid bounds in the current location: " + addDynamicRowDropdownField.value);
+                return;
+            }
+
             SpawnDynamicPreset(addDynamicRowDropdownField.value);
         }
         
-        public async void SpawnDynamicPreset(string name)
+        public void SpawnDynamicPreset(string name)
         {
-            MainScene.SetReadyState(false);
             if (GroupPresetsManager.Instance == null)
             {
                 Debug.LogError("[MainScene] GroupPresetsManager.Instance is null. Make sure it's properly initialized.");
@@ -437,72 +1284,7 @@ namespace OceanViz3
                 return;
             }
 
-            if (selectedPreset.habitats == null || selectedPreset.habitats.Length == 0)
-            {
-                Debug.LogError($"[MainScene] Error: Dynamic preset '{name}' has no habitats defined.");
-                return;
-            }
-
-            VisualElement dataRow = DynamicGroupDataRow.CloneTree();
-            mainGui.Q<VisualElement>("DataRows").Add(dataRow);
-            
-            // Get boid bounds for all habitats
-            List<GameObject> filteredBoidBounds = new List<GameObject>();
-            foreach (string habitat in selectedPreset.habitats)
-            {
-                if (string.IsNullOrEmpty(habitat))
-                {
-                    Debug.LogError($"[MainScene] Empty habitat found in preset '{name}'");
-                    continue;
-                }
-
-                var habitatBounds = mainScene.currentLocationScript.GetBoidBoundsByBiomeName(habitat);
-                if (habitatBounds != null && habitatBounds.Count > 0)
-                {
-                    filteredBoidBounds.AddRange(habitatBounds);
-                    Debug.Log($"[MainScene] Found {habitatBounds.Count} boid bounds for habitat: {habitat}");
-                }
-                else
-                {
-                    Debug.LogWarning($"[MainScene] No boid bounds found for habitat: {habitat}");
-                }
-            }
-
-            if (filteredBoidBounds.Count == 0)
-            {
-                Debug.LogError($"[MainScene] No valid boid bounds found for any of the specified habitats");
-                mainGui.Q<VisualElement>("DataRows").Remove(dataRow);
-                return;
-            }
-
-            DynamicEntitiesGroup dynamicEntitiesGroup = new DynamicEntitiesGroup();
-            dynamicEntitiesGroup.Setup(
-                name: selectedPreset.name,
-                dynamicEntityId: nextDynamicEntityGroupId,
-                dynamicEntityPreset: selectedPreset,
-                dataRow: dataRow,
-                viewsCount: views.Count,
-                boidBounds: filteredBoidBounds
-            );
-            
-            try
-            {
-                await dynamicEntitiesGroup.LoadAndSpawnGroup();
-                dynamicEntitiesGroups.Add(dynamicEntitiesGroup);
-                dynamicEntitiesGroup.OnDeleteRequest += HandleGroupDeleteRequest;
-                nextDynamicEntityGroupId++;
-            }
-            catch (Exception e)
-            {
-                Debug.LogError($"[MainScene] Failed to load and spawn dynamic entities group: {e.Message}");
-                mainGui.Q<VisualElement>("DataRows").Remove(dataRow);
-                return;
-            }
-            finally
-            {
-                MainScene.SetReadyState(true);
-                Debug.Log("[MainScene] SpawnDynamicPreset completed, IsReady set to true");
-            }
+            SpawnDynamicPresetWithPreset(selectedPreset, selectedPreset.name, null, "SpawnDynamicPreset");
         }
 
         /// <summary>
@@ -511,9 +1293,8 @@ namespace OceanViz3
         /// <param name="presetName">Dynamic preset name</param>
         /// <param name="groupName">Display name for this session's group</param>
         /// <param name="habitats">Habitats to use to collect boid bounds</param>
-        public async void SpawnDynamicPresetInHabitats(string presetName, string groupName, string[] habitats)
+        public void SpawnDynamicPresetInHabitats(string presetName, string groupName, string[] habitats)
         {
-            MainScene.SetReadyState(false);
             if (GroupPresetsManager.Instance == null)
             {
                 Debug.LogError("[MainScene] GroupPresetsManager.Instance is null. Make sure it's properly initialized.");
@@ -536,67 +1317,7 @@ namespace OceanViz3
                 return;
             }
 
-            VisualElement dataRow = DynamicGroupDataRow.CloneTree();
-            mainGui.Q<VisualElement>("DataRows").Add(dataRow);
-
-            // Get boid bounds for provided habitats
-            List<GameObject> filteredBoidBounds = new List<GameObject>();
-            foreach (string habitat in habitats)
-            {
-                if (string.IsNullOrEmpty(habitat))
-                {
-                    Debug.LogError("[MainScene] Empty habitat provided for SpawnDynamicPresetInHabitats");
-                    continue;
-                }
-
-                var habitatBounds = mainScene.currentLocationScript.GetBoidBoundsByBiomeName(habitat);
-                if (habitatBounds != null && habitatBounds.Count > 0)
-                {
-                    filteredBoidBounds.AddRange(habitatBounds);
-                    Debug.Log("[MainScene] Found " + habitatBounds.Count + " boid bounds for habitat: " + habitat);
-                }
-                else
-                {
-                    Debug.LogWarning("[MainScene] No boid bounds found for habitat: " + habitat);
-                }
-            }
-
-            if (filteredBoidBounds.Count == 0)
-            {
-                Debug.LogError("[MainScene] No valid boid bounds found for any of the specified habitats");
-                mainGui.Q<VisualElement>("DataRows").Remove(dataRow);
-                return;
-            }
-
-            DynamicEntitiesGroup dynamicEntitiesGroup = new DynamicEntitiesGroup();
-            dynamicEntitiesGroup.Setup(
-                name: groupName,
-                dynamicEntityId: nextDynamicEntityGroupId,
-                dynamicEntityPreset: selectedPreset,
-                dataRow: dataRow,
-                viewsCount: views.Count,
-                boidBounds: filteredBoidBounds
-            );
-            dynamicEntitiesGroup.SetOverrideHabitats(habitats);
-
-            try
-            {
-                await dynamicEntitiesGroup.LoadAndSpawnGroup();
-                dynamicEntitiesGroups.Add(dynamicEntitiesGroup);
-                dynamicEntitiesGroup.OnDeleteRequest += HandleGroupDeleteRequest;
-                nextDynamicEntityGroupId++;
-            }
-            catch (Exception e)
-            {
-                Debug.LogError("[MainScene] Failed to load and spawn dynamic entities group: " + e.Message);
-                mainGui.Q<VisualElement>("DataRows").Remove(dataRow);
-                return;
-            }
-            finally
-            {
-                MainScene.SetReadyState(true);
-                Debug.Log("[MainScene] SpawnDynamicPresetInHabitats completed, IsReady set to true");
-            }
+            SpawnDynamicPresetWithPreset(selectedPreset, groupName, habitats, "SpawnDynamicPresetInHabitats");
         }
 
         /// <summary>
@@ -604,9 +1325,8 @@ namespace OceanViz3
         /// </summary>
         /// <param name="presetName">Name of the dynamic preset to spawn</param>
         /// <param name="groupName">Display name for this session's group</param>
-        public async void SpawnDynamicPreset(string presetName, string groupName)
+        public void SpawnDynamicPreset(string presetName, string groupName)
         {
-            MainScene.SetReadyState(false);
             if (GroupPresetsManager.Instance == null)
             {
                 Debug.LogError("[MainScene] GroupPresetsManager.Instance is null. Make sure it's properly initialized.");
@@ -622,22 +1342,58 @@ namespace OceanViz3
                 return;
             }
 
-            if (selectedPreset.habitats == null || selectedPreset.habitats.Length == 0)
+            SpawnDynamicPresetWithPreset(selectedPreset, groupName, null, "SpawnDynamicPreset (custom name)");
+        }
+
+        /// <summary>
+        /// Spawns a dynamic group from a provided preset object.
+        /// Used by the CPU benchmark so boid behavior values stay fixed even when StreamingAssets presets change.
+        /// </summary>
+        public void SpawnDynamicBenchmarkPreset(DynamicEntityPreset preset, string groupName, string[] habitats)
+        {
+            Debug.Assert(preset != null, "SpawnDynamicBenchmarkPreset requires a preset.");
+            if (preset == null)
             {
-                Debug.LogError("[MainScene] Error: Dynamic preset '" + presetName + "' has no habitats defined.");
+                return;
+            }
+
+            Debug.Log("[MainScene] Attempting to spawn fixed benchmark dynamic preset: " + preset.name + " as '" + groupName + "'");
+            SpawnDynamicPresetWithPreset(preset, groupName, habitats, "SpawnDynamicBenchmarkPreset");
+        }
+
+        private async void SpawnDynamicPresetWithPreset(DynamicEntityPreset selectedPreset, string groupName, string[] overrideHabitats, string completionLabel)
+        {
+            MainScene.SetReadyState(false);
+            if (selectedPreset == null)
+            {
+                Debug.LogError("[MainScene] Dynamic preset is required.");
+                MainScene.SetReadyState(true);
+                return;
+            }
+
+            string[] habitats = selectedPreset.habitats;
+            bool hasOverrideHabitats = overrideHabitats != null && overrideHabitats.Length > 0;
+            if (hasOverrideHabitats)
+            {
+                habitats = overrideHabitats;
+            }
+
+            if (habitats == null || habitats.Length == 0)
+            {
+                Debug.LogError("[MainScene] Error: Dynamic preset '" + selectedPreset.name + "' has no habitats defined.");
+                MainScene.SetReadyState(true);
                 return;
             }
 
             VisualElement dataRow = DynamicGroupDataRow.CloneTree();
             mainGui.Q<VisualElement>("DataRows").Add(dataRow);
 
-            // Get boid bounds for all habitats
             List<GameObject> filteredBoidBounds = new List<GameObject>();
-            foreach (string habitat in selectedPreset.habitats)
+            foreach (string habitat in habitats)
             {
                 if (string.IsNullOrEmpty(habitat))
                 {
-                    Debug.LogError("[MainScene] Empty habitat found in preset '" + presetName + "'");
+                    Debug.LogError("[MainScene] Empty habitat found for dynamic preset '" + selectedPreset.name + "'");
                     continue;
                 }
 
@@ -657,6 +1413,7 @@ namespace OceanViz3
             {
                 Debug.LogError("[MainScene] No valid boid bounds found for any of the specified habitats");
                 mainGui.Q<VisualElement>("DataRows").Remove(dataRow);
+                MainScene.SetReadyState(true);
                 return;
             }
 
@@ -669,6 +1426,13 @@ namespace OceanViz3
                 viewsCount: views.Count,
                 boidBounds: filteredBoidBounds
             );
+
+            if (hasOverrideHabitats)
+            {
+                dynamicEntitiesGroup.SetOverrideHabitats(overrideHabitats);
+            }
+
+            RegisterViewsSetupButton(dataRow, dynamicEntitiesGroup);
 
             try
             {
@@ -686,13 +1450,140 @@ namespace OceanViz3
             finally
             {
                 MainScene.SetReadyState(true);
-                Debug.Log("[MainScene] SpawnDynamicPreset (custom name) completed, IsReady set to true");
+                Debug.Log("[MainScene] " + completionLabel + " completed, IsReady set to true");
             }
         }
         
         public async void SpawnSelectedStaticPreset()
         {
+            if (!IsStaticSpeciesAvailable(addStaticRowDropdownField.value))
+            {
+                Debug.LogWarning("[SimulationModeManager] Cannot add static species without a matching terrain or mesh habitat in the current location: " + addStaticRowDropdownField.value);
+                return;
+            }
+
             await SpawnStaticPreset(addStaticRowDropdownField.value, addStaticRowDropdownField.value);
+        }
+
+        private void RefreshSpeciesAvailabilityUI()
+        {
+            availableDynamicSpeciesNames.Clear();
+            availableStaticSpeciesNames.Clear();
+
+            if (mainScene != null && mainScene.currentLocationScript != null && GroupPresetsManager.Instance != null)
+            {
+                HashSet<string> availableBoidHabitats = mainScene.currentLocationScript.GetAvailableBoidHabitatNames();
+                foreach (DynamicEntityPreset preset in GroupPresetsManager.Instance.dynamicEntitiesPresetsList)
+                {
+                    if (HasAnyAvailableHabitat(preset.habitats, availableBoidHabitats))
+                    {
+                        availableDynamicSpeciesNames.Add(preset.name);
+                    }
+                }
+
+                HashSet<string> availableStaticHabitats = mainScene.currentLocationScript.GetAvailableStaticSpawnHabitatNames();
+                foreach (StaticEntityPreset preset in GroupPresetsManager.Instance.staticEntitiesPresetsList)
+                {
+                    if (HasAnyAvailableHabitat(preset.habitats, availableStaticHabitats))
+                    {
+                        availableStaticSpeciesNames.Add(preset.name);
+                    }
+                }
+            }
+
+            Debug.Log(
+                "[SimulationModeManager] Species availability refreshed. Dynamic: "
+                + availableDynamicSpeciesNames.Count
+                + "/"
+                + GroupPresetsManager.Instance.dynamicEntitiesPresetsList.Count
+                + ", Static: "
+                + availableStaticSpeciesNames.Count
+                + "/"
+                + GroupPresetsManager.Instance.staticEntitiesPresetsList.Count);
+
+            if (addDynamicRowDropdownField != null)
+            {
+                addDynamicRowDropdownField.SetValueWithoutNotify(addDynamicRowDropdownField.value);
+                addDynamicRowDropdownField.MarkDirtyRepaint();
+            }
+            if (addStaticRowDropdownField != null)
+            {
+                addStaticRowDropdownField.SetValueWithoutNotify(addStaticRowDropdownField.value);
+                addStaticRowDropdownField.MarkDirtyRepaint();
+            }
+
+            RefreshSpeciesAddButtonStates();
+        }
+
+        private void OnMeshHabitatAvailabilityChanged()
+        {
+            RefreshSpeciesAvailabilityUI();
+        }
+
+        private void RefreshSpeciesAddButtonStates()
+        {
+            if (addDynamicRowButton != null && addDynamicRowDropdownField != null)
+            {
+                addDynamicRowButton.SetEnabled(IsDynamicSpeciesAvailable(addDynamicRowDropdownField.value));
+            }
+            if (addStaticRowButton != null && addStaticRowDropdownField != null)
+            {
+                addStaticRowButton.SetEnabled(IsStaticSpeciesAvailable(addStaticRowDropdownField.value));
+            }
+        }
+
+        private string FormatDynamicSpeciesChoice(string speciesName)
+        {
+            if (IsDynamicSpeciesAvailable(speciesName))
+            {
+                return speciesName;
+            }
+
+            return "<color=#777777>" + speciesName + " (no matching habitat)</color>";
+        }
+
+        private string FormatStaticSpeciesChoice(string speciesName)
+        {
+            if (IsStaticSpeciesAvailable(speciesName))
+            {
+                return speciesName;
+            }
+
+            return "<color=#777777>" + speciesName + " (no matching habitat)</color>";
+        }
+
+        private bool IsDynamicSpeciesAvailable(string speciesName)
+        {
+            return !string.IsNullOrEmpty(speciesName) && availableDynamicSpeciesNames.Contains(speciesName);
+        }
+
+        private bool IsStaticSpeciesAvailable(string speciesName)
+        {
+            return !string.IsNullOrEmpty(speciesName) && availableStaticSpeciesNames.Contains(speciesName);
+        }
+
+        private static bool HasAnyAvailableHabitat(string[] habitatNames, HashSet<string> availableHabitatNames)
+        {
+            if (habitatNames == null || availableHabitatNames == null)
+            {
+                return false;
+            }
+
+            foreach (string habitatName in habitatNames)
+            {
+                string resolvedHabitatName = habitatName;
+                if (string.IsNullOrEmpty(resolvedHabitatName))
+                {
+                    resolvedHabitatName = "Default";
+                }
+
+                if (availableHabitatNames.Contains(resolvedHabitatName))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public async Task SpawnStaticPreset(string presetName, string groupName)
@@ -730,11 +1621,16 @@ namespace OceanViz3
                 staticEntitiesGroupId: nextStaticEntityGroupId,
                 staticEntityPreset: selectedPreset
             );
+            RegisterViewsSetupButton(dataRow, staticEntitiesGroup);
             
             try
             {
                 await staticEntitiesGroup.LoadAndSpawnGroup();
                 staticEntitiesGroups.Add(staticEntitiesGroup);
+                if (mainScene.currentLocationScript != null)
+                {
+                    mainScene.currentLocationScript.ApplyWaterCurrentSettingsToStaticEntityGroup(staticEntitiesGroup);
+                }
                 staticEntitiesGroup.OnDeleteRequest += HandleStaticGroupDeleteRequest;
                 nextStaticEntityGroupId++;
             }
@@ -794,11 +1690,16 @@ namespace OceanViz3
                 staticEntityPreset: selectedPreset
             );
             staticEntitiesGroup.SetOverrideHabitats(habitats);
+            RegisterViewsSetupButton(dataRow, staticEntitiesGroup);
 
             try
             {
                 await staticEntitiesGroup.LoadAndSpawnGroup();
                 staticEntitiesGroups.Add(staticEntitiesGroup);
+                if (mainScene.currentLocationScript != null)
+                {
+                    mainScene.currentLocationScript.ApplyWaterCurrentSettingsToStaticEntityGroup(staticEntitiesGroup);
+                }
                 staticEntitiesGroup.OnDeleteRequest += HandleStaticGroupDeleteRequest;
                 nextStaticEntityGroupId++;
             }
@@ -817,18 +1718,63 @@ namespace OceanViz3
 
         private void HandleGroupDeleteRequest(DynamicEntitiesGroup dynamicEntitiesGroup)
         {
+            if (ReferenceEquals(activeViewsSetupTarget, dynamicEntitiesGroup))
+            {
+                CloseViewsSetupPopup();
+            }
+
             dynamicEntitiesGroups.Remove(dynamicEntitiesGroup);
         }
 
         private void HandleStaticGroupDeleteRequest(StaticEntitiesGroup staticEntitiesGroup)
         {
+            if (ReferenceEquals(activeViewsSetupTarget, staticEntitiesGroup))
+            {
+                CloseViewsSetupPopup();
+            }
+
             staticEntitiesGroups.Remove(staticEntitiesGroup);
         }
-        
-        
+
+        /// <summary>
+        /// Enables or disables all turbidity sliders with visual feedback
+        /// </summary>
+        /// <param name="enabled">True to enable sliders, false to disable them</param>
+        private void SetTurbiditySliderInteractivity(bool enabled)
+        {
+            if (mainScene == null || mainScene.currentLocationScript == null)
+            {
+                return;
+            }
+
+            foreach (var slider in mainScene.currentLocationScript.turbiditySliders)
+            {
+                if (slider != null)
+                {
+                    slider.SetEnabled(enabled);
+
+                    // Visual feedback for disabled state
+                    slider.style.opacity = enabled ? 1.0f : 0.3f;
+                }
+            }
+        }
+
         public void OnTurbiditySliderValueChanged(ChangeEvent<float> evt)
         {
             var slider = evt.target as Slider;
+
+            // Reject slider changes when swim mode is active
+            if (cameraRig != null)
+            {
+                var cameraRigController = cameraRig.GetComponent<SimulationModeCameraRig>();
+                if (cameraRigController != null && cameraRigController.isActive)
+                {
+                    // Revert the slider to its previous value without triggering callback
+                    slider.SetValueWithoutNotify(evt.previousValue);
+                    return;
+                }
+            }
+
             int viewIndex = int.Parse(slider.name.Substring(slider.name.Length - 1));
             float turbidityStrength = Mathf.Clamp(evt.newValue, -1f, 1f);
             turbidityPerView[viewIndex] = turbidityStrength;
@@ -927,6 +1873,7 @@ namespace OceanViz3
                     mainScene.currentLocationScript.UpdateViewsCount(views.Count);
                 }
 
+                RefreshViewsSetupPopup();
                 UpdateViewsLabel();
             }
             finally
@@ -969,6 +1916,7 @@ namespace OceanViz3
                     mainScene.currentLocationScript.UpdateViewsCount(views.Count);
                 }
 
+                RefreshViewsSetupPopup();
                 UpdateViewsLabel();
             }
             finally
@@ -986,12 +1934,14 @@ namespace OceanViz3
         public void ActivateSwimMode()
         {
             cameraRig.GetComponent<SimulationModeCameraRig>().Activate();
+            SetTurbiditySliderInteractivity(false); // Disable sliders when entering swim mode
             UpdateHudVisibility();
         }
 
         public void DectivateSwimMode()
         {
             cameraRig.GetComponent<SimulationModeCameraRig>().Deactivate();
+            SetTurbiditySliderInteractivity(true); // Re-enable sliders when exiting swim mode
             UpdateHudVisibility();
         }
         
@@ -1041,6 +1991,11 @@ namespace OceanViz3
 
         public override bool OnEscapePressed()
         {
+            if (sceneSetupFileDialogs.Close())
+            {
+                return true;
+            }
+
             if (cameraRig != null && cameraRig.GetComponent<SimulationModeCameraRig>().isActive)
             {
                 DectivateSwimMode();
@@ -1051,6 +2006,11 @@ namespace OceanViz3
         
         public override void SetHudless(bool hudless)
         {
+            if (hudless)
+            {
+                sceneSetupFileDialogs.Close();
+            }
+
             isHudless = hudless;
             UpdateHudVisibility();
         }
@@ -1092,6 +2052,12 @@ namespace OceanViz3
                     mainGui.style.opacity = 1;
                 }
             }
+        }
+
+        private void OnDestroy()
+        {
+            Time.timeScale = 1.0f;
+            MeshHabitatSetupSystem.AvailabilityChanged -= OnMeshHabitatAvailabilityChanged;
         }
 
         public StaticEntitiesGroupComponent GetStaticEntitiesGroupComponent(string groupName)

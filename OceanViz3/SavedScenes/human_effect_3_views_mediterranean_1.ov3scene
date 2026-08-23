@@ -1,0 +1,313 @@
+{
+    "version": 1,
+    "locationName": "Mediterranean",
+    "viewsCount": 3,
+    "turbidities": [
+        {
+            "viewIndex": 0,
+            "turbidity": -0.5
+        },
+        {
+            "viewIndex": 1,
+            "turbidity": -0.699999988079071
+        },
+        {
+            "viewIndex": 2,
+            "turbidity": -0.800000011920929
+        },
+        {
+            "viewIndex": 3,
+            "turbidity": 0.25
+        }
+    ],
+    "groups": [
+        {
+            "presetName": "Mahi Mahi",
+            "groupName": "Mahi Mahi",
+            "population": 0.9800000190734863,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.23000000417232514
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Atlantic Bonito",
+            "groupName": "Atlantic Bonito",
+            "population": 0.7400000095367432,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.14000000059604646
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "European Pilchard",
+            "groupName": "European Pilchard",
+            "population": 0.24799999594688416,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.20999999344348908
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Posidonia Oceanica",
+            "groupName": "Posidonia Oceanica",
+            "population": 1.0,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.1599999964237213
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Padina Pavonica",
+            "groupName": "Padina Pavonica",
+            "population": 0.1666666716337204,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Cystoseira",
+            "groupName": "Cystoseira",
+            "population": 0.0,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Kelp",
+            "groupName": "Kelp",
+            "population": 0.0,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Old Tire",
+            "groupName": "Old Tire",
+            "population": 1.0,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Surface Longliner",
+            "groupName": "Surface Longliner",
+            "population": 1.0,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Rusted Wheel Rim",
+            "groupName": "Rusted Wheel Rim",
+            "population": 1.0,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Wrecked Boat",
+            "groupName": "Wrecked Boat",
+            "population": 0.18333333730697633,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Fishing Net",
+            "groupName": "Fishing Net",
+            "population": 0.10000000149011612,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.9900000095367432
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ]
+        }
+    ]
+}

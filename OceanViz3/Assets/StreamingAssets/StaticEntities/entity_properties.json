@@ -108,7 +108,7 @@
     "maxPopulation": 300000
     },
     {
-    "name": "Gorgonian Coral Dead",
+    "name": "Red Coral Dead",
     "habitats": ["Shallow"],
     "minScale": 0.8,
     "maxScale": 1.2,
@@ -256,8 +256,8 @@
     "habitats": ["Shallow"],
     "minScale": 0.8,
     "maxScale": 1.2,
-    "rigidity": 1.0,
+    "rigidity": 0.5,
     "wavesMotionStrength": 0.0,
-    "maxPopulation": 300000
+    "maxPopulation": 10000
     }
 ]

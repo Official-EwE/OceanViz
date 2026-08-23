@@ -1,0 +1,62 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement name="ViewsSetupPopupRoot" style="position: absolute; left: 0; top: 0; right: 0; bottom: 0; justify-content: flex-end; align-items: center; padding-bottom: 20px; display: none;">
+        <ui:VisualElement name="ViewsSetupPopupCard" style="min-width: 680px; min-height: 220px; padding-top: 16px; padding-right: 16px; padding-bottom: 16px; padding-left: 16px; background-color: rgb(48, 48, 48); border-top-left-radius: 8px; border-top-right-radius: 8px; border-bottom-right-radius: 8px; border-bottom-left-radius: 8px; justify-content: space-between;">
+            <ui:VisualElement style="position: relative; min-height: 30px; justify-content: center; align-items: center; margin-bottom: 12px;">
+                <ui:Label tabindex="-1" text="Entity Name" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ViewsSetupTitleLabel" style="-unity-font-style: bold; font-size: 16px; width: 100%; -unity-text-align: middle-center;" />
+                <ui:Button text="Done" parse-escape-sequences="true" display-tooltip-when-elided="true" name="CloseViewsSetupButton" style="position: absolute; right: 0; top: 0;" />
+            </ui:VisualElement>
+            <ui:VisualElement style="flex-grow: 1; flex-direction: row; justify-content: space-around; align-items: flex-start;">
+                <ui:VisualElement name="PopulationPercentageSection" style="flex-grow: 1; align-items: stretch; margin-right: 18px; padding-top: 12px; padding-right: 12px; padding-bottom: 12px; padding-left: 12px; background-color: rgb(40, 40, 40); border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px;">
+                    <ui:Label tabindex="-1" text="Population Percentage" parse-escape-sequences="true" display-tooltip-when-elided="true" style="margin-bottom: 8px; width: 100%; -unity-text-align: middle-center;" />
+                    <ui:VisualElement name="ViewsSetupSlidersRow" style="flex-grow: 1; flex-direction: row; justify-content: space-around; align-items: stretch;">
+                        <ui:VisualElement style="align-items: center; justify-content: flex-end;">
+                            <ui:Label tabindex="-1" text="View 1" style="width: 100%; -unity-text-align: middle-center; margin-bottom: 4px;" />
+                            <ui:SliderInt high-value="100" low-value="0" direction="Vertical" name="PopulationPercentageSliderInt0" style="height: 80px;" />
+                            <ui:Label tabindex="-1" text="100%" parse-escape-sequences="true" display-tooltip-when-elided="true" name="PopulationPercentageValueLabel0" style="width: 100%; -unity-text-align: middle-center; margin-top: 6px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="align-items: center; justify-content: flex-end;">
+                            <ui:Label tabindex="-1" text="View 2" style="width: 100%; -unity-text-align: middle-center; margin-bottom: 4px;" />
+                            <ui:SliderInt high-value="100" low-value="0" direction="Vertical" name="PopulationPercentageSliderInt1" style="height: 80px;" />
+                            <ui:Label tabindex="-1" text="100%" parse-escape-sequences="true" display-tooltip-when-elided="true" name="PopulationPercentageValueLabel1" style="width: 100%; -unity-text-align: middle-center; margin-top: 6px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="align-items: center; justify-content: flex-end;">
+                            <ui:Label tabindex="-1" text="View 3" style="width: 100%; -unity-text-align: middle-center; margin-bottom: 4px;" />
+                            <ui:SliderInt high-value="100" low-value="0" direction="Vertical" name="PopulationPercentageSliderInt2" style="height: 80px;" />
+                            <ui:Label tabindex="-1" text="100%" parse-escape-sequences="true" display-tooltip-when-elided="true" name="PopulationPercentageValueLabel2" style="width: 100%; -unity-text-align: middle-center; margin-top: 6px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="align-items: center; justify-content: flex-end;">
+                            <ui:Label tabindex="-1" text="View 4" style="width: 100%; -unity-text-align: middle-center; margin-bottom: 4px;" />
+                            <ui:SliderInt high-value="100" low-value="0" direction="Vertical" name="PopulationPercentageSliderInt3" style="height: 80px;" />
+                            <ui:Label tabindex="-1" text="100%" parse-escape-sequences="true" display-tooltip-when-elided="true" name="PopulationPercentageValueLabel3" style="width: 100%; -unity-text-align: middle-center; margin-top: 6px;" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+                <ui:VisualElement name="SizeSection" style="flex-grow: 1; align-items: stretch; padding-top: 12px; padding-right: 12px; padding-bottom: 12px; padding-left: 12px; background-color: rgb(40, 40, 40); border-top-left-radius: 6px; border-top-right-radius: 6px; border-bottom-right-radius: 6px; border-bottom-left-radius: 6px;">
+                    <ui:Label tabindex="-1" text="Size" parse-escape-sequences="true" display-tooltip-when-elided="true" style="margin-bottom: 8px; width: 100%; -unity-text-align: middle-center;" />
+                    <ui:VisualElement name="ViewsSetupSizeSlidersRow" style="flex-grow: 1; flex-direction: row; justify-content: space-around; align-items: stretch;">
+                        <ui:VisualElement style="align-items: center; justify-content: flex-end;">
+                            <ui:Label tabindex="-1" text="View 1" style="width: 100%; -unity-text-align: middle-center; margin-bottom: 4px;" />
+                            <ui:Slider high-value="2" low-value="0.5" direction="Vertical" name="ViewSizeSlider0" style="height: 80px;" />
+                            <ui:Label tabindex="-1" text="1.00x" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ViewSizeValueLabel0" style="width: 100%; -unity-text-align: middle-center; margin-top: 6px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="align-items: center; justify-content: flex-end;">
+                            <ui:Label tabindex="-1" text="View 2" style="width: 100%; -unity-text-align: middle-center; margin-bottom: 4px;" />
+                            <ui:Slider high-value="2" low-value="0.5" direction="Vertical" name="ViewSizeSlider1" style="height: 80px;" />
+                            <ui:Label tabindex="-1" text="1.00x" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ViewSizeValueLabel1" style="width: 100%; -unity-text-align: middle-center; margin-top: 6px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="align-items: center; justify-content: flex-end;">
+                            <ui:Label tabindex="-1" text="View 3" style="width: 100%; -unity-text-align: middle-center; margin-bottom: 4px;" />
+                            <ui:Slider high-value="2" low-value="0.5" direction="Vertical" name="ViewSizeSlider2" style="height: 80px;" />
+                            <ui:Label tabindex="-1" text="1.00x" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ViewSizeValueLabel2" style="width: 100%; -unity-text-align: middle-center; margin-top: 6px;" />
+                        </ui:VisualElement>
+                        <ui:VisualElement style="align-items: center; justify-content: flex-end;">
+                            <ui:Label tabindex="-1" text="View 4" style="width: 100%; -unity-text-align: middle-center; margin-bottom: 4px;" />
+                            <ui:Slider high-value="2" low-value="0.5" direction="Vertical" name="ViewSizeSlider3" style="height: 80px;" />
+                            <ui:Label tabindex="-1" text="1.00x" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ViewSizeValueLabel3" style="width: 100%; -unity-text-align: middle-center; margin-top: 6px;" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

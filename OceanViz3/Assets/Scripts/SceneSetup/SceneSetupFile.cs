@@ -5,8 +5,8 @@ namespace OceanViz3
     /// <summary>
     /// Serializable representation of a scene setup that can be saved to or loaded from JSON.
     /// This is written/read via the Simulation Mode UI's Save Scene / Load Scene buttons using the
-    /// UnityStandaloneFileBrowser file dialogs, typically as a <c>.ov3scene</c> file under the
-    /// project's <c>SavedScenes</c> folder (next to the executable in builds).
+    /// project-owned scene setup browser, typically as a <c>.ov3scene</c> file under the project's
+    /// <c>SavedScenes</c> folder (next to the executable in builds).
     /// Captures location, views, turbidity, and entity group configuration.
     /// </summary>
     [Serializable]
@@ -40,6 +40,7 @@ namespace OceanViz3
         public float population;
         public string[] overrideHabitats;
         public VisibilityEntry[] visibilities;
+        public SizeEntry[] sizes;
     }
 
     /// <summary>
@@ -50,6 +51,16 @@ namespace OceanViz3
     {
         public int viewIndex;
         public float visibility;
+    }
+
+    /// <summary>
+    /// Per-view size entry for a group.
+    /// </summary>
+    [Serializable]
+    public class SizeEntry
+    {
+        public int viewIndex;
+        public float sizeMultiplier;
     }
 }
 

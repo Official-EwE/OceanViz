@@ -1,3 +1,4 @@
+using System;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -32,6 +33,12 @@ namespace OceanViz3
     public struct MeshHabitatProcessedTag : IComponentData { }
 
     /// <summary>
+    /// One-frame signal added when a valid mesh habitat finishes processing.
+    /// The presentation system consumes it after the setup command buffer has been applied.
+    /// </summary>
+    public struct MeshHabitatAvailabilityRefreshPending : IComponentData { }
+
+    /// <summary>
     /// Component to store reference to the mesh habitat blob data
     /// </summary>
     public struct MeshHabitatBlobRef : IComponentData
@@ -47,6 +54,13 @@ namespace OceanViz3
     [UpdateBefore(typeof(StaticEntityDataSetupSystem))]
     public partial struct MeshHabitatSetupSystem : ISystem
     {
+        public static event Action AvailabilityChanged;
+
+        internal static void NotifyAvailabilityChanged()
+        {
+            AvailabilityChanged?.Invoke();
+        }
+
         [BurstCompile]
         public void OnCreate(ref SystemState state)
         {
@@ -235,10 +249,34 @@ namespace OceanViz3
             });
             
             ecb.AddComponent<MeshHabitatProcessedTag>(entity);
+            ecb.AddComponent<MeshHabitatAvailabilityRefreshPending>(entity);
             
             Debug.Log($"Processed mesh habitat '{habitatName}' (Entity: {entity}) with {vertices.Length} vertices, " +
                         $"surface area: {blobRef.Value.SurfaceArea}, " +
                         $"has colors: {hasColors}");
+        }
+    }
+
+    /// <summary>
+    /// Refreshes habitat-dependent UI after valid mesh habitat components become visible to the ECS world.
+    /// </summary>
+    [UpdateInGroup(typeof(PresentationSystemGroup))]
+    public partial struct MeshHabitatAvailabilityRefreshSystem : ISystem
+    {
+        private EntityQuery pendingRefreshQuery;
+
+        public void OnCreate(ref SystemState state)
+        {
+            pendingRefreshQuery = SystemAPI.QueryBuilder()
+                .WithAll<MeshHabitatAvailabilityRefreshPending>()
+                .Build();
+            state.RequireForUpdate(pendingRefreshQuery);
+        }
+
+        public void OnUpdate(ref SystemState state)
+        {
+            MeshHabitatSetupSystem.NotifyAvailabilityChanged();
+            state.EntityManager.RemoveComponent<MeshHabitatAvailabilityRefreshPending>(pendingRefreshQuery);
         }
     }
 } 

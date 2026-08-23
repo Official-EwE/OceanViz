@@ -28,6 +28,8 @@ namespace OceanViz3
 public class DynamicEntityPreset
 {
     public string name;
+    // Descriptive labels used for filtering and grouping dynamic entity presets.
+    public string[] tags;
     
     public int maxPopulation;
     
@@ -35,6 +37,7 @@ public class DynamicEntityPreset
     public bool seabed_bound;
     public bool predator;
     public bool prey;
+    public float water_current_influence = -1.0f;
     public float cell_radius;
     public float separation_weight;
     public float alignment_weight;
@@ -49,6 +52,11 @@ public class DynamicEntityPreset
     public float max_turn_rate = 1.0f;
     public float speed_modifier_min;
     public float speed_modifier_max;
+    public float spawn_clustering = 0.8f;
+    public float scale_min = 0.7f;
+    public float scale_max = 1.3f;
+    public float speed_jitter_amplitude = 0.08f;
+    public float speed_jitter_frequency = 0.6f;
     
     // Animation Shader Properties
     public float animation_speed;
@@ -94,7 +102,7 @@ public struct BoidSchoolStruct
 /// Handles entity spawning, configuration, and lifecycle management for groups of boids.
 /// </summary>
 [Serializable]
-public class DynamicEntitiesGroup
+public class DynamicEntitiesGroup : IViewsSetupTarget
 {
     public int DynamicEntityId;
     public string name;
@@ -110,6 +118,7 @@ public class DynamicEntitiesGroup
     private List<GameObject> dynamicEntityGroupBounds;
     private int viewsCount = -1;
     private int[] viewVisibilityPercentageArray = new int[4] {100, 100, 100, 100};
+    private float[] viewSizeMultiplierArray = new float[4] {1.0f, 1.0f, 1.0f, 1.0f};
     
     [SerializeField]
     public List<BoidSchoolStruct> boidSchoolStructs = new List<BoidSchoolStruct>();
@@ -119,12 +128,10 @@ public class DynamicEntitiesGroup
     private SliderInt populationSlider;
     private Button reloadButton;
     private Button deleteButton;
-    // Sliders
-    private List<SliderInt> populationPercentageSliderInts = new List<SliderInt>();
-
     // Delegates
     public delegate void GroupDeleteRequestHandler(DynamicEntitiesGroup dynamicEntitiesGroup);
     public event GroupDeleteRequestHandler OnDeleteRequest;
+    public event Action ViewsSetupChanged;
 
     private EventCallback<ChangeEvent<int>> populationSliderChangeCallback;
 
@@ -137,6 +144,35 @@ public class DynamicEntitiesGroup
     // Rename lodMeshes to meshes and make it public
     public Mesh[] meshes;
     private const int LOD_COUNT = 3; // LOD0, LOD1, LOD2
+
+    public string DisplayName
+    {
+        get { return name; }
+    }
+
+    private UnityEngine.Vector4 GetViewSizeMultipliersVector()
+    {
+        return new UnityEngine.Vector4(
+            viewSizeMultiplierArray[0],
+            viewSizeMultiplierArray[1],
+            viewSizeMultiplierArray[2],
+            viewSizeMultiplierArray[3]);
+    }
+
+    private void ApplyViewSizeMultipliersToMaterial()
+    {
+        if (material == null)
+        {
+            return;
+        }
+
+        BoidViewScalingShaderSettings.ApplyTo(material, GetViewSizeMultipliersVector());
+    }
+
+    private void NotifyViewsSetupChanged()
+    {
+        ViewsSetupChanged?.Invoke();
+    }
 
     /// <summary>
     /// Checks if the dynamic entities group is properly initialized and ready for use.
@@ -203,7 +239,8 @@ public class DynamicEntitiesGroup
     }
 
     /// <summary>
-    /// Initializes the dynamic entities group with necessary components and UI elements.
+    /// Initializes the dynamic entities group with necessary components and summary row UI elements.
+    /// Per-view visibility and size are edited through the shared Views Setup popup.
     /// </summary>
     /// <param name="name">Name identifier for the group</param>
     /// <param name="dataRow">UI element containing group controls</param>
@@ -271,31 +308,10 @@ public class DynamicEntitiesGroup
             Debug.LogError("[DynamicEntitiesGroup] PopulationSliderInt not found in DataRow!");
             }
 
-        // Sliders
-            for (int i = 0; i < 4; i++)
-            {
-                SliderInt sliderInt = dataRow.Q<SliderInt>("PopulationPercentageSliderInt" + i);
-                    populationPercentageSliderInts.Add(sliderInt);
-
-            sliderInt.RegisterValueChangedCallback((evt) => OnPopulationPercentageSliderIntChanged(evt));
-
-            // Set the sliders visibility according to the amount of views
-            if (i < viewsCount)
-                    {
-                sliderInt.style.display = DisplayStyle.Flex;
-                }
-                else
-                {
-                sliderInt.style.display = DisplayStyle.None;
-                }
-
-            // Set the value of the slider
-            sliderInt.value = viewVisibilityPercentageArray[i];
-            }
         deleteButton = dataRow.Q<Button>("DeleteButton");
         deleteButton.RegisterCallback<ClickEvent>((evt) => DeleteGroupClicked(evt));
         reloadButton = dataRow.Q<Button>("ReloadButton");
-        reloadButton.RegisterCallback<ClickEvent>((evt) => ReloadGroup(evt));
+            reloadButton.RegisterCallback<ClickEvent>((evt) => _ = ReloadGroup(evt));
         }
     }
 
@@ -415,6 +431,14 @@ public class DynamicEntitiesGroup
             $"[DynamicEntitiesGroup] Invalid state_transition_speed ({dynamicEntityPreset.state_transition_speed}) for preset {dynamicEntityPreset.name}");
         Debug.Assert(dynamicEntityPreset.speed_modifier_min <= dynamicEntityPreset.speed_modifier_max,
             $"[DynamicEntitiesGroup] speed_modifier_min ({dynamicEntityPreset.speed_modifier_min}) must be <= speed_modifier_max ({dynamicEntityPreset.speed_modifier_max}) for preset {dynamicEntityPreset.name}");
+        Debug.Assert(dynamicEntityPreset.scale_min > 0.0f,
+            $"[DynamicEntitiesGroup] scale_min ({dynamicEntityPreset.scale_min}) must be > 0 for preset {dynamicEntityPreset.name}");
+        Debug.Assert(dynamicEntityPreset.scale_min <= dynamicEntityPreset.scale_max,
+            $"[DynamicEntitiesGroup] scale_min ({dynamicEntityPreset.scale_min}) must be <= scale_max ({dynamicEntityPreset.scale_max}) for preset {dynamicEntityPreset.name}");
+        Debug.Assert(dynamicEntityPreset.speed_jitter_amplitude >= 0.0f,
+            $"[DynamicEntitiesGroup] speed_jitter_amplitude ({dynamicEntityPreset.speed_jitter_amplitude}) must be >= 0 for preset {dynamicEntityPreset.name}");
+        Debug.Assert(dynamicEntityPreset.speed_jitter_frequency >= 0.0f,
+            $"[DynamicEntitiesGroup] speed_jitter_frequency ({dynamicEntityPreset.speed_jitter_frequency}) must be >= 0 for preset {dynamicEntityPreset.name}");
 
         gltf = new GLTFast.GltfImport();
         var importSettings = new ImportSettings {
@@ -437,7 +461,12 @@ public class DynamicEntitiesGroup
             Debug.LogError("[DynamicEntitiesGroup] Loading LOD0 glTF failed for " + presetFolderName + "!");
             throw new Exception("Loading LOD0 glTF failed for " + presetFolderName + "!");
         }
-        meshes[0] = gltf.GetMeshes()[0];
+        meshes[0] = gltf.Meshes.FirstOrDefault();
+        if (meshes[0] == null)
+        {
+            Debug.LogError("[DynamicEntitiesGroup] Loaded glTF but no meshes were imported for " + presetFolderName + "!");
+            throw new Exception("No meshes were imported for " + presetFolderName + "!");
+        }
         
         // Load LOD1 and LOD2
         for (int i = 1; i < LOD_COUNT; i++)
@@ -448,8 +477,16 @@ public class DynamicEntitiesGroup
                 success = await lodGltf.Load(lodPaths[i], importSettings);
                 if (success)
                 {
-                    meshes[i] = lodGltf.GetMeshes()[0];
-                    Debug.Log("[DynamicEntitiesGroup] Loaded LOD" + i + " for " + presetFolderName);
+                    meshes[i] = lodGltf.Meshes.FirstOrDefault();
+                    if (meshes[i] != null)
+                    {
+                        Debug.Log("[DynamicEntitiesGroup] Loaded LOD" + i + " for " + presetFolderName);
+                    }
+                    else
+                    {
+                        Debug.LogWarning("[DynamicEntitiesGroup] LOD" + i + " imported without meshes for " + presetFolderName + ", using LOD0 as fallback");
+                        meshes[i] = meshes[0];
+                    }
                 }
                 else
                 {
@@ -499,6 +536,7 @@ public class DynamicEntitiesGroup
         if (dy > largest) largest = dy;
         if (dz > largest) largest = dz;
         dynamicEntityPreset.mesh_largest_dimension = largest;
+        Debug.Log($"[DynamicEntitiesGroup] {presetFolderName} largest mesh dimension: {largest}");
 
         try {
             byte[] fileData = File.ReadAllBytes(baseColorPath);
@@ -537,7 +575,9 @@ public class DynamicEntitiesGroup
             }
 
             // Create material
-            material = new Material(Shader.Find("Shader Graphs/FishAdvancedShaderGraph"));
+            Shader fishShader = Shader.Find("Shader Graphs/FishAdvancedShaderGraph");
+            Debug.Assert(fishShader != null, "Could not find shader 'Shader Graphs/FishAdvancedShaderGraph'.");
+            material = new Material(fishShader);
             material.SetTexture("_BaseColor", baseColorTexture);
             material.SetTexture("_Normal", normalTexture);
             if (roughnessTexture != null)
@@ -546,6 +586,7 @@ public class DynamicEntitiesGroup
                 material.SetTexture("_Metallic", metallicTexture);
             if (emissionTexture != null)
                 material.SetTexture("_Emission", emissionTexture);
+            ApplyViewSizeMultipliersToMaterial();
 
         } catch (Exception e) {
             Debug.LogError($"Error loading textures: {e.Message}");
@@ -574,6 +615,10 @@ public class DynamicEntitiesGroup
             renderMeshArray,
             MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0)  // Use FromRenderMeshArrayIndices to get correct negative indices
         );
+        if (!entityManager.HasComponent<LODState>(boidPrototype))
+        {
+            entityManager.AddComponentData(boidPrototype, new LODState { CurrentLOD = 0 });
+        }
 
         // Create boid schools using the group's prototype
         for (int i = 0; i < dynamicEntityGroupBounds.Count; i++)
@@ -656,10 +701,11 @@ public class DynamicEntitiesGroup
         // If this group uses bone animation, register with the manager
         if (dynamicEntityPreset.bone_animated)
         {
-            var manager = GameObject.FindObjectOfType<BoneAnimatedEntityManager>();
+            var manager = UnityEngine.Object.FindFirstObjectByType<BoneAnimatedEntityManager>();
             if (manager != null)
             {
                 manager.RegisterDynamicEntityGroup(this, templateGameObject);
+                manager.RefreshViewScaleMultipliers(this);
             }
         }
     }
@@ -677,25 +723,53 @@ public class DynamicEntitiesGroup
         boidSchoolStruct.boidBounds = schoolBoidBounds;
         boidSchoolStruct.BoidSchoolId = index;
         
-        float3 boundsCenter = new float3(schoolBoidBounds.transform.position);
-        
-        BoxCollider boxCollider = schoolBoidBounds.GetComponent<BoxCollider>();
-        float3 boundsSize = new float3(
-            boxCollider.size.x * schoolBoidBounds.transform.localScale.x,
-            boxCollider.size.y * schoolBoidBounds.transform.localScale.y,
-            boxCollider.size.z * schoolBoidBounds.transform.localScale.z
-        );
+        BoidBounds boidBounds = schoolBoidBounds.GetComponent<BoidBounds>();
+        Debug.Assert(boidBounds != null, "[DynamicEntitiesGroup] Boid bounds object requires a BoidBounds component.");
+        BoidBoundaryData boundaryData = boidBounds.BuildBoundaryData();
+        float3 boundsCenter = boundaryData.BoundsCenter;
+        float3 boundsSize = boundaryData.BoundsMax - boundaryData.BoundsMin;
 
         Entity boidSchoolEntity = entityManager.Instantiate(entityLibrary.BoidSchoolEntity);
         entityManager.SetName(boidSchoolEntity, "BoidSchool_" + DynamicEntityId + "_" + boidSchoolStruct.BoidSchoolId);
         
-        entityManager.SetComponentData(boidSchoolEntity, CreateBoidSchoolData(boidSchoolStruct.BoidSchoolId, boundsCenter, boundsSize, population));
+        entityManager.SetComponentData(boidSchoolEntity, CreateBoidSchoolData(boidSchoolStruct.BoidSchoolId, boundsCenter, boundsSize, boundaryData, population));
+        entityManager.AddComponentData(boidSchoolEntity, CreateHoverGroupData());
         
         boidSchoolStruct.boidSchoolEntity = boidSchoolEntity;
         boidSchoolStructs.Add(boidSchoolStruct);
     }
 
-    private BoidSchoolComponent CreateBoidSchoolData(int schoolId, float3 boundsCenter, float3 boundsSize, int population)
+    private EntityHoverGroup CreateHoverGroupData()
+    {
+        Bounds hoverBounds = meshes[0].bounds;
+        return new EntityHoverGroup
+        {
+            GroupId = DynamicEntityId,
+            Kind = EntityHoverKind.Dynamic,
+            LocalBoundsCenter = hoverBounds.center,
+            LocalBoundsExtents = hoverBounds.extents,
+            ViewScaleMultipliers = new float4(
+                viewSizeMultiplierArray[0],
+                viewSizeMultiplierArray[1],
+                viewSizeMultiplierArray[2],
+                viewSizeMultiplierArray[3])
+        };
+    }
+
+    private void UpdateHoverGroupViewScale()
+    {
+        EntityHoverGroup hoverGroup = CreateHoverGroupData();
+        foreach (BoidSchoolStruct school in boidSchoolStructs)
+        {
+            if (entityManager.Exists(school.boidSchoolEntity) &&
+                entityManager.HasComponent<EntityHoverGroup>(school.boidSchoolEntity))
+            {
+                entityManager.SetComponentData(school.boidSchoolEntity, hoverGroup);
+            }
+        }
+    }
+
+    private BoidSchoolComponent CreateBoidSchoolData(int schoolId, float3 boundsCenter, float3 boundsSize, BoidBoundaryData boundaryData, int population)
     {
         return new BoidSchoolComponent
         {
@@ -704,6 +778,7 @@ public class DynamicEntitiesGroup
             BoidPrototype = boidPrototype,
             BoundsCenter = boundsCenter,
             BoundsSize = boundsSize,
+            Boundary = boundaryData,
             BoidTargetPrefab = entityLibrary.BoidTargetEntity,
             DestroyRequested = false,
             RequestedCount = population,
@@ -745,6 +820,7 @@ public class DynamicEntitiesGroup
             SeabedBound = dynamicEntityPreset.seabed_bound,
             Predator = dynamicEntityPreset.predator,
             Prey = dynamicEntityPreset.prey,
+            WaterCurrentInfluence = dynamicEntityPreset.water_current_influence,
             CellRadius = dynamicEntityPreset.cell_radius,
             StateTransitionSpeed = dynamicEntityPreset.state_transition_speed,
             StateChangeTimerMin = dynamicEntityPreset.state_change_timer_min,
@@ -753,6 +829,11 @@ public class DynamicEntitiesGroup
             NumberOfLODs = -1,
             SpeedModifierMin = dynamicEntityPreset.speed_modifier_min,
             SpeedModifierMax = dynamicEntityPreset.speed_modifier_max,
+            SpawnClustering = dynamicEntityPreset.spawn_clustering,
+            ScaleMin = dynamicEntityPreset.scale_min,
+            ScaleMax = dynamicEntityPreset.scale_max,
+            SpeedJitterAmplitude = dynamicEntityPreset.speed_jitter_amplitude,
+            SpeedJitterFrequency = dynamicEntityPreset.speed_jitter_frequency,
         };
     }
 
@@ -798,7 +879,7 @@ public class DynamicEntitiesGroup
         // If this group uses bone animation, unregister from the manager
         if (dynamicEntityPreset.bone_animated)
         {
-            var manager = GameObject.FindObjectOfType<BoneAnimatedEntityManager>();
+            var manager = UnityEngine.Object.FindFirstObjectByType<BoneAnimatedEntityManager>();
             if (manager != null)
             {
                 manager.UnregisterDynamicEntityGroup(this);
@@ -806,41 +887,64 @@ public class DynamicEntitiesGroup
         }
     }
 
-    private void OnPopulationPercentageSliderIntChanged(ChangeEvent<int> evt)
-    {
-        var slider = evt.target as SliderInt;
-
-        // Get the index of the slider
-        int view_index = int.Parse(slider.name.Substring(slider.name.Length - 1));
-        
-        SetViewVisibilityPercentage(view_index, evt.newValue);
-    }
-
     public void SetViewVisibilityPercentageAndUpdateGUI(int viewIndex, int value)
     {
-        // Temporarily unregister the event handler
-        // Check if sliderInt exists and is not null
-        if (viewIndex >= 0 && viewIndex < populationPercentageSliderInts.Count)
-        {
-            SliderInt sliderInt = populationPercentageSliderInts[viewIndex];
-            if (sliderInt != null)
-            {
-                 sliderInt.SetValueWithoutNotify(value);
-            }
-        }
-        
-        // Update the actual visibility
         SetViewVisibilityPercentage(viewIndex, value);
     }
         
     public void SetViewVisibilityPercentage(int view_index, int value)
     {
+        Debug.Assert(view_index >= 0 && view_index < viewVisibilityPercentageArray.Length, "[DynamicEntitiesGroup] Invalid view index for visibility update.");
+        if (view_index < 0 || view_index >= viewVisibilityPercentageArray.Length)
+        {
+            return;
+        }
+
         viewVisibilityPercentageArray[view_index] = value;
 
         foreach (BoidSchoolStruct boidSchoolStruct in boidSchoolStructs)
         {
             UpdateBoidSchoolViewportVisibility(boidSchoolStruct.boidSchoolEntity);
         }
+
+        ApplyViewSizeMultipliersToMaterial();
+        if (dynamicEntityPreset != null && dynamicEntityPreset.bone_animated)
+        {
+            BoneAnimatedEntityManager manager = UnityEngine.Object.FindFirstObjectByType<BoneAnimatedEntityManager>();
+            Debug.Assert(manager != null, "[DynamicEntitiesGroup] BoneAnimatedEntityManager not found while updating view size multipliers.");
+            if (manager != null)
+            {
+                manager.RefreshViewScaleMultipliers(this);
+            }
+        }
+
+        NotifyViewsSetupChanged();
+    }
+
+    public void SetViewSizeMultiplier(int viewIndex, float value)
+    {
+        Debug.Assert(viewIndex >= 0 && viewIndex < viewSizeMultiplierArray.Length, "[DynamicEntitiesGroup] Invalid view index for size update.");
+        Debug.Assert(value >= 0.5f && value <= 2.0f, "[DynamicEntitiesGroup] View size multiplier must be in [0.5, 2.0].");
+        if (viewIndex < 0 || viewIndex >= viewSizeMultiplierArray.Length)
+        {
+            return;
+        }
+
+        float clamped = Mathf.Clamp(value, 0.5f, 2.0f);
+        viewSizeMultiplierArray[viewIndex] = clamped;
+        ApplyViewSizeMultipliersToMaterial();
+        UpdateHoverGroupViewScale();
+
+        if (dynamicEntityPreset != null && dynamicEntityPreset.bone_animated)
+        {
+            var manager = UnityEngine.Object.FindFirstObjectByType<BoneAnimatedEntityManager>();
+            if (manager != null)
+            {
+                manager.RefreshViewScaleMultipliers(this);
+            }
+        }
+
+        NotifyViewsSetupChanged();
     }
 
     // New handler for the population slider
@@ -879,6 +983,10 @@ public class DynamicEntitiesGroup
             new RenderMeshArray(new Material[] { material }, meshes), // Use full LOD array here
             MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0)
         );
+        if (!entityManager.HasComponent<LODState>(boidPrototype))
+        {
+            entityManager.AddComponentData(boidPrototype, new LODState { CurrentLOD = 0 });
+        }
         
         foreach (BoidSchoolStruct boidSchoolStruct in boidSchoolStructs)
         {
@@ -911,6 +1019,7 @@ public class DynamicEntitiesGroup
             for (int i = previousViewsCount; i < this.viewsCount && i < viewVisibilityPercentageArray.Length; i++)
             {
                 viewVisibilityPercentageArray[i] = 100;
+                viewSizeMultiplierArray[i] = 1.0f;
             }
         }
 
@@ -919,24 +1028,15 @@ public class DynamicEntitiesGroup
             UpdateBoidSchoolViewportVisibility(boidSchoolStruct.boidSchoolEntity);
         }
 
-        // Update the sliders according to the viewVisibilityPercentageArray
-        for (int i = 0; i < 4; i++)
+        ApplyViewSizeMultipliersToMaterial();
+        UpdateHoverGroupViewScale();
+        BoneAnimatedEntityManager manager = UnityEngine.Object.FindFirstObjectByType<BoneAnimatedEntityManager>();
+        if (manager != null)
         {
-            populationPercentageSliderInts[i].value = viewVisibilityPercentageArray[i];
+            manager.RefreshViewScaleMultipliers(this);
         }
 
-        // Change the sliders visibility according to the amount of views
-        for (int i = 0; i < 4; i++)
-        {
-            if (i < viewsCount)
-            {
-                populationPercentageSliderInts[i].style.display = DisplayStyle.Flex;
-            }
-            else
-            {
-                populationPercentageSliderInts[i].style.display = DisplayStyle.None;
-            }
-        }
+        NotifyViewsSetupChanged();
     }
 
     // Size of array is amount of Views, the index of the element is the index of the view, and bool is whether the group is visible in that view
@@ -1033,6 +1133,21 @@ public class DynamicEntitiesGroup
     }
 
     /// <summary>
+    /// Returns a copy of the per-view size multipliers array.
+    /// Index corresponds to the view index.
+    /// </summary>
+    public float[] GetViewSizeMultipliersCopy()
+    {
+        int length = viewSizeMultiplierArray.Length;
+        float[] copy = new float[length];
+        for (int i = 0; i < length; i++)
+        {
+            copy[i] = viewSizeMultiplierArray[i];
+        }
+        return copy;
+    }
+
+    /// <summary>
     /// Attempts to get a copy of the override habitats array, if any has been set.
     /// Returns true when an override exists, false otherwise.
     /// </summary>
@@ -1077,4 +1192,3 @@ public class Vector3Data
         return new UnityEngine.Vector3(x, y, z);
     }
 }
-

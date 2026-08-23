@@ -25,7 +25,7 @@ public class NetworkClient : MonoBehaviour
     
     private void Start()
     {
-        stateMatcher = FindObjectOfType<StateMatcher>();
+        stateMatcher = UnityEngine.Object.FindFirstObjectByType<StateMatcher>();
         if (stateMatcher == null)
         {
             Debug.LogError("[NetworkClient] StateMatcher not found in scene");

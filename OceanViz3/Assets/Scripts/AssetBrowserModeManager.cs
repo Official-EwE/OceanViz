@@ -40,6 +40,7 @@ namespace OceanViz3
         private Entity trackedEntity = Entity.Null;
         private EntityQuery boidQuery;
         private EntityQuery staticEntityQuery;
+        private AssetBrowserCameraRig cameraRigController;
 
         public override void Setup(MainScene mainScene)
         {
@@ -57,6 +58,9 @@ namespace OceanViz3
             // Ensure Asset-Browser camera is disabled on application start (we start in Simulation mode)
             if (cameraRig != null)
             {
+                cameraRigController = cameraRig.GetComponent<AssetBrowserCameraRig>();
+                Debug.Assert(cameraRigController != null, "[AssetBrowserModeManager] Asset Browser camera rig controller is required.");
+
                 cameraRig.SetActive(false);
                 var cam = cameraRig.GetComponentInChildren<Camera>(true);
                 if (cam != null) cam.enabled = false;
@@ -64,11 +68,10 @@ namespace OceanViz3
                 if (al != null) al.enabled = false;
 
                 // Pass UIDocument to camera rig for UI hit testing
-                var rig = cameraRig.GetComponent<AssetBrowserCameraRig>();
-                if (rig != null && mainGUIUIDocument != null)
+                if (cameraRigController != null && mainGUIUIDocument != null)
                 {
                     var uiDoc = mainGUIUIDocument.GetComponent<UIDocument>();
-                    rig.SetUIDocument(uiDoc);
+                    cameraRigController.SetUIDocument(uiDoc);
                 }
             }
 
@@ -108,16 +111,7 @@ namespace OceanViz3
             if (trackedEntity != Entity.Null && !entityManager.Exists(trackedEntity))
             {
                 trackedEntity = Entity.Null;
-            }
-        
-            // If we have a valid tracked entity, update the camera rig's position.
-            if (trackedEntity != Entity.Null)
-            {
-                var position = entityManager.GetComponentData<LocalToWorld>(trackedEntity).Position;
-                if (cameraRig != null)
-                {
-                    cameraRig.transform.position = position;
-                }
+                cameraRigController.ClearTargetEntity();
             }
         }
 
@@ -146,6 +140,8 @@ namespace OceanViz3
                         if (entities.Length > 0)
                         {
                             trackedEntity = entities[0];
+                            Debug.Assert(cameraRigController != null, "[AssetBrowserModeManager] Asset Browser camera rig controller is missing while tracking a dynamic entity.");
+                            cameraRigController.SetTargetEntity(trackedEntity);
                             Debug.Log($"[AssetBrowserModeManager] Started tracking dynamic entity.");
                         }
                     }
@@ -184,6 +180,8 @@ namespace OceanViz3
                         if (entities.Length > 0)
                         {
                             trackedEntity = entities[0];
+                            Debug.Assert(cameraRigController != null, "[AssetBrowserModeManager] Asset Browser camera rig controller is missing while tracking a static entity.");
+                            cameraRigController.SetTargetEntity(trackedEntity);
                             Debug.Log($"[AssetBrowserModeManager] Started tracking static entity.");
                         }
                     }
@@ -286,6 +284,10 @@ namespace OceanViz3
 
             // We need to add this group to the main list in SimulationModeManager so it gets updated
             mainScene.simulationModeManager.staticEntitiesGroups.Add(currentStaticGroup);
+            if (mainScene.currentLocationScript != null)
+            {
+                mainScene.currentLocationScript.ApplyWaterCurrentSettingsToStaticEntityGroup(currentStaticGroup);
+            }
             currentStaticGroup.OnDeleteRequest += (group) => mainScene.simulationModeManager.staticEntitiesGroups.Remove(group);
         }
 
@@ -310,6 +312,10 @@ namespace OceanViz3
             }
             
             trackedEntity = Entity.Null;
+            if (cameraRigController != null)
+            {
+                cameraRigController.ClearTargetEntity();
+            }
 
             if (entityToTrack != Entity.Null)
             {
@@ -330,12 +336,12 @@ namespace OceanViz3
             if (currentDynamicGroup != null)
             {
                 Debug.Log("[AssetBrowserModeManager] Reloading dynamic entity group.");
-                currentDynamicGroup.ReloadGroup(evt);
+                _ = currentDynamicGroup.ReloadGroup(evt);
             }
             else if (currentStaticGroup != null)
             {
                 Debug.Log("[AssetBrowserModeManager] Reloading static entity group.");
-                currentStaticGroup.ReloadGroup(evt);
+                _ = currentStaticGroup.ReloadGroup(evt);
             }
             else
             {
@@ -556,10 +562,15 @@ namespace OceanViz3
 
         public override void ExitMode()
         {
-            RemoveCurrentEntityGroup();
+            _ = RemoveCurrentEntityGroup();
             mainGUIUIDocument.SetActive(false);
             if (cameraRig != null)
             {
+                if (cameraRigController != null)
+                {
+                    cameraRigController.ClearTargetEntity();
+                }
+
                 // Disable AudioListener to prevent duplicates
                 var cam = cameraRig.GetComponentInChildren<Camera>(true);
                 if (cam != null) cam.enabled = false;

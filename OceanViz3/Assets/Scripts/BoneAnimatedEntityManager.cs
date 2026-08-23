@@ -25,6 +25,12 @@ public class BoneAnimatedEntityManager : MonoBehaviour
     private Dictionary<Entity, GameObject> entityToGameObject = new Dictionary<Entity, GameObject>();
     private Dictionary<int, DynamicEntitiesGroup> dynamicEntityGroups = new Dictionary<int, DynamicEntitiesGroup>();
     private Dictionary<int, GameObject> templateModels = new Dictionary<int, GameObject>();
+
+    private Vector4 GetViewScaleMultipliers(DynamicEntitiesGroup group)
+    {
+        float[] multipliers = group.GetViewSizeMultipliersCopy();
+        return new Vector4(multipliers[0], multipliers[1], multipliers[2], multipliers[3]);
+    }
     
     private void Start()
     {
@@ -200,6 +206,7 @@ public class BoneAnimatedEntityManager : MonoBehaviour
         if (renderer != null)
         {
             var material = renderer.material;
+            BoidViewScalingShaderSettings.ApplyTo(material, GetViewScaleMultipliers(group));
             material.SetFloat("_AnimationSpeed", 
                 entityManager.GetComponentData<AnimationSpeedOverride>(entity).Value);
             material.SetFloat("_SineWavelength", entityManager.GetComponentData<SineWavelengthOverride>(entity).Value);
@@ -242,7 +249,7 @@ public class BoneAnimatedEntityManager : MonoBehaviour
         entityToGameObject.Add(entity, go);
     }
 
-    public async void ReloadGroupModels(DynamicEntitiesGroup group)
+    public void ReloadGroupModels(DynamicEntitiesGroup group)
     {
         var newTemplate = group.GetTemplateGameObject();
         if (newTemplate == null)
@@ -280,14 +287,46 @@ public class BoneAnimatedEntityManager : MonoBehaviour
                 }
             }
         }
+
+        RefreshViewScaleMultipliers(group);
+    }
+
+    public void RefreshViewScaleMultipliers(DynamicEntitiesGroup group)
+    {
+        Vector4 viewScaleMultipliers = GetViewScaleMultipliers(group);
+
+        if (templateModels.TryGetValue(group.DynamicEntityId, out var template) && template != null)
+        {
+            foreach (var renderer in template.GetComponentsInChildren<SkinnedMeshRenderer>(true))
+            {
+                BoidViewScalingShaderSettings.ApplyTo(renderer.material, viewScaleMultipliers);
+            }
+        }
+
+        foreach (var kvp in entityToGameObject)
+        {
+            Entity entity = kvp.Key;
+            GameObject go = kvp.Value;
+            if (go == null || !entityManager.Exists(entity))
+            {
+                continue;
+            }
+
+            BoidShared boidShared = entityManager.GetSharedComponentManaged<BoidShared>(entity);
+            if (boidShared.DynamicEntityId != group.DynamicEntityId)
+            {
+                continue;
+            }
+
+            var renderer = go.GetComponentInChildren<SkinnedMeshRenderer>();
+            if (renderer != null)
+            {
+                BoidViewScalingShaderSettings.ApplyTo(renderer.material, viewScaleMultipliers);
+            }
+        }
     }
 
     public void UnregisterDynamicEntityGroup(DynamicEntitiesGroup group)
-    {
-        _ = UnregisterDynamicEntityGroupAsync(group);
-    }
-
-    private async Task UnregisterDynamicEntityGroupAsync(DynamicEntitiesGroup group)
     {
         if (templateModels.TryGetValue(group.DynamicEntityId, out var template))
         {

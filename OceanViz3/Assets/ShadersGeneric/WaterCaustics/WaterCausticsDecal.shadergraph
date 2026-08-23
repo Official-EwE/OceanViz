@@ -161,9 +161,6 @@
             "m_Id": "1e20ebec2736454f9ef8839d05cf4c3c"
         },
         {
-            "m_Id": "1a8da1dfbf054a55b7c481a74ad166c7"
-        },
-        {
             "m_Id": "28586a23c5d0424f9c443165dfaec76b"
         },
         {
@@ -320,7 +317,7 @@
         {
             "m_OutputSlot": {
                 "m_Node": {
-                    "m_Id": "1a8da1dfbf054a55b7c481a74ad166c7"
+                    "m_Id": "28586a23c5d0424f9c443165dfaec76b"
                 },
                 "m_SlotId": 0
             },
@@ -1624,48 +1621,6 @@
     "m_PreviewMode": 0,
     "m_CustomColors": {
         "m_SerializableColors": []
-    }
-}
-
-{
-    "m_SGVersion": 0,
-    "m_Type": "UnityEditor.ShaderGraph.KeywordNode",
-    "m_ObjectId": "1a8da1dfbf054a55b7c481a74ad166c7",
-    "m_Group": {
-        "m_Id": ""
-    },
-    "m_Name": "_DECAL_NORMAL_BLEND_LOW",
-    "m_DrawState": {
-        "m_Expanded": true,
-        "m_Position": {
-            "serializedVersion": "2",
-            "x": -88.0,
-            "y": 502.0,
-            "width": 226.0,
-            "height": 118.0
-        }
-    },
-    "m_Slots": [
-        {
-            "m_Id": "ae8684918a1942f7a2eeca3fb88b4851"
-        },
-        {
-            "m_Id": "f3e7ca87efbc49379855378bdf4d72f2"
-        },
-        {
-            "m_Id": "b457ebdb32a342cd81862589011bb7d5"
-        }
-    ],
-    "synonyms": [],
-    "m_Precision": 0,
-    "m_PreviewExpanded": false,
-    "m_DismissedVersion": 0,
-    "m_PreviewMode": 0,
-    "m_CustomColors": {
-        "m_SerializableColors": []
-    },
-    "m_Keyword": {
-        "m_Id": "34e24cdeca8f4ff194ae6826c4de87ef"
     }
 }
 

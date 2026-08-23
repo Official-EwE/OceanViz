@@ -5,672 +5,830 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using Unity.Transforms;
-using UnityEngine.Profiling;
 using Unity.Rendering;
+using Unity.Assertions;
 
 namespace OceanViz3
 {
+    internal static class BoidSchoolRuntimeUtility
+    {
+        public static int ComputeSchoolIndex(int dynamicEntityId, int boidSchoolId)
+        {
+            return (int)math.hash(new uint2((uint)dynamicEntityId, (uint)boidSchoolId));
+        }
+
+        public static BoidShared BuildLegacyBoidShared(in BoidSchoolRuntimeData runtimeData)
+        {
+            return new BoidShared
+            {
+                DynamicEntityId = runtimeData.DynamicEntityId,
+                BoidSchoolId = runtimeData.BoidSchoolId,
+                CellRadius = runtimeData.CellRadius,
+                BoundsMax = runtimeData.BoundsMax,
+                BoundsMin = runtimeData.BoundsMin,
+                SeparationWeight = runtimeData.SeparationWeight,
+                AlignmentWeight = runtimeData.AlignmentWeight,
+                TargetWeight = runtimeData.TargetWeight,
+                ObstacleAversionDistance = runtimeData.ObstacleAversionDistance,
+                DefaultMoveSpeed = runtimeData.DefaultMoveSpeed,
+                DefaultAnimationSpeed = runtimeData.DefaultAnimationSpeed,
+                MaxVerticalAngle = runtimeData.MaxVerticalAngle,
+                MaxTurnRate = runtimeData.MaxTurnRate,
+                SeabedBound = runtimeData.SeabedBound,
+                Predator = runtimeData.Predator,
+                Prey = runtimeData.Prey,
+                StateTransitionSpeed = runtimeData.StateTransitionSpeed,
+                StateChangeTimerMin = runtimeData.StateChangeTimerMin,
+                StateChangeTimerMax = runtimeData.StateChangeTimerMax,
+                BoneAnimated = runtimeData.BoneAnimated,
+                NumberOfLODs = runtimeData.NumberOfLODs,
+                SpeedModifierMin = runtimeData.SpeedModifierMin,
+                SpeedModifierMax = runtimeData.SpeedModifierMax,
+                SpeedJitterAmplitude = runtimeData.SpeedJitterAmplitude,
+                SpeedJitterFrequency = runtimeData.SpeedJitterFrequency,
+                MeshLargestDimension = runtimeData.MeshLargestDimension
+            };
+        }
+
+        public static void BuildScreenDisplayRange(in BoidSchoolRuntimeData runtimeData, int boidIndex, int boidTotal, out float4 boidScreenDisplayStart, out float4 boidScreenDisplayEnd)
+        {
+            boidScreenDisplayStart = new float4();
+            boidScreenDisplayEnd = new float4();
+
+            for (int i = 0; i < runtimeData.ViewsCount; i++)
+            {
+                bool visibleInView = false;
+                if (boidTotal > 0)
+                {
+                    int visibleCount = (int)(boidTotal * (runtimeData.ViewVisibilityPercentages[i] / 100.0f));
+                    if (boidIndex < visibleCount)
+                    {
+                        visibleInView = true;
+                    }
+                }
+
+                if (visibleInView)
+                {
+                    float startFloat = (1.0f / runtimeData.ViewsCount) * i;
+                    float endFloat = (1.0f / runtimeData.ViewsCount) * (i + 1);
+                    if (i == 0)
+                    {
+                        boidScreenDisplayStart.x = startFloat;
+                        boidScreenDisplayEnd.x = endFloat;
+                    }
+                    else if (i == 1)
+                    {
+                        boidScreenDisplayStart.y = startFloat;
+                        boidScreenDisplayEnd.y = endFloat;
+                    }
+                    else if (i == 2)
+                    {
+                        boidScreenDisplayStart.z = startFloat;
+                        boidScreenDisplayEnd.z = endFloat;
+                    }
+                    else if (i == 3)
+                    {
+                        boidScreenDisplayStart.w = startFloat;
+                        boidScreenDisplayEnd.w = endFloat;
+                    }
+                }
+            }
+        }
+    }
+
+    [BurstCompile]
+    [RequireMatchingQueriesForUpdate]
+    [UpdateInGroup(typeof(SimulationSystemGroup))]
+    [UpdateAfter(typeof(DistanceCullingSystem))]
+    [UpdateBefore(typeof(BoidSchoolSpawnPrototypeSetupSystem))]
+    public partial struct BoidSchoolRuntimeSyncSystem : ISystem
+    {
+        private EntityQuery sceneDataQuery;
+
+        public void OnCreate(ref SystemState state)
+        {
+            sceneDataQuery = state.EntityManager.CreateEntityQuery(typeof(SceneData));
+            state.RequireForUpdate(sceneDataQuery);
+        }
+
+        public void OnUpdate(ref SystemState state)
+        {
+            SceneData sceneData = sceneDataQuery.GetSingleton<SceneData>();
+
+            foreach (var (school, runtime) in SystemAPI.Query<RefRO<BoidSchoolComponent>, RefRW<BoidSchoolRuntimeData>>())
+            {
+                int schoolIndex = BoidSchoolRuntimeUtility.ComputeSchoolIndex(school.ValueRO.DynamicEntityId, school.ValueRO.BoidSchoolId);
+                float cullingMaxDistance = MainScene.CalculateCullingMaxDistance(
+                    school.ValueRO.MeshLargestDimension,
+                    sceneData.CullingStartMeshSize,
+                    sceneData.CullingStartDistance,
+                    sceneData.CullingEndMeshSize,
+                    sceneData.CullingEndDistance);
+
+                runtime.ValueRW = new BoidSchoolRuntimeData
+                {
+                    DynamicEntityId = school.ValueRO.DynamicEntityId,
+                    BoidSchoolId = school.ValueRO.BoidSchoolId,
+                    SchoolIndex = schoolIndex,
+                    Target = school.ValueRO.Target,
+                    BoundsCenter = school.ValueRO.Boundary.BoundsCenter,
+                    BoundsMin = school.ValueRO.Boundary.BoundsMin,
+                    BoundsMax = school.ValueRO.Boundary.BoundsMax,
+                    Boundary = school.ValueRO.Boundary,
+                    SeparationWeight = school.ValueRO.SeparationWeight,
+                    AlignmentWeight = school.ValueRO.AlignmentWeight,
+                    TargetWeight = school.ValueRO.TargetWeight,
+                    ObstacleAversionDistance = school.ValueRO.ObstacleAversionDistance,
+                    DefaultMoveSpeed = school.ValueRO.Speed,
+                    DefaultAnimationSpeed = school.ValueRO.AnimationSpeed,
+                    MaxVerticalAngle = school.ValueRO.MaxVerticalAngle,
+                    MaxTurnRate = school.ValueRO.MaxTurnRate,
+                    SeabedBound = school.ValueRO.SeabedBound,
+                    Predator = school.ValueRO.Predator,
+                    Prey = school.ValueRO.Prey,
+                    WaterCurrentInfluence = school.ValueRO.WaterCurrentInfluence,
+                    CellRadius = school.ValueRO.CellRadius,
+                    StateTransitionSpeed = school.ValueRO.StateTransitionSpeed,
+                    StateChangeTimerMin = school.ValueRO.StateChangeTimerMin,
+                    StateChangeTimerMax = school.ValueRO.StateChangeTimerMax,
+                    BoneAnimated = school.ValueRO.BoneAnimated,
+                    NumberOfLODs = school.ValueRO.NumberOfLODs,
+                    SpeedModifierMin = school.ValueRO.SpeedModifierMin,
+                    SpeedModifierMax = school.ValueRO.SpeedModifierMax,
+                    SpeedJitterAmplitude = school.ValueRO.SpeedJitterAmplitude,
+                    SpeedJitterFrequency = school.ValueRO.SpeedJitterFrequency,
+                    SpawnClustering = school.ValueRO.SpawnClustering,
+                    ScaleMin = school.ValueRO.ScaleMin,
+                    ScaleMax = school.ValueRO.ScaleMax,
+                    MeshLargestDimension = school.ValueRO.MeshLargestDimension,
+                    CullingMaxDistance = cullingMaxDistance,
+                    ViewsCount = school.ValueRO.ViewsCount,
+                    ViewVisibilityPercentages = school.ValueRO.ViewVisibilityPercentages,
+                    AnimationSpeed = school.ValueRO.AnimationSpeed,
+                    SineWavelength = school.ValueRO.SineWavelength,
+                    SineDeformationAmplitude = school.ValueRO.SineDeformationAmplitude,
+                    Secondary1AnimationAmplitude = school.ValueRO.Secondary1AnimationAmplitude,
+                    InvertSecondary1Animation = school.ValueRO.InvertSecondary1Animation,
+                    Secondary2AnimationAmplitude = school.ValueRO.Secondary2AnimationAmplitude,
+                    InvertSecondary2Animation = school.ValueRO.InvertSecondary2Animation,
+                    SideToSideAmplitude = school.ValueRO.SideToSideAmplitude,
+                    YawAmplitude = school.ValueRO.YawAmplitude,
+                    RollingSpineAmplitude = school.ValueRO.RollingSpineAmplitude,
+                    MeshZMin = school.ValueRO.MeshZMin,
+                    MeshZMax = school.ValueRO.MeshZMax,
+                    PositiveYClip = school.ValueRO.PositiveYClip,
+                    NegativeYClip = school.ValueRO.NegativeYClip
+                };
+            }
+        }
+    }
+
+    [RequireMatchingQueriesForUpdate]
+    [UpdateInGroup(typeof(SimulationSystemGroup))]
+    [UpdateAfter(typeof(BoidSchoolRuntimeSyncSystem))]
+    [UpdateBefore(typeof(BoidSchoolSpawnSystem))]
+    public partial struct BoidSchoolSpawnPrototypeSetupSystem : ISystem
+    {
+        private EntityQuery boidSchoolQuery;
+
+        public void OnCreate(ref SystemState state)
+        {
+            boidSchoolQuery = SystemAPI.QueryBuilder()
+                .WithAll<BoidSchoolComponent, BoidSchoolRuntimeData, BoidSchoolSpawnPrototype>()
+                .Build();
+        }
+
+        public void OnUpdate(ref SystemState state)
+        {
+            NativeArray<Entity> schoolEntities = boidSchoolQuery.ToEntityArray(Allocator.Temp);
+            NativeArray<BoidSchoolComponent> schoolComponents = boidSchoolQuery.ToComponentDataArray<BoidSchoolComponent>(Allocator.Temp);
+            NativeArray<BoidSchoolRuntimeData> runtimeDataArray = boidSchoolQuery.ToComponentDataArray<BoidSchoolRuntimeData>(Allocator.Temp);
+            NativeArray<BoidSchoolSpawnPrototype> spawnPrototypeArray = boidSchoolQuery.ToComponentDataArray<BoidSchoolSpawnPrototype>(Allocator.Temp);
+
+            try
+            {
+                for (int i = 0; i < schoolEntities.Length; i++)
+                {
+                    Entity schoolEntity = schoolEntities[i];
+                    BoidSchoolComponent schoolComponent = schoolComponents[i];
+                    BoidSchoolRuntimeData runtimeData = runtimeDataArray[i];
+                    BoidSchoolSpawnPrototype spawnPrototypeData = spawnPrototypeArray[i];
+
+                    if (schoolComponent.DestroyRequested)
+                    {
+                        continue;
+                    }
+
+                    if (spawnPrototypeData.Value != Entity.Null && state.EntityManager.Exists(spawnPrototypeData.Value))
+                    {
+                        continue;
+                    }
+
+                    Assert.IsTrue(state.EntityManager.Exists(schoolComponent.BoidPrototype), "BoidSchoolSpawnPrototypeSetupSystem requires a valid base boid prototype.");
+                    Entity spawnPrototype = state.EntityManager.Instantiate(schoolComponent.BoidPrototype);
+                    if (state.EntityManager.HasComponent<Prefab>(spawnPrototype) == false)
+                    {
+                        state.EntityManager.AddComponent<Prefab>(spawnPrototype);
+                    }
+
+                    state.EntityManager.SetName(spawnPrototype, "BoidSpawnPrototype_" + runtimeData.DynamicEntityId + "_" + runtimeData.BoidSchoolId);
+                    state.EntityManager.SetSharedComponentManaged(spawnPrototype, BoidSchoolRuntimeUtility.BuildLegacyBoidShared(runtimeData));
+                    state.EntityManager.SetComponentData(spawnPrototype, new CullingComponent { MaxDistance = runtimeData.CullingMaxDistance });
+                    state.EntityManager.SetComponentData(spawnPrototype, new LODState { CurrentLOD = 0 });
+                    state.EntityManager.SetComponentData(spawnPrototype, new BoidSchoolMember
+                    {
+                        SchoolEntity = schoolEntity,
+                        SchoolIndex = runtimeData.SchoolIndex,
+                        DynamicEntityId = runtimeData.DynamicEntityId,
+                        BoidSchoolId = runtimeData.BoidSchoolId
+                    });
+                    state.EntityManager.SetComponentData(spawnPrototype, new CurrentVectorOverride { Value = float3.zero });
+                    state.EntityManager.SetComponentData(spawnPrototype, new AccumulatedTimeOverride { Value = 0.0f });
+                    state.EntityManager.SetComponentData(spawnPrototype, new MeshZMinOverride { Value = runtimeData.MeshZMin });
+                    state.EntityManager.SetComponentData(spawnPrototype, new MeshZMaxOverride { Value = runtimeData.MeshZMax });
+                    state.EntityManager.SetComponentData(spawnPrototype, new AnimationSpeedOverride { Value = runtimeData.AnimationSpeed });
+                    state.EntityManager.SetComponentData(spawnPrototype, new SineWavelengthOverride { Value = runtimeData.SineWavelength });
+                    state.EntityManager.SetComponentData(spawnPrototype, new SineDeformationAmplitudeOverride { Value = runtimeData.SineDeformationAmplitude });
+                    state.EntityManager.SetComponentData(spawnPrototype, new Secondary1AnimationAmplitudeOverride { Value = runtimeData.Secondary1AnimationAmplitude });
+                    state.EntityManager.SetComponentData(spawnPrototype, new InvertSecondary1AnimationOverride { Value = runtimeData.InvertSecondary1Animation });
+                    state.EntityManager.SetComponentData(spawnPrototype, new Secondary2AnimationAmplitudeOverride { Value = runtimeData.Secondary2AnimationAmplitude });
+                    state.EntityManager.SetComponentData(spawnPrototype, new InvertSecondary2AnimationOverride { Value = runtimeData.InvertSecondary2Animation });
+                    state.EntityManager.SetComponentData(spawnPrototype, new SideToSideAmplitudeOverride { Value = runtimeData.SideToSideAmplitude });
+                    state.EntityManager.SetComponentData(spawnPrototype, new YawAmplitudeOverride { Value = runtimeData.YawAmplitude });
+                    state.EntityManager.SetComponentData(spawnPrototype, new RollingSpineAmplitudeOverride { Value = runtimeData.RollingSpineAmplitude });
+                    state.EntityManager.SetComponentData(spawnPrototype, new PositiveYClipOverride { Value = runtimeData.PositiveYClip });
+                    state.EntityManager.SetComponentData(spawnPrototype, new NegativeYClipOverride { Value = runtimeData.NegativeYClip });
+
+                    if (runtimeData.SeabedBound)
+                    {
+                        if (state.EntityManager.HasComponent<OpenWaterBoidTag>(spawnPrototype))
+                        {
+                            state.EntityManager.RemoveComponent<OpenWaterBoidTag>(spawnPrototype);
+                        }
+                        if (state.EntityManager.HasComponent<SeabedBoidTag>(spawnPrototype) == false)
+                        {
+                            state.EntityManager.AddComponent<SeabedBoidTag>(spawnPrototype);
+                        }
+                    }
+                    else
+                    {
+                        if (state.EntityManager.HasComponent<SeabedBoidTag>(spawnPrototype))
+                        {
+                            state.EntityManager.RemoveComponent<SeabedBoidTag>(spawnPrototype);
+                        }
+                        if (state.EntityManager.HasComponent<OpenWaterBoidTag>(spawnPrototype) == false)
+                        {
+                            state.EntityManager.AddComponent<OpenWaterBoidTag>(spawnPrototype);
+                        }
+                    }
+
+                    if (runtimeData.BoneAnimated)
+                    {
+                        if (state.EntityManager.HasComponent<DisableRendering>(spawnPrototype) == false)
+                        {
+                            state.EntityManager.AddComponent<DisableRendering>(spawnPrototype);
+                        }
+                    }
+                    else
+                    {
+                        if (state.EntityManager.HasComponent<DisableRendering>(spawnPrototype))
+                        {
+                            state.EntityManager.RemoveComponent<DisableRendering>(spawnPrototype);
+                        }
+                    }
+
+                    if (runtimeData.Predator)
+                    {
+                        if (state.EntityManager.HasComponent<BoidPredator>(spawnPrototype) == false)
+                        {
+                            state.EntityManager.AddComponent<BoidPredator>(spawnPrototype);
+                        }
+                    }
+                    else
+                    {
+                        if (state.EntityManager.HasComponent<BoidPredator>(spawnPrototype))
+                        {
+                            state.EntityManager.RemoveComponent<BoidPredator>(spawnPrototype);
+                        }
+                    }
+
+                    if (runtimeData.Prey)
+                    {
+                        if (state.EntityManager.HasComponent<BoidPrey>(spawnPrototype) == false)
+                        {
+                            state.EntityManager.AddComponent<BoidPrey>(spawnPrototype);
+                        }
+                        if (state.EntityManager.HasComponent<EscapingPredator>(spawnPrototype) == false)
+                        {
+                            state.EntityManager.AddComponent<EscapingPredator>(spawnPrototype);
+                        }
+                        state.EntityManager.SetComponentEnabled<EscapingPredator>(spawnPrototype, false);
+                    }
+                    else
+                    {
+                        if (state.EntityManager.HasComponent<BoidPrey>(spawnPrototype))
+                        {
+                            state.EntityManager.RemoveComponent<BoidPrey>(spawnPrototype);
+                        }
+                        if (state.EntityManager.HasComponent<EscapingPredator>(spawnPrototype))
+                        {
+                            state.EntityManager.RemoveComponent<EscapingPredator>(spawnPrototype);
+                        }
+                    }
+
+                    state.EntityManager.SetComponentEnabled<BoidUnique>(spawnPrototype, false);
+                    state.EntityManager.SetComponentEnabled<BoidSpawnPending>(spawnPrototype, true);
+
+                    spawnPrototypeData.Value = spawnPrototype;
+                    state.EntityManager.SetComponentData(schoolEntity, spawnPrototypeData);
+                }
+            }
+            finally
+            {
+                schoolEntities.Dispose();
+                schoolComponents.Dispose();
+                runtimeDataArray.Dispose();
+                spawnPrototypeArray.Dispose();
+            }
+        }
+    }
+
     /// <summary>
     /// System responsible for managing boid schools and their member boids.
-    /// Boid schools are entities that manage the spawning and destruction of boids which are members of a single DynamicEntityGroup.
+    /// Boid schools own their spawned boids, cached spawn prototype, and per-school runtime settings.
     /// </summary>
     [RequireMatchingQueriesForUpdate]
-    // [BurstCompile] RandomGenerator is not supported in Burst
+    [UpdateInGroup(typeof(SimulationSystemGroup))]
+    [UpdateAfter(typeof(BoidSchoolSpawnPrototypeSetupSystem))]
+    [UpdateBefore(typeof(BoidSystem))]
     public partial struct BoidSchoolSpawnSystem : ISystem
     {
         private int previousStaticGroupsCount;
-        /// <summary>
-        /// Main update loop that processes all boid schools and their members.
-        /// Handles:
-        /// - School/boid destruction when requested
-        /// - Target entity management
-        /// - Boid spawning and destroying to match requested counts
-        /// - Shader property updates
-        /// - Target repositioning and speed randomization
-        /// </summary>
+        private EntityQuery fixedStepTimeQuery;
+        private EntityQuery sceneDataQuery;
+        private EntityQuery seabedSurfaceQuery;
+        private EntityQuery staticGroupsQuery;
+        private EntityQuery boidSchoolQuery;
+
+        public void OnCreate(ref SystemState state)
+        {
+            fixedStepTimeQuery = state.EntityManager.CreateEntityQuery(typeof(BoidFixedStepTime));
+            sceneDataQuery = state.EntityManager.CreateEntityQuery(typeof(SceneData));
+            seabedSurfaceQuery = state.EntityManager.CreateEntityQuery(typeof(SeabedSurfaceData));
+            staticGroupsQuery = SystemAPI.QueryBuilder().WithAll<StaticEntitiesGroupComponent>().Build();
+            boidSchoolQuery = SystemAPI.QueryBuilder()
+                .WithAll<BoidSchoolComponent, BoidSchoolRuntimeData, BoidSchoolSpawnPrototype>()
+                .Build();
+
+            state.RequireForUpdate(fixedStepTimeQuery);
+            state.RequireForUpdate(sceneDataQuery);
+            state.RequireForUpdate(boidSchoolQuery);
+        }
+
         public void OnUpdate(ref SystemState state)
         {
-            var localToWorldLookup = SystemAPI.GetComponentLookup<LocalToWorld>();
             var entityCommandBuffer = new EntityCommandBuffer(Allocator.Temp);
             var world = state.World.Unmanaged;
-            float deltaTime = SystemAPI.Time.DeltaTime;
+            SceneData sceneData = sceneDataQuery.GetSingleton<SceneData>();
+            BoidFixedStepTime fixedStepTime = fixedStepTimeQuery.GetSingleton<BoidFixedStepTime>();
+            int fixedStepCount = fixedStepTime.StepCount;
+            float fixedStep = fixedStepTime.FixedStep;
 
-            // Reset deterministic sequences when there are no static entity groups
-            var staticGroupsQuery = SystemAPI.QueryBuilder().WithAll<StaticEntitiesGroupComponent>().Build();
             int staticGroupsCount = staticGroupsQuery.CalculateEntityCount();
             if (previousStaticGroupsCount > 0 && staticGroupsCount == 0)
             {
                 foreach (var (schoolRO, schoolEntity) in SystemAPI.Query<RefRO<BoidSchoolComponent>>().WithEntityAccess())
                 {
-                    var school = schoolRO.ValueRO;
+                    BoidSchoolComponent school = schoolRO.ValueRO;
                     school.TargetRepositionIteration = 0;
-                    school.TargetRepositionTimer = 0f; // force immediate reposition after reset
+                    school.TargetRepositionTimer = 0.0f;
                     entityCommandBuffer.SetComponent(schoolEntity, school);
                 }
             }
             previousStaticGroupsCount = staticGroupsCount;
 
-            // Iterate over all BoidSchool entities
-            foreach (var (boidSchool, boidSchoolLocalToWorld, boidSchoolEntity) in
-                     SystemAPI.Query<RefRO<BoidSchoolComponent>, RefRO<LocalToWorld>>()
-                         .WithEntityAccess())
+            NativeArray<Entity> schoolEntities = boidSchoolQuery.ToEntityArray(Allocator.Temp);
+            NativeArray<BoidSchoolComponent> schoolComponents = boidSchoolQuery.ToComponentDataArray<BoidSchoolComponent>(Allocator.Temp);
+            NativeArray<BoidSchoolRuntimeData> schoolRuntimeData = boidSchoolQuery.ToComponentDataArray<BoidSchoolRuntimeData>(Allocator.Temp);
+            NativeArray<BoidSchoolSpawnPrototype> schoolSpawnPrototypes = boidSchoolQuery.ToComponentDataArray<BoidSchoolSpawnPrototype>(Allocator.Temp);
+
+            try
             {
-                // School + boids destroy requested 
-                if (boidSchool.ValueRO.DestroyRequested == true)
+                for (int schoolIndex = 0; schoolIndex < schoolEntities.Length; schoolIndex++)
                 {
-                    // Destroy target
-                    if (boidSchool.ValueRO.Target != Entity.Null)
+                    Entity schoolEntity = schoolEntities[schoolIndex];
+                    BoidSchoolComponent school = schoolComponents[schoolIndex];
+                    BoidSchoolRuntimeData runtimeData = schoolRuntimeData[schoolIndex];
+                    BoidSchoolSpawnPrototype spawnPrototype = schoolSpawnPrototypes[schoolIndex];
+                    DynamicBuffer<BoidSchoolOwnedBoid> ownedBoids = state.EntityManager.GetBuffer<BoidSchoolOwnedBoid>(schoolEntity);
+
+                    CompactOwnedBoids(state.EntityManager, ownedBoids);
+
+                    if (school.DestroyRequested)
                     {
-                        Entity targetEntity = boidSchool.ValueRO.Target;
-                        entityCommandBuffer.DestroyEntity(targetEntity);
+                        if (school.Target != Entity.Null)
+                        {
+                            entityCommandBuffer.DestroyEntity(school.Target);
+                        }
+
+                        if (spawnPrototype.Value != Entity.Null && state.EntityManager.Exists(spawnPrototype.Value))
+                        {
+                            entityCommandBuffer.DestroyEntity(spawnPrototype.Value);
+                        }
+
+                        for (int i = 0; i < ownedBoids.Length; i++)
+                        {
+                            entityCommandBuffer.DestroyEntity(ownedBoids[i].Value);
+                        }
+
+                        entityCommandBuffer.DestroyEntity(schoolEntity);
+                        continue;
                     }
-                    
-                    // Destroy boids
-                    EntityQuery boidQuery = SystemAPI.QueryBuilder().WithAll<BoidShared>().WithAll<LocalToWorld>().WithOptions(EntityQueryOptions.IncludeDisabledEntities).Build();
-                    state.EntityManager.GetAllUniqueSharedComponents(out NativeList<BoidShared> uniqueBoidTypes, world.UpdateAllocator.ToAllocator);
 
-                    var boidEntities = boidQuery.ToEntityArray(Allocator.TempJob);
-                    foreach (Entity boidEntity in boidEntities)
+                    BoidSchoolComponent boidSchoolCopy = school;
+
+                    if (school.Target == Entity.Null)
                     {
-                        BoidShared boidShared = state.EntityManager.GetSharedComponentManaged<BoidShared>(boidEntity);
-                        if (boidShared.DynamicEntityId == boidSchool.ValueRO.DynamicEntityId && boidShared.BoidSchoolId == boidSchool.ValueRO.BoidSchoolId)
-                        {
-                            entityCommandBuffer.DestroyEntity(boidEntity);
-                        }
-                    }
-                    boidEntities.Dispose();
-                    
-                    // Destroy BoidSchool entity
-                    entityCommandBuffer.DestroyEntity(boidSchoolEntity);
-                    
-                    // Done with this BoidSchool
-                    continue;
-                }
-                
-                var boidSchoolCopy = boidSchool.ValueRO; // We will modify the BoidSchool component data, and then set it back to the entity at the end
-
-                // Mandatory prerequisites
-                //If no target spawned, spawn a target using TargetAuthoring, and set the target's BoidSchoolId and DynamicEntityId
-                if (boidSchool.ValueRO.Target == Entity.Null)
-                {
-                    // Instantiate the target from the BoidSchool's BoidTargetPrefab and set its BoidTarget's BoidSchoolId to the BoidSchool's Id
-                    Entity targetEntity = entityCommandBuffer.Instantiate(boidSchool.ValueRO.BoidTargetPrefab);
-                    entityCommandBuffer.SetComponent(targetEntity, new BoidTarget
-                    {
-                        BoidSchoolId = boidSchool.ValueRO.BoidSchoolId,
-                        DynamicEntityId = boidSchool.ValueRO.DynamicEntityId
-                    });
-                    
-                    // Set the name of the target including the BoidSchoolId and DynamicEntityId
-                    entityCommandBuffer.SetName(targetEntity, "BoidTarget_" + boidSchool.ValueRO.DynamicEntityId + "_" + boidSchool.ValueRO.BoidSchoolId);
-
-                    // Set the target's LocalToWorld position deterministically within the bounds
-                    var pos = GenerateDeterministicPositionWithinBounds(boidSchool.ValueRO.BoundsCenter, boidSchool.ValueRO.BoundsSize, (uint)boidSchool.ValueRO.DynamicEntityId, (uint)boidSchool.ValueRO.BoidSchoolId, 0u);
-                    entityCommandBuffer.SetComponent(targetEntity, new LocalTransform
-                    {
-                        Position = pos,
-                        Rotation = quaternion.identity,
-                        Scale = 1.0f
-                    });
-
-                    // Set the boidSchool's Target to the targetEntity
-                    boidSchoolCopy.Target = targetEntity;
-                }
-                // Mandatory prerequisites completed, manage boids
-                else
-                {
-                    // Boid spawning/destroying
-                    // Check if there is a difference between the BoidSchool's Count and the number of Boids with the BoidSchoolId
-                    if (boidSchool.ValueRO.Count != boidSchool.ValueRO.RequestedCount)
-                    {
-                        // If the BoidSchool's Count is less than the requested count, instantiate the difference
-                        if (boidSchool.ValueRO.RequestedCount > boidSchool.ValueRO.Count)
-                        {
-                            var amountToInstantiate = boidSchool.ValueRO.RequestedCount - boidSchool.ValueRO.Count;
-
-                            // Create a native array of entities to hold the boids
-                            var boidEntities =
-                                CollectionHelper.CreateNativeArray<Entity, RewindableAllocator>(amountToInstantiate,
-                                    ref world.UpdateAllocator); 
-
-                            // Instantiate the boids
-                            state.EntityManager.Instantiate(boidSchool.ValueRO.BoidPrototype, boidEntities);
-                            
-                            // Set up MaterialMeshInfo for each new boid
-                            for (int i = 0; i < boidEntities.Length; i++)
-                            {
-                                // Get the RenderMeshArray from the prototype
-                                var renderMeshArray = state.EntityManager.GetSharedComponentManaged<RenderMeshArray>(boidSchool.ValueRO.BoidPrototype);
-                                entityCommandBuffer.SetSharedComponentManaged(boidEntities[i], renderMeshArray);
-                                
-                                // Initialize with LOD0
-                                var materialMeshInfo = MaterialMeshInfo.FromRenderMeshArrayIndices(0, 0);
-                                entityCommandBuffer.SetComponent(boidEntities[i], materialMeshInfo);
-                            }
-                            
-                            // If bone animated, add DisableRendering component
-                            if (boidSchool.ValueRO.BoneAnimated)
-                            {
-                                for (int i = 0; i < boidEntities.Length; i++)
-                                {
-                                    entityCommandBuffer.AddComponent<DisableRendering>(boidEntities[i]);
-                                }
-                            }
-                            
-                            // If boid.Predator is true, use the command buffer to add the BoidPredator component to boidEntities. Command buffer is mandatory for structural changes
-                            if (boidSchool.ValueRO.Predator)
-                            {
-                                for (int i = 0; i < boidEntities.Length; i++)
-                                {
-                                    entityCommandBuffer.AddComponent<BoidPredator>(boidEntities[i]);
-                                }
-                            }
-                            
-                            // If boid.Prey is true, use the command buffer to add the BoidPrey component to boidEntities. Command buffer is mandatory for structural changes
-                            if (boidSchool.ValueRO.Prey)
-                            {
-                                for (int i = 0; i < boidEntities.Length; i++)
-                                {
-                                    entityCommandBuffer.AddComponent<BoidPrey>(boidEntities[i]);
-                                    // Add EscapingPredator component (disabled by default) for prey boids
-                                    entityCommandBuffer.AddComponent<EscapingPredator>(boidEntities[i]);
-                                    entityCommandBuffer.SetComponentEnabled<EscapingPredator>(boidEntities[i], false);
-                                }
-                            }
-                            
-                            for (int i = 0; i < boidEntities.Length; i++)
-                            {
-                                // Set the name of the boids adding the group id and the school id
-                                entityCommandBuffer.SetName(boidEntities[i], "Boid_" + boidSchool.ValueRO.DynamicEntityId + "_" + boidSchool.ValueRO.BoidSchoolId + "_" + i);
-
-                                BoidShared boidShared = new BoidShared
-                                {
-                                    DynamicEntityId = boidSchool.ValueRO.DynamicEntityId,
-                                    BoidSchoolId = boidSchool.ValueRO.BoidSchoolId,
-                                    BoundsMax = boidSchool.ValueRO.BoundsCenter + (boidSchool.ValueRO.BoundsSize * 0.5f),
-                                    BoundsMin = boidSchool.ValueRO.BoundsCenter - (boidSchool.ValueRO.BoundsSize * 0.5f),
-                                    DefaultMoveSpeed = boidSchool.ValueRO.Speed,
-                                    MaxVerticalAngle = boidSchool.ValueRO.MaxVerticalAngle,
-                                    MaxTurnRate = boidSchool.ValueRO.MaxTurnRate,
-                                    DefaultAnimationSpeed = boidSchool.ValueRO.AnimationSpeed,
-                                    Predator = boidSchool.ValueRO.Predator,
-                                    Prey = boidSchool.ValueRO.Prey,
-                                    CellRadius = boidSchool.ValueRO.CellRadius,
-                                    SeparationWeight = boidSchool.ValueRO.SeparationWeight,
-                                    AlignmentWeight = boidSchool.ValueRO.AlignmentWeight,
-                                    TargetWeight = boidSchool.ValueRO.TargetWeight,
-                                    ObstacleAversionDistance = boidSchool.ValueRO.ObstacleAversionDistance,
-                                    SeabedBound = boidSchool.ValueRO.SeabedBound,
-                                    StateTransitionSpeed = boidSchool.ValueRO.StateTransitionSpeed,
-                                    StateChangeTimerMin = boidSchool.ValueRO.StateChangeTimerMin,
-                                    StateChangeTimerMax = boidSchool.ValueRO.StateChangeTimerMax,
-                                    BoneAnimated = boidSchool.ValueRO.BoneAnimated,
-                                    NumberOfLODs = boidSchool.ValueRO.NumberOfLODs,
-                                    SpeedModifierMin = boidSchool.ValueRO.SpeedModifierMin,
-                                    SpeedModifierMax = boidSchool.ValueRO.SpeedModifierMax,
-                                    // Mesh dimensions
-                                    MeshSize = boidSchool.ValueRO.MeshSize,
-                                    MeshLargestDimension = boidSchool.ValueRO.MeshLargestDimension,
-                                };
-
-                                entityCommandBuffer.SetSharedComponentManaged(boidEntities[i], boidShared);
-                                
-                                // Unique
-                                BoidUnique boidUnique = new BoidUnique
-                                {
-                                    Disabled = false,
-                                    MoveSpeedModifier = 1.0f,
-                                    TargetSpeedModifier = 1.0f,
-                                    TargetVector = new float3(0, 0, 0),
-                                    PreviousHeading = new float3(0, 0, 0),
-                                };
-                                entityCommandBuffer.SetComponent(boidEntities[i], boidUnique);
-
-                                //// Shader overrides
-                                
-                                // CurrentVectorOverride
-                                CurrentVectorOverride currentVectorOverride = state.EntityManager.GetComponentData<CurrentVectorOverride>(boidEntities[i]);
-                                currentVectorOverride.Value = new float3(0, 0, 0);
-                                entityCommandBuffer.SetComponent(boidEntities[i], currentVectorOverride);
-                                
-                                // AccumulatedTimeOverride
-                                AccumulatedTimeOverride accumulatedTimeOverride = state.EntityManager.GetComponentData<AccumulatedTimeOverride>(boidEntities[i]);
-                                accumulatedTimeOverride.Value = 0f;
-                                entityCommandBuffer.SetComponent(boidEntities[i], accumulatedTimeOverride);
-                                
-                                // Set MeshZMin and MeshZMax
-                                MeshZMinOverride meshZMinOverride = state.EntityManager.GetComponentData<MeshZMinOverride>(boidEntities[i]);
-                                meshZMinOverride.Value = boidSchool.ValueRO.MeshZMin;
-                                entityCommandBuffer.SetComponent(boidEntities[i], meshZMinOverride);
-                                
-                                MeshZMaxOverride meshZMaxOverride = state.EntityManager.GetComponentData<MeshZMaxOverride>(boidEntities[i]);
-                                meshZMaxOverride.Value = boidSchool.ValueRO.MeshZMax;
-                                entityCommandBuffer.SetComponent(boidEntities[i], meshZMaxOverride);
-                                
-                                AnimationSpeedOverride animationSpeedOverride = state.EntityManager.GetComponentData<AnimationSpeedOverride>(boidEntities[i]);
-                                animationSpeedOverride.Value = boidSchool.ValueRO.AnimationSpeed;
-                                entityCommandBuffer.SetComponent(boidEntities[i], animationSpeedOverride);
-                                
-                                SineWavelengthOverride sineWavelengthOverride = state.EntityManager.GetComponentData<SineWavelengthOverride>(boidEntities[i]);
-                                sineWavelengthOverride.Value = boidSchool.ValueRO.SineWavelength;
-                                entityCommandBuffer.SetComponent(boidEntities[i], sineWavelengthOverride);
-                                
-                                SineDeformationAmplitudeOverride sineDeformationAmplitudeOverride = state.EntityManager.GetComponentData<SineDeformationAmplitudeOverride>(boidEntities[i]);
-                                sineDeformationAmplitudeOverride.Value = new float3(
-                                    boidSchool.ValueRO.SineDeformationAmplitude.x,
-                                    boidSchool.ValueRO.SineDeformationAmplitude.y,
-                                    boidSchool.ValueRO.SineDeformationAmplitude.z
-                                );
-                                entityCommandBuffer.SetComponent(boidEntities[i], sineDeformationAmplitudeOverride);
-                                
-                                Secondary1AnimationAmplitudeOverride secondary1AnimationAmplitudeOverride = state.EntityManager.GetComponentData<Secondary1AnimationAmplitudeOverride>(boidEntities[i]);
-                                secondary1AnimationAmplitudeOverride.Value = boidSchool.ValueRO.Secondary1AnimationAmplitude;
-                                entityCommandBuffer.SetComponent(boidEntities[i], secondary1AnimationAmplitudeOverride);
-                                
-                                InvertSecondary1AnimationOverride invertSecondary1AnimationOverride = state.EntityManager.GetComponentData<InvertSecondary1AnimationOverride>(boidEntities[i]);
-                                invertSecondary1AnimationOverride.Value = boidSchool.ValueRO.InvertSecondary1Animation;
-                                entityCommandBuffer.SetComponent(boidEntities[i], invertSecondary1AnimationOverride);
-                                
-                                Secondary2AnimationAmplitudeOverride secondary2AnimationAmplitudeOverride = state.EntityManager.GetComponentData<Secondary2AnimationAmplitudeOverride>(boidEntities[i]);
-                                secondary2AnimationAmplitudeOverride.Value = new float3(
-                                    boidSchool.ValueRO.Secondary2AnimationAmplitude.x,
-                                    boidSchool.ValueRO.Secondary2AnimationAmplitude.y,
-                                    boidSchool.ValueRO.Secondary2AnimationAmplitude.z
-                                );
-                                entityCommandBuffer.SetComponent(boidEntities[i], secondary2AnimationAmplitudeOverride);
-                                
-                                InvertSecondary2AnimationOverride invertSecondary2AnimationOverride = state.EntityManager.GetComponentData<InvertSecondary2AnimationOverride>(boidEntities[i]);
-                                invertSecondary2AnimationOverride.Value = boidSchool.ValueRO.InvertSecondary2Animation;
-                                entityCommandBuffer.SetComponent(boidEntities[i], invertSecondary2AnimationOverride);
-                                
-                                SideToSideAmplitudeOverride sideToSideAmplitudeOverride = state.EntityManager.GetComponentData<SideToSideAmplitudeOverride>(boidEntities[i]);
-                                sideToSideAmplitudeOverride.Value = new float3(
-                                    boidSchool.ValueRO.SideToSideAmplitude.x,
-                                    boidSchool.ValueRO.SideToSideAmplitude.y,
-                                    boidSchool.ValueRO.SideToSideAmplitude.z
-                                );
-                                entityCommandBuffer.SetComponent(boidEntities[i], sideToSideAmplitudeOverride);
-                                
-                                YawAmplitudeOverride yawAmplitudeOverride = state.EntityManager.GetComponentData<YawAmplitudeOverride>(boidEntities[i]);
-                                yawAmplitudeOverride.Value = new float3(
-                                    boidSchool.ValueRO.YawAmplitude.x,
-                                    boidSchool.ValueRO.YawAmplitude.y,
-                                    boidSchool.ValueRO.YawAmplitude.z
-                                );
-                                entityCommandBuffer.SetComponent(boidEntities[i], yawAmplitudeOverride);
-                                
-                                RollingSpineAmplitudeOverride rollingSpineAmplitudeOverride = state.EntityManager.GetComponentData<RollingSpineAmplitudeOverride>(boidEntities[i]);
-                                rollingSpineAmplitudeOverride.Value = new float3(
-                                    boidSchool.ValueRO.RollingSpineAmplitude.x,
-                                    boidSchool.ValueRO.RollingSpineAmplitude.y,
-                                    boidSchool.ValueRO.RollingSpineAmplitude.z
-                                );
-                                entityCommandBuffer.SetComponent(boidEntities[i], rollingSpineAmplitudeOverride);
-                                
-                                PositiveYClipOverride positiveYClipOverride = state.EntityManager.GetComponentData<PositiveYClipOverride>(boidEntities[i]);
-                                positiveYClipOverride.Value = boidSchool.ValueRO.PositiveYClip;
-                                entityCommandBuffer.SetComponent(boidEntities[i], positiveYClipOverride);
-                                
-                                NegativeYClipOverride negativeYClipOverride = state.EntityManager.GetComponentData<NegativeYClipOverride>(boidEntities[i]);
-                                negativeYClipOverride.Value = boidSchool.ValueRO.PositiveYClip;
-                                entityCommandBuffer.SetComponent(boidEntities[i], negativeYClipOverride);
-                                
-                                // Set the AnimationRandomOffsetOverride to a random value between 0.0f and 1.0f
-                                AnimationRandomOffsetOverride animationRandomOffsetOverride = state.EntityManager.GetComponentData<AnimationRandomOffsetOverride>(boidEntities[i]);
-                                uint animationSeed = math.hash(new uint4((uint)boidSchool.ValueRO.DynamicEntityId, (uint)boidSchool.ValueRO.BoidSchoolId, (uint)i, 0u));
-                                var animationRng = Unity.Mathematics.Random.CreateFromIndex(animationSeed);
-                                animationRandomOffsetOverride.Value = animationRng.NextFloat(-100.0f, 100.0f);
-                                entityCommandBuffer.SetComponent(boidEntities[i], animationRandomOffsetOverride);
-                            }
-
-                            // Place the boids
-                            var setBoidLocalToWorldJob = new SetBoidLocalToWorld 
-                            {
-                                LocalToWorldFromEntity = localToWorldLookup,
-                                Entities = boidEntities,
-                                Bounds = new AABB
-                                {
-                                    Center = boidSchool.ValueRO.BoundsCenter,
-                                    Extents = boidSchool.ValueRO.BoundsSize * 0.5f // Extents is half the size
-                                },
-                                DynamicEntityId = boidSchool.ValueRO.DynamicEntityId,
-                                BoidSchoolId = boidSchool.ValueRO.BoidSchoolId
-
-                            };
-                            state.Dependency = setBoidLocalToWorldJob.Schedule(amountToInstantiate, 64, state.Dependency);
-                            state.Dependency.Complete();
-
-                            // Set the boidSchool Count to the RequestedCount
-                            boidSchoolCopy.Count = boidSchool.ValueRO.RequestedCount;
-                        }
-
-                        // If the BoidSchool's Count is more than the number of Boids with the BoidSchoolId, destroy excess
-                        else if (boidSchool.ValueRO.RequestedCount < boidSchool.ValueRO.Count)
-                        {
-                            int entitiesToDestroy = boidSchool.ValueRO.Count - boidSchool.ValueRO.RequestedCount;
-                            
-                            EntityQuery boidQuery = SystemAPI.QueryBuilder().WithAll<BoidShared>().WithAll<LocalToWorld>().WithOptions(EntityQueryOptions.IncludeDisabledEntities).Build();
-                            state.EntityManager.GetAllUniqueSharedComponents(out NativeList<BoidShared> uniqueBoidTypes, world.UpdateAllocator.ToAllocator);
-
-                            var boidEntities = boidQuery.ToEntityArray(Allocator.TempJob);
-                            foreach (Entity boidEntity in boidEntities)
-                            {
-                                BoidShared boidShared = state.EntityManager.GetSharedComponentManaged<BoidShared>(boidEntity);
-                                if (boidShared.DynamicEntityId == boidSchool.ValueRO.DynamicEntityId && boidShared.BoidSchoolId == boidSchool.ValueRO.BoidSchoolId)
-                                {
-                                    entityCommandBuffer.DestroyEntity(boidEntity);
-                                    entitiesToDestroy--;
-                                }
-                                if (entitiesToDestroy <= 0)
-                                {
-                                    break;
-                                }
-                            }
-                            boidEntities.Dispose();
-
-                            // Set the boidSchool Count to the RequestedCount
-                            boidSchoolCopy.Count = boidSchool.ValueRO.RequestedCount;
-                        }
-                    }
-                    // Shader overrides
-                    else if (boidSchool.ValueRO.ShaderUpdateRequested == true)
-                    {
-                        // All boids (from all schools)
-                        EntityQuery boidQuery = SystemAPI.QueryBuilder().WithAll<BoidShared>().WithAll<LocalToWorld>().WithOptions(EntityQueryOptions.IncludeDisabledEntities).Build();
-                        state.EntityManager.GetAllUniqueSharedComponents(out NativeList<BoidShared> uniqueBoidTypes, world.UpdateAllocator.ToAllocator);
-                        NativeArray<Entity> boidEntities = boidQuery.ToEntityArray(Allocator.TempJob);
-                        
-                        // Count total from our school
-                        int boidTotal = 0;
-                        foreach (Entity boidEntity in boidEntities)
-                        {
-                            BoidShared boidShared = state.EntityManager.GetSharedComponentManaged<BoidShared>(boidEntity);
-                            if (boidShared.DynamicEntityId == boidSchool.ValueRO.DynamicEntityId && boidShared.BoidSchoolId == boidSchool.ValueRO.BoidSchoolId)
-                            {
-                                boidTotal++;
-                            }
-                        }
-
-                        // Iterate over boids, ignoring not our schools
-                        int boidIndex = 0;
-                        foreach (Entity boidEntity in boidEntities)
-                        {
-                            BoidShared boidShared = state.EntityManager.GetSharedComponentManaged<BoidShared>(boidEntity);
-                            if (boidShared.DynamicEntityId != boidSchool.ValueRO.DynamicEntityId || boidShared.BoidSchoolId != boidSchool.ValueRO.BoidSchoolId)
-                            {
-                                // Not our school, skip this boid
-                                continue;
-                            }
-                            
-                            //// Visibility per view
-                            float4 boidScreenDisplayStart = new float4();
-                            float4 boidScreenDisplayEnd = new float4();
-
-                            // Iterate over enabled views
-                            for (int i = 0; i < boidSchool.ValueRO.ViewsCount; i++)
-                            {
-                                // If the boid's position on the agents list is in the percentage set in the viewVisibilityPercentageArray for this view
-                                if (boidIndex < (int)(boidTotal * (boidSchool.ValueRO.ViewVisibilityPercentages[i] / 100.0f)))
-                                {
-                                    // Visible in this view
-                                    // Start
-                                    var startFloat = 1.0f / boidSchool.ValueRO.ViewsCount * i;
-                                    if (i == 0) boidScreenDisplayStart.x = startFloat;
-                                    else if (i == 1) boidScreenDisplayStart.y = startFloat;
-                                    else if (i == 2) boidScreenDisplayStart.z = startFloat;
-                                    else if (i == 3) boidScreenDisplayStart.w = startFloat;
-                                    
-                                    // End
-                                    var endFloat = 1.0f / boidSchool.ValueRO.ViewsCount * (i + 1);
-                                    if (i == 0) boidScreenDisplayEnd.x = endFloat;
-                                    else if (i == 1) boidScreenDisplayEnd.y = endFloat;
-                                    else if (i == 2) boidScreenDisplayEnd.z = endFloat;
-                                    else if (i == 3) boidScreenDisplayEnd.w = endFloat;
-                                }
-                                else
-                                {
-                                    // Not visible in this view
-                                    // Set the screenDisplayStart and screenDisplayEnd values for this view to 0.0f
-                                    if (i == 0) boidScreenDisplayStart.x = 0.0f;
-                                    else if (i == 1) boidScreenDisplayStart.y = 0.0f;
-                                    else if (i == 2) boidScreenDisplayStart.z = 0.0f;
-                                    else if (i == 3) boidScreenDisplayStart.w = 0.0f;
-                                    
-                                    if (i == 0) boidScreenDisplayEnd.x = 0.0f;
-                                    else if (i == 1) boidScreenDisplayEnd.y = 0.0f;
-                                    else if (i == 2) boidScreenDisplayEnd.z = 0.0f;
-                                    else if (i == 3) boidScreenDisplayEnd.w = 0.0f;
-                                }
-                            }
-                            
-                            // boidScreenDisplayStart/End assembled, assign to Boid entity
-                            ScreenDisplayStartOverride screenDisplayStartOverride = state.EntityManager.GetComponentData<ScreenDisplayStartOverride>(boidEntity);
-                            screenDisplayStartOverride.Value = boidScreenDisplayStart;
-                            entityCommandBuffer.SetComponent(boidEntity, screenDisplayStartOverride);
-                                    
-                            ScreenDisplayEndOverride screenDisplayEndOverride = state.EntityManager.GetComponentData<ScreenDisplayEndOverride>(boidEntity);
-                            screenDisplayEndOverride.Value = boidScreenDisplayEnd;
-                            entityCommandBuffer.SetComponent(boidEntity, screenDisplayEndOverride);
-
-                            boidIndex++;
-                        }
-                        boidEntities.Dispose();
-
-                        boidSchoolCopy.ShaderUpdateRequested = false;
-                    }
-                }
-
-                // State change: Target repositioning and speed randomization
-                if (boidSchool.ValueRO.Target != Entity.Null)
-                {
-                    // If the TargetRepositionTimer is less than or equal to 0
-                    if (boidSchool.ValueRO.TargetRepositionTimer <= 0.0f) 
-                    {
-                        // Get the target entity
-                        Entity targetEntity = boidSchool.ValueRO.Target;
-
-                        // Get the current target position
-                        float3 currentTargetPosition = state.EntityManager.GetComponentData<LocalToWorld>(targetEntity).Position;
-
-                        // Generate a new deterministic position within the BoidSchool's BoundsSize
-                        float3 newTargetPosition = GenerateDeterministicPositionWithinBounds(
-                            boidSchool.ValueRO.BoundsCenter,
-                            boidSchool.ValueRO.BoundsSize,
-                            (uint)boidSchool.ValueRO.DynamicEntityId,
-                            (uint)boidSchool.ValueRO.BoidSchoolId,
-                            (uint)(1 + boidSchool.ValueRO.TargetRepositionIteration));
-
-                        // Set up a deterministic random number generator (per school)
-                        uint seed = math.hash(new uint3((uint)boidSchool.ValueRO.DynamicEntityId, (uint)boidSchool.ValueRO.BoidSchoolId, (uint)boidSchool.ValueRO.TargetRepositionIteration));
-                        Unity.Mathematics.Random random = Unity.Mathematics.Random.CreateFromIndex(seed);
-
-                        // Set the TargetRepositionTimer to a random value
-                        float repositionDuration = GetRandomFloat(ref random, boidSchool.ValueRO.StateChangeTimerMin, boidSchool.ValueRO.StateChangeTimerMax);
-                        boidSchoolCopy.TargetRepositionTimer = repositionDuration;
-                        boidSchoolCopy.TargetRepositionIteration = boidSchool.ValueRO.TargetRepositionIteration + 1;
-
-                        // Store the start and end positions for lerping
+                        Entity targetEntity = entityCommandBuffer.Instantiate(school.BoidTargetPrefab);
                         entityCommandBuffer.SetComponent(targetEntity, new BoidTarget
                         {
-                            BoidSchoolId = boidSchool.ValueRO.BoidSchoolId,
-                            DynamicEntityId = boidSchool.ValueRO.DynamicEntityId,
-                            StartPosition = currentTargetPosition,
-                            EndPosition = newTargetPosition,
-                            LerpDuration = repositionDuration,
-                            LerpTimer = 0f
+                            BoidSchoolId = school.BoidSchoolId,
+                            DynamicEntityId = school.DynamicEntityId
+                        });
+                        entityCommandBuffer.SetName(targetEntity, "BoidTarget_" + school.DynamicEntityId + "_" + school.BoidSchoolId);
+
+                        float3 pos = GenerateDeterministicPositionWithinBoundary(
+                            runtimeData.Boundary,
+                            (uint)school.DynamicEntityId,
+                            (uint)school.BoidSchoolId,
+                            0u);
+                        entityCommandBuffer.SetComponent(targetEntity, new LocalTransform
+                        {
+                            Position = pos,
+                            Rotation = quaternion.identity,
+                            Scale = 1.0f
                         });
 
-                        // Update MoveSpeedModifier for all boids in this school
-                        EntityQuery boidQuery = SystemAPI.QueryBuilder().WithAll<BoidShared, BoidUnique>().Build();
-                        NativeArray<Entity> boidEntities = boidQuery.ToEntityArray(Allocator.Temp);
-
-                        foreach (Entity boidEntity in boidEntities)
+                        boidSchoolCopy.Target = targetEntity;
+                    }
+                    else
+                    {
+                        if (school.Count != school.RequestedCount)
                         {
-                            BoidShared boidShared = state.EntityManager.GetSharedComponentManaged<BoidShared>(boidEntity);
-                            if (boidShared.DynamicEntityId == boidSchool.ValueRO.DynamicEntityId && boidShared.BoidSchoolId == boidSchool.ValueRO.BoidSchoolId)
+                            if (school.RequestedCount > school.Count)
                             {
-                                // Check if this boid is currently escaping from a predator
-                                // TODO This currently does not work correctly, IsComponentEnabled<EscapingPredator> is never set to true
-                                // TODO The random target speed change is instantly overriden when escaping predator though
+                                Assert.IsTrue(spawnPrototype.Value != Entity.Null && state.EntityManager.Exists(spawnPrototype.Value), "BoidSchoolSpawnSystem requires a valid school-specific spawn prototype before spawning boids.");
+                                int amountToInstantiate = school.RequestedCount - school.Count;
+                                var boidEntities = CollectionHelper.CreateNativeArray<Entity, RewindableAllocator>(amountToInstantiate, ref world.UpdateAllocator);
+                                state.EntityManager.Instantiate(spawnPrototype.Value, boidEntities);
+
+                                for (int i = 0; i < boidEntities.Length; i++)
+                                {
+                                    ownedBoids.Add(new BoidSchoolOwnedBoid
+                                    {
+                                        Value = boidEntities[i]
+                                    });
+                                }
+
+                                SeabedSurfaceData seabedSurfaceData = default;
+                                if (runtimeData.SeabedBound)
+                                {
+                                    Assert.IsTrue(seabedSurfaceQuery.CalculateEntityCount() == 1, "BoidSchoolSpawnSystem requires exactly one SeabedSurfaceData when spawning seabed-bound boids.");
+                                    seabedSurfaceData = seabedSurfaceQuery.GetSingleton<SeabedSurfaceData>();
+                                    Assert.IsTrue(seabedSurfaceData.HeightmapDataBlobRef.IsCreated, "BoidSchoolSpawnSystem requires valid seabed height data when spawning seabed-bound boids.");
+                                    Assert.IsTrue(seabedSurfaceData.NormalDataBlobRef.IsCreated, "BoidSchoolSpawnSystem requires valid seabed normal data when spawning seabed-bound boids.");
+                                }
+
+                                var initializeSpawnedBoidsJob = new InitializeSpawnedBoids
+                                {
+                                    LocalToWorldFromEntity = SystemAPI.GetComponentLookup<LocalToWorld>(),
+                                    BoidUniqueFromEntity = SystemAPI.GetComponentLookup<BoidUnique>(),
+                                    SpawnPendingFromEntity = SystemAPI.GetComponentLookup<BoidSpawnPending>(),
+                                    AnimationRandomOffsetFromEntity = SystemAPI.GetComponentLookup<AnimationRandomOffsetOverride>(),
+                                    Entities = boidEntities,
+                                    RuntimeData = runtimeData,
+                                    SeabedSurface = seabedSurfaceData
+                                };
+                                state.Dependency = initializeSpawnedBoidsJob.Schedule(amountToInstantiate, 64, state.Dependency);
+                                boidSchoolCopy.Count = school.RequestedCount;
+                            }
+                            else
+                            {
+                                int entitiesToDestroy = school.Count - school.RequestedCount;
+                                int boidIndex = ownedBoids.Length - 1;
+                                while (boidIndex >= 0 && entitiesToDestroy > 0)
+                                {
+                                    Entity boidEntity = ownedBoids[boidIndex].Value;
+                                    ownedBoids.RemoveAt(boidIndex);
+                                    if (state.EntityManager.Exists(boidEntity))
+                                    {
+                                        entityCommandBuffer.DestroyEntity(boidEntity);
+                                        entitiesToDestroy--;
+                                    }
+                                    boidIndex--;
+                                }
+
+                                boidSchoolCopy.Count = school.RequestedCount;
+                            }
+                        }
+                        else if (school.ShaderUpdateRequested)
+                        {
+                            int boidTotal = ownedBoids.Length;
+                            for (int i = 0; i < ownedBoids.Length; i++)
+                            {
+                                Entity boidEntity = ownedBoids[i].Value;
+                                if (state.EntityManager.Exists(boidEntity) == false)
+                                {
+                                    continue;
+                                }
+
+                                BoidSchoolRuntimeUtility.BuildScreenDisplayRange(runtimeData, i, boidTotal, out float4 screenDisplayStart, out float4 screenDisplayEnd);
+                                entityCommandBuffer.SetComponent(boidEntity, new ScreenDisplayStartOverride { Value = screenDisplayStart });
+                                entityCommandBuffer.SetComponent(boidEntity, new ScreenDisplayEndOverride { Value = screenDisplayEnd });
+                            }
+
+                            boidSchoolCopy.ShaderUpdateRequested = false;
+                        }
+                    }
+
+                    if (school.Target != Entity.Null)
+                    {
+                        if (school.TargetRepositionTimer <= 0.0f)
+                        {
+                            Entity targetEntity = school.Target;
+                            float3 currentTargetPosition = state.EntityManager.GetComponentData<LocalToWorld>(targetEntity).Position;
+                            float3 newTargetPosition = GenerateDeterministicPositionWithinBoundary(
+                                runtimeData.Boundary,
+                                (uint)school.DynamicEntityId,
+                                (uint)school.BoidSchoolId,
+                                (uint)(1 + school.TargetRepositionIteration));
+
+                            uint seed = math.hash(new uint3((uint)school.DynamicEntityId, (uint)school.BoidSchoolId, (uint)school.TargetRepositionIteration));
+                            Unity.Mathematics.Random random = Unity.Mathematics.Random.CreateFromIndex(seed);
+                            float repositionDuration = GetRandomFloat(ref random, school.StateChangeTimerMin, school.StateChangeTimerMax);
+                            boidSchoolCopy.TargetRepositionTimer = repositionDuration;
+                            boidSchoolCopy.TargetRepositionIteration = school.TargetRepositionIteration + 1;
+
+                            entityCommandBuffer.SetComponent(targetEntity, new BoidTarget
+                            {
+                                BoidSchoolId = school.BoidSchoolId,
+                                DynamicEntityId = school.DynamicEntityId,
+                                StartPosition = currentTargetPosition,
+                                EndPosition = newTargetPosition,
+                                LerpDuration = repositionDuration,
+                                LerpTimer = 0.0f
+                            });
+
+                            for (int i = 0; i < ownedBoids.Length; i++)
+                            {
+                                Entity boidEntity = ownedBoids[i].Value;
+                                if (state.EntityManager.Exists(boidEntity) == false)
+                                {
+                                    continue;
+                                }
+
                                 bool isEscapingPredator = false;
                                 if (state.EntityManager.HasComponent<EscapingPredator>(boidEntity))
                                 {
                                     isEscapingPredator = state.EntityManager.IsComponentEnabled<EscapingPredator>(boidEntity);
                                 }
 
-                                BoidUnique boidUnique = state.EntityManager.GetComponentData<BoidUnique>(boidEntity);
-                                
-                                // Set random speed for this state transition.
-                                // The seed is deterministic but depends on the current TargetRepositionIteration,
-                                // so each boid gets a new random target speed on every state change.
-                                if (!isEscapingPredator)
+                                if (isEscapingPredator == false)
                                 {
+                                    BoidUnique boidUnique = state.EntityManager.GetComponentData<BoidUnique>(boidEntity);
                                     uint speedSeed = math.hash(new uint4(
-                                        (uint)boidSchool.ValueRO.DynamicEntityId,
-                                        (uint)boidSchool.ValueRO.BoidSchoolId,
+                                        (uint)school.DynamicEntityId,
+                                        (uint)school.BoidSchoolId,
                                         (uint)boidEntity.Index,
                                         (uint)boidSchoolCopy.TargetRepositionIteration));
-                                    var speedRng = Unity.Mathematics.Random.CreateFromIndex(speedSeed);
+                                    Unity.Mathematics.Random speedRng = Unity.Mathematics.Random.CreateFromIndex(speedSeed);
                                     boidUnique.TargetSpeedModifier = speedRng.NextFloat(
-                                        boidSchool.ValueRO.SpeedModifierMin,
-                                        boidSchool.ValueRO.SpeedModifierMax);
+                                        school.SpeedModifierMin,
+                                        school.SpeedModifierMax);
                                     entityCommandBuffer.SetComponent(boidEntity, boidUnique);
                                 }
                             }
                         }
-
-                        boidEntities.Dispose();
-                    }
-                    else
-                    {
-                        // Update the lerp for the target position
-                        Entity targetEntity = boidSchool.ValueRO.Target;
-                        BoidTarget boidTarget = state.EntityManager.GetComponentData<BoidTarget>(targetEntity);
-                        
-                        boidTarget.LerpTimer += SystemAPI.Time.DeltaTime;
-                        float t = math.saturate(boidTarget.LerpTimer / boidTarget.LerpDuration);
-                        float3 newPosition = math.lerp(boidTarget.StartPosition, boidTarget.EndPosition, t);
-
-                        entityCommandBuffer.SetComponent(targetEntity, new LocalTransform
+                        else
                         {
-                            Position = newPosition,
-                            Rotation = quaternion.identity,
-                            Scale = 1.0f
-                        });
+                            Entity targetEntity = school.Target;
+                            BoidTarget boidTarget = state.EntityManager.GetComponentData<BoidTarget>(targetEntity);
+                            Assert.IsTrue(boidTarget.LerpDuration > 0.0f, "Boid target interpolation duration must be positive.");
+                            for (int fixedStepIndex = 0; fixedStepIndex < fixedStepCount; fixedStepIndex++)
+                            {
+                                boidTarget.LerpTimer += fixedStep;
+                                boidSchoolCopy.TargetRepositionTimer -= fixedStep;
+                            }
 
-                        entityCommandBuffer.SetComponent(targetEntity, boidTarget);
+                            if (boidSchoolCopy.TargetRepositionTimer < 0.0f)
+                            {
+                                boidSchoolCopy.TargetRepositionTimer = 0.0f;
+                            }
 
-                        // Decrement the TargetRepositionTimer
-                        boidSchoolCopy.TargetRepositionTimer -= SystemAPI.Time.DeltaTime;
+                            float t = math.saturate(boidTarget.LerpTimer / boidTarget.LerpDuration);
+                            float3 newPosition = math.lerp(boidTarget.StartPosition, boidTarget.EndPosition, t);
+
+                            entityCommandBuffer.SetComponent(targetEntity, new LocalTransform
+                            {
+                                Position = newPosition,
+                                Rotation = quaternion.identity,
+                                Scale = 1.0f
+                            });
+                            entityCommandBuffer.SetComponent(targetEntity, boidTarget);
+                        }
                     }
+
+                    entityCommandBuffer.SetComponent(schoolEntity, boidSchoolCopy);
                 }
-                
-                entityCommandBuffer.SetComponent(boidSchoolEntity, boidSchoolCopy); // We are done modifying the BoidSchool component data, so we set it back to the entity
+            }
+            finally
+            {
+                schoolEntities.Dispose();
+                schoolComponents.Dispose();
+                schoolRuntimeData.Dispose();
+                schoolSpawnPrototypes.Dispose();
             }
 
             entityCommandBuffer.Playback(state.EntityManager);
         }
 
-        /// <summary>
-        /// Generates a random position within the specified bounds.
-        /// </summary>
-        private float3 GenerateRandomPositionWithinBounds(float3 boundsCenter, float3 boundsSize)
+        private static void CompactOwnedBoids(EntityManager entityManager, DynamicBuffer<BoidSchoolOwnedBoid> ownedBoids)
         {
-            float3 boundsMin = boundsCenter - (boundsSize * 0.5f);
-            float3 boundsMax = boundsCenter + (boundsSize * 0.5f);
+            int writeIndex = 0;
+            for (int readIndex = 0; readIndex < ownedBoids.Length; readIndex++)
+            {
+                Entity entity = ownedBoids[readIndex].Value;
+                if (entityManager.Exists(entity) == false)
+                {
+                    continue;
+                }
 
-            // var random = new Unity.Mathematics.Random(1);
-            var pos = new float3(
-                RandomGenerator.GetRandomFloat(boundsMin.x, boundsMax.x),
-                RandomGenerator.GetRandomFloat(boundsMin.y, boundsMax.y),
-                RandomGenerator.GetRandomFloat(boundsMin.z, boundsMax.z)
-            );
-            return pos;
+                if (writeIndex != readIndex)
+                {
+                    ownedBoids[writeIndex] = ownedBoids[readIndex];
+                }
+                writeIndex++;
+            }
+
+            if (writeIndex < ownedBoids.Length)
+            {
+                ownedBoids.RemoveRange(writeIndex, ownedBoids.Length - writeIndex);
+            }
         }
-        
-        /// <summary>
-        /// Generates a random float value between min and max using the provided random number generator.
-        /// </summary>
+
         private static float GetRandomFloat(ref Unity.Mathematics.Random random, float min, float max)
         {
             return random.NextFloat(min, max);
         }
-        
-        /// <summary>
-        /// Generates a deterministic position within the specified bounds, seeded by identifiers and a salt.
-        /// </summary>
-        private float3 GenerateDeterministicPositionWithinBounds(float3 boundsCenter, float3 boundsSize, uint dynamicEntityId, uint boidSchoolId, uint salt)
+
+        private static float3 GenerateDeterministicPositionWithinBoundary(in BoidBoundaryData boundary, uint dynamicEntityId, uint boidSchoolId, uint salt)
         {
-            float3 boundsMin = boundsCenter - (boundsSize * 0.5f);
-            float3 boundsMax = boundsCenter + (boundsSize * 0.5f);
             uint seed = math.hash(new uint3(dynamicEntityId, boidSchoolId, salt));
-            var random = Unity.Mathematics.Random.CreateFromIndex(seed);
-            var pos = new float3(
-                random.NextFloat(boundsMin.x, boundsMax.x),
-                random.NextFloat(boundsMin.y, boundsMax.y),
-                random.NextFloat(boundsMin.z, boundsMax.z)
-            );
-            return pos;
+            Unity.Mathematics.Random random = Unity.Mathematics.Random.CreateFromIndex(seed);
+            for (int attempt = 0; attempt < 32; attempt++)
+            {
+                float3 position = new float3(
+                    random.NextFloat(boundary.BoundsMin.x, boundary.BoundsMax.x),
+                    random.NextFloat(boundary.BoundsMin.y, boundary.BoundsMax.y),
+                    random.NextFloat(boundary.BoundsMin.z, boundary.BoundsMax.z));
+                if (BoidBoundaryUtility.Contains(boundary, position))
+                {
+                    return position;
+                }
+            }
+
+            float3 fallbackPosition = boundary.BoundsCenter;
+            BoidBoundaryUtility.TryProjectInside(boundary, fallbackPosition, out fallbackPosition, out float3 _, out float _);
+            Assert.IsTrue(BoidBoundaryUtility.Contains(boundary, fallbackPosition), "BoidSchoolSpawnSystem could not find a valid point inside boid bounds.");
+            return fallbackPosition;
         }
     }
 
     /// <summary>
-    /// Job responsible for initializing boid positions and orientations when spawned.
-    /// Places boids at random positions within bounds and assigns random scales.
+    /// Initializes newly spawned boids off the main thread, including terrain-aligned seabed placement.
+    /// Boids are enabled for simulation only after their first transform has been written.
     /// </summary>
-    struct SetBoidLocalToWorld : IJobParallelFor
+    [BurstCompile]
+    internal struct InitializeSpawnedBoids : IJobParallelFor
     {
-        [NativeDisableContainerSafetyRestriction] [NativeDisableParallelForRestriction]
+        [NativeDisableContainerSafetyRestriction]
+        [NativeDisableParallelForRestriction]
         public ComponentLookup<LocalToWorld> LocalToWorldFromEntity;
 
-        public NativeArray<Entity> Entities;
-        public AABB Bounds;
-        public int DynamicEntityId;
-        public int BoidSchoolId;
+        [NativeDisableContainerSafetyRestriction]
+        [NativeDisableParallelForRestriction]
+        public ComponentLookup<BoidUnique> BoidUniqueFromEntity;
+
+        [NativeDisableContainerSafetyRestriction]
+        [NativeDisableParallelForRestriction]
+        public ComponentLookup<BoidSpawnPending> SpawnPendingFromEntity;
+
+        [NativeDisableContainerSafetyRestriction]
+        [NativeDisableParallelForRestriction]
+        public ComponentLookup<AnimationRandomOffsetOverride> AnimationRandomOffsetFromEntity;
+
+        [ReadOnly] public NativeArray<Entity> Entities;
+        [ReadOnly] public BoidSchoolRuntimeData RuntimeData;
+        [ReadOnly] public SeabedSurfaceData SeabedSurface;
 
         public void Execute(int i)
         {
-            var entity = Entities[i];
-            
-            // Deterministic RNG seeded by group/school/index
-            uint seed = math.hash(new uint3((uint)DynamicEntityId, (uint)BoidSchoolId, (uint)i));
-            var random = Unity.Mathematics.Random.CreateFromIndex(seed);
+            Entity entity = Entities[i];
+            uint seed = math.hash(new uint3((uint)RuntimeData.DynamicEntityId, (uint)RuntimeData.BoidSchoolId, (uint)i));
+            Unity.Mathematics.Random random = Unity.Mathematics.Random.CreateFromIndex(seed);
 
-            // Generate a deterministic direction only in the XZ plane (Y-axis rotation)
             float randomAngle = random.NextFloat(0.0f, 2.0f * math.PI);
-            var dir = new float3(math.sin(randomAngle), 0.0f, math.cos(randomAngle));
+            float3 initialForward = new float3(math.sin(randomAngle), 0.0f, math.cos(randomAngle));
 
-            // Calculate bounds center
-            float3 boundsCenter = (Bounds.Max + Bounds.Min) * 0.5f;
-            
-            // Spawn boids in a very tight cluster at the center
-            // Use a small radius relative to the bounds size for tight grouping
-            float maxSpawnRadius = 2.0f; // Fixed small radius for tight clustering
-            
-            // Generate deterministic position within a small sphere around the center
+            float3 boundsCenter = RuntimeData.BoundsCenter;
+            float3 boundsExtent = (RuntimeData.BoundsMax - RuntimeData.BoundsMin) * 0.5f;
+            float oneMinusClustering = 1.0f - math.saturate(RuntimeData.SpawnClustering);
+            float maxSpawnRadius = math.cmax(boundsExtent) * oneMinusClustering * oneMinusClustering;
+
             float radius = random.NextFloat(0.0f, maxSpawnRadius);
             float theta = random.NextFloat(0.0f, 2.0f * math.PI);
             float phi = random.NextFloat(0.0f, math.PI);
-            
-            // Convert spherical coordinates to cartesian
+
             float x = radius * math.sin(phi) * math.cos(theta);
             float y = radius * math.sin(phi) * math.sin(theta);
             float z = radius * math.cos(phi);
-            
-            // Position relative to bounds center
-            float3 pos = boundsCenter + new float3(x, y, z);
 
-            // Clamp position to bounds (safety check)
-            pos = math.clamp(pos, Bounds.Min, Bounds.Max);
-            
-            // Deterministic scale, rounded to 2 decimal places
-            float scale = math.round(random.NextFloat(0.7f, 1.3f) * 100) / 100;
-
-            var localToWorld = new LocalToWorld
+            float3 position = boundsCenter + new float3(x, y, z);
+            position = math.clamp(position, RuntimeData.BoundsMin, RuntimeData.BoundsMax);
+            if (BoidBoundaryUtility.Contains(RuntimeData.Boundary, position) == false)
             {
-                Value = float4x4.TRS(pos, quaternion.LookRotationSafe(dir, math.up()), new float3(scale, scale, scale))
+                position = GenerateSpawnPositionInBoundary(RuntimeData, ref random);
+            }
+            if (RuntimeData.SeabedBound)
+            {
+                position.y = boundsCenter.y;
+            }
+
+            float minScale = RuntimeData.ScaleMin;
+            float maxScale = RuntimeData.ScaleMax;
+            if (minScale <= 0.0f)
+            {
+                minScale = 0.7f;
+            }
+            if (maxScale < minScale)
+            {
+                maxScale = minScale;
+            }
+
+            float scale = math.round(random.NextFloat(minScale, maxScale) * 100.0f) / 100.0f;
+            float3 scaleVector = new float3(scale, scale, scale);
+
+            float3 finalPosition = position;
+            quaternion finalRotation = quaternion.LookRotationSafe(initialForward, math.up());
+            if (RuntimeData.SeabedBound)
+            {
+                SeabedSurfaceUtility.SampleSurface(SeabedSurface, position, out float3 seabedPosition, out float3 seabedNormal);
+                finalPosition = seabedPosition;
+                finalRotation = SeabedSurfaceUtility.AlignForwardToSurface(initialForward, seabedNormal, initialForward);
+            }
+
+            LocalToWorldFromEntity[entity] = new LocalToWorld
+            {
+                Value = float4x4.TRS(finalPosition, finalRotation, scaleVector)
             };
-            LocalToWorldFromEntity[entity] = localToWorld;
+
+            AnimationRandomOffsetFromEntity[entity] = new AnimationRandomOffsetOverride
+            {
+                Value = random.NextFloat(-100.0f, 100.0f)
+            };
+
+            float3 finalForward = math.normalizesafe(math.mul(finalRotation, new float3(0.0f, 0.0f, 1.0f)), initialForward);
+            BoidUnique boidUnique = BoidUniqueFromEntity[entity];
+            boidUnique.Disabled = false;
+            boidUnique.MoveSpeedModifier = 1.0f;
+            boidUnique.TargetSpeedModifier = 1.0f;
+            boidUnique.MaxVerticalAngleOffset = random.NextFloat(-15.0f, 20.0f);
+            boidUnique.TargetVector = float3.zero;
+            boidUnique.PreviousHeading = finalForward;
+            boidUnique.BendRefHeading = finalForward;
+            BoidUniqueFromEntity[entity] = boidUnique;
+            BoidUniqueFromEntity.SetComponentEnabled(entity, true);
+            SpawnPendingFromEntity.SetComponentEnabled(entity, false);
+        }
+
+        private static float3 GenerateSpawnPositionInBoundary(in BoidSchoolRuntimeData runtimeData, ref Unity.Mathematics.Random random)
+        {
+            for (int attempt = 0; attempt < 32; attempt++)
+            {
+                float3 position = new float3(
+                    random.NextFloat(runtimeData.BoundsMin.x, runtimeData.BoundsMax.x),
+                    random.NextFloat(runtimeData.BoundsMin.y, runtimeData.BoundsMax.y),
+                    random.NextFloat(runtimeData.BoundsMin.z, runtimeData.BoundsMax.z));
+                if (BoidBoundaryUtility.Contains(runtimeData.Boundary, position))
+                {
+                    return position;
+                }
+            }
+
+            float3 fallbackPosition = runtimeData.BoundsCenter;
+            BoidBoundaryUtility.TryProjectInside(runtimeData.Boundary, fallbackPosition, out fallbackPosition, out float3 _, out float _);
+            Assert.IsTrue(BoidBoundaryUtility.Contains(runtimeData.Boundary, fallbackPosition), "InitializeSpawnedBoids could not find a valid point inside boid bounds.");
+            return fallbackPosition;
         }
     }
 }

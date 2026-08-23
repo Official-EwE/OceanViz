@@ -28,14 +28,46 @@ namespace OceanViz3
         public bool DestroyRequested;
         
         /// <summary>
-        /// Requested count of static entities for this group
+        /// Requested number of deterministic habitat sites for this group
         /// </summary>
         public int RequestedCount;
+
+        /// <summary>
+        /// True after the requested population is lowered and until site trimming or generation reaches that target.
+        /// Distance reconciliation cannot instantiate entities while this state is active.
+        /// </summary>
+        public bool PopulationReductionInProgress;
         
         /// <summary>
-        /// Current count of static entities in this group
+        /// Current number of nearby instantiated static entities in this group
         /// </summary>
         public int Count;
+
+        /// <summary>
+        /// Number of deterministic habitat spawn sites generated for this group.
+        /// Sites are lightweight placement records; only sites near the camera own ECS entities.
+        /// </summary>
+        public int GeneratedCount;
+
+        /// <summary>
+        /// Index used to spread camera-distance reconciliation over multiple updates.
+        /// </summary>
+        public int StreamingScanIndex;
+
+        /// <summary>
+        /// Camera position used by the current streaming scan.
+        /// </summary>
+        public float3 StreamingScanCameraPosition;
+
+        /// <summary>
+        /// True while spawn sites are being reconciled with camera distance.
+        /// </summary>
+        public bool StreamingRefreshRequested;
+
+        /// <summary>
+        /// Index used to spread per-view shader updates over multiple updates.
+        /// </summary>
+        public int ShaderUpdateScanIndex;
         
         /// <summary>
         /// Number of active LOD levels (negative if not yet determined)
@@ -123,6 +155,11 @@ namespace OceanViz3
         /// Splatmap height
         /// </summary>
         public int SplatmapHeight;
+
+        /// <summary>
+        /// First valid splatmap pixel, prepared once for deterministic fallback placement.
+        /// </summary>
+        public int FallbackSplatmapIndex;
         
         /// <summary>
         /// Noise offset for this group
@@ -143,6 +180,11 @@ namespace OceanViz3
         /// Maximum scale for entities
         /// </summary>
         public float MaxScale;
+
+        /// <summary>
+        /// Largest dimension of the base mesh for this group
+        /// </summary>
+        public float MeshLargestDimension;
         
         /// <summary>
         /// Rigidity value for turbulence control (0 = flexible, 1 = rigid)
@@ -182,6 +224,32 @@ namespace OceanViz3
     public struct MeshHabitatEntityRef : IBufferElementData
     {
         public Entity MeshEntity;
+    }
+
+    /// <summary>
+    /// Lightweight deterministic placement record for one requested static entity.
+    /// The entity exists only while the site is within streaming distance of the camera.
+    /// </summary>
+    [InternalBufferCapacity(0)]
+    public struct StaticEntitySpawnSite : IBufferElementData
+    {
+        public float3 Position;
+        public quaternion Rotation;
+        public float3 Scale;
+        public Entity SpawnedEntity;
+
+        public float4x4 CreateLocalToWorld()
+        {
+            return float4x4.TRS(Position, Rotation, Scale);
+        }
+    }
+
+    /// <summary>
+    /// Stable spawn-site identity used for deterministic per-view population thinning.
+    /// </summary>
+    public struct StaticEntitySpawnSiteIndex : IComponentData
+    {
+        public int Value;
     }
 
     /// <summary>

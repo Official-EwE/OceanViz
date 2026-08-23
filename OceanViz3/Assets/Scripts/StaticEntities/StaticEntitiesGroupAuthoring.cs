@@ -41,7 +41,9 @@ namespace OceanViz3
                     StaticEntitiesGroupId = -1, // Will be assigned at runtime by StaticEntitiesGroup.cs
                     StaticEntityPrototype = prototypeEntity,
                     Count = 0,
+                    GeneratedCount = 0,
                     RequestedCount = authoring.InitialCount,
+                    PopulationReductionInProgress = false,
                     DestroyRequested = false,
                     NumberOfLODs = -1, // Will be determined at runtime
 
@@ -68,6 +70,7 @@ namespace OceanViz3
                     SplatmapWidth = 0,
                     SplatmapHeight = 0,
                     SplatmapDataBlobRef = BlobAssetReference<ByteBlob>.Null, // Initialize as Null
+                    FallbackSplatmapIndex = -1,
                     NoiseScale = 6.0f, // Default, can be adjusted by setup system if needed
                     GroupNoiseOffset = float3.zero, // Default, assigned unique value by setup system
                     
@@ -80,6 +83,7 @@ namespace OceanViz3
                 AddBuffer<MeshHabitatEntityRef>(entity);
                 // Add the dynamic buffer for habitat names
                 AddBuffer<StaticEntityHabitat>(entity);
+                AddBuffer<StaticEntitySpawnSite>(entity);
             }
         }
     }

@@ -1,11 +1,14 @@
 [
-    {
+  {
     "name": "Atlantic Blue Marlin",
     "maxPopulation": 20,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": true,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -17,319 +20,385 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 3.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
     "positive_y_clip": 1.0,
     "negative_y_clip": 0.362,
-    "animation_speed": 5.000,
-    "sine_wavelength": 1.500,
+    "animation_speed": 5.0,
+    "sine_wavelength": 1.5,
     "sine_deformation_amplitude": {
-        "x": 0.600,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.6,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 0.500,
+    "secondary_1_animation_amplitude": 0.5,
     "invert_secondary_1_animation": -1,
     "secondary_2_animation_amplitude": {
-        "x": 0.700,
-        "y": 0.000,
-        "z": 0.200
+      "x": 0.7,
+      "y": 0.0,
+      "z": 0.2
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.025
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.025
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.040,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.04,
+      "z": 0.0
     },
-    "bone_animated": false
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "predator"
+    ]
+  },
+  {
+    "name": "Atlantic Bonito",
+    "maxPopulation": 1000,
+    "habitats": [
+      "Coastal Zone"
+    ],
+    "seabed_bound": false,
+    "predator": false,
+    "prey": true,
+    "water_current_influence": -1.0,
+    "cell_radius": 8,
+    "state_transition_speed": 3.0,
+    "state_change_timer_min": 2.0,
+    "state_change_timer_max": 4.0,
+    "separation_weight": 0.5,
+    "alignment_weight": 0.1,
+    "target_weight": 0.5,
+    "obstacle_aversion_distance": 2,
+    "max_vertical_angle": 30,
+    "max_turn_rate": 1.0,
+    "move_speed": 1,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.3,
+    "speed_modifier_max": 3.0,
+    "positive_y_clip": 1,
+    "negative_y_clip": 0.55,
+    "animation_speed": 10.0,
+    "sine_wavelength": 0.35,
+    "sine_deformation_amplitude": {
+      "x": 0.06,
+      "y": 0.0,
+      "z": 0.0
     },
-    {
-        "name": "Atlantic Bonito",
-        "maxPopulation": 1000,
-        "habitats": ["Coastal Zone"],
-        "seabed_bound": false,
-        "predator": false,
-        "prey": true,
-        "cell_radius": 8,
-        "state_transition_speed": 3.0,
-        "state_change_timer_min": 2.0,
-        "state_change_timer_max": 4.0,
-        "separation_weight": 0.5,
-        "alignment_weight": 0.1,
-        "target_weight": 0.5,
-        "obstacle_aversion_distance": 2,
-        "max_vertical_angle": 30,
-        "max_turn_rate": 1.0,
-        "move_speed": 1,
-        "speed_modifier_min": 0.3,
-        "speed_modifier_max": 3.0,
-        "positive_y_clip": 1,
-        "negative_y_clip": 0.55,
-        "animation_speed": 10.000,
-        "sine_wavelength": 0.350,
-        "sine_deformation_amplitude": {
-            "x": 0.060,
-            "y": 0.000,
-            "z": 0.000
-        },
-        "secondary_1_animation_amplitude": 0.500,
-        "invert_secondary_1_animation": -1,
-        "secondary_2_animation_amplitude": {
-            "x": 0.010,
-            "y": 0.000,
-            "z": 0.000
-        },
-        "invert_secondary_2_animation": -1,
-        "side_to_side_amplitude": {
-            "x": 0.003,
-            "y": 0.000,
-            "z": 0.000
-        },
-        "yaw_amplitude": {
-            "x": 0.000,
-            "y": 0.000,
-            "z": 0.020
-        },
-        "rolling_spine_amplitude": {
-            "x": 0.000,
-            "y": 0.020,
-            "z": 0.000
-        },
-        "bone_animated": false
+    "secondary_1_animation_amplitude": 0.5,
+    "invert_secondary_1_animation": -1,
+    "secondary_2_animation_amplitude": {
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
     },
-    {
-        "name": "Atlantic Sailfish",
-        "maxPopulation": 100,
-        "habitats": ["Coastal Zone"],
-        "seabed_bound": false,
-        "predator": true,
-        "prey": false,
-        "cell_radius": 8,
-        "state_transition_speed": 0.5,
-        "state_change_timer_min": 1,
-        "state_change_timer_max": 10,
-        "separation_weight": 2.5,
-        "alignment_weight": 0,
-        "target_weight": 2,
-        "obstacle_aversion_distance": 2,
-        "max_vertical_angle": 30,
-        "max_turn_rate": 1.0,
-        "move_speed": 1.5,
-        "speed_modifier_min": 0.5,
-        "speed_modifier_max": 1.5,
-        "positive_y_clip": 1,
-        "negative_y_clip": 0.353,
-        "animation_speed": 7,
-        "sine_wavelength": 1.5,
-        "sine_deformation_amplitude": {
-            "x": 0.3,
-            "y": 0,
-            "z": 0
-        },
-        "secondary_1_animation_amplitude": 1,
-        "invert_secondary_1_animation": -1,
-        "secondary_2_animation_amplitude": {
-            "x": 0.1,
-            "y": 0,
-            "z": 0
-        },
-        "invert_secondary_2_animation": -1,
-        "side_to_side_amplitude": {
-            "x": 0.03,
-            "y": 0,
-            "z": 0
-        },
-        "yaw_amplitude": {
-            "x": 0,
-            "y": 0,
-            "z": 0.05
-        },
-        "rolling_spine_amplitude": {
-            "x": 0,
-            "y": 0.05,
-            "z": 0
-        },
-        "bone_animated": false
+    "invert_secondary_2_animation": -1,
+    "side_to_side_amplitude": {
+      "x": 0.003,
+      "y": 0.0,
+      "z": 0.0
     },
-    {
-        "name": "Blue Shark",
-        "maxPopulation": 10,
-        "habitats": ["Coastal Zone"],
-        "seabed_bound": false,
-        "predator": true,
-        "prey": false,
-        "cell_radius": 8,
-        "state_transition_speed": 0.5,
-        "state_change_timer_min": 1,
-        "state_change_timer_max": 10,
-        "separation_weight": 2.5,
-        "alignment_weight": 0,
-        "target_weight": 2,
-        "obstacle_aversion_distance": 2,
-        "max_vertical_angle": 30,
-        "max_turn_rate": 1.0,
-        "move_speed": 1,
-        "speed_modifier_min": 0.5,
-        "speed_modifier_max": 1.5,
-        "positive_y_clip": 1,
-        "negative_y_clip": 0.55,
-        "animation_speed": 4,
-        "sine_wavelength": 0.6,
-        "sine_deformation_amplitude": {
-            "x": 0.5,
-            "y": 0,
-            "z": 0
-        },
-        "secondary_1_animation_amplitude": 1,
-        "invert_secondary_1_animation": -1,
-        "secondary_2_animation_amplitude": {
-            "x": 0.16,
-            "y": 0,
-            "z": 0
-        },
-        "invert_secondary_2_animation": -1,
-        "side_to_side_amplitude": {
-            "x": 0.015,
-            "y": 0,
-            "z": 0
-        },
-        "yaw_amplitude": {
-            "x": 0,
-            "y": 0,
-            "z": 0.05
-        },
-        "rolling_spine_amplitude": {
-            "x": 0,
-            "y": 0.05,
-            "z": 0
-        },
-        "bone_animated": false
+    "yaw_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.02
     },
-    {
-        "name": "Great White Shark",
-        "maxPopulation": 2,
-        "habitats": ["Coastal Zone"],
-        "seabed_bound": false,
-        "predator": true,
-        "prey": false,
-        "cell_radius": 8,
-        "state_transition_speed": 0.5,
-        "state_change_timer_min": 1,
-        "state_change_timer_max": 10,
-        "separation_weight": 2.5,
-        "alignment_weight": 0,
-        "target_weight": 2,
-        "obstacle_aversion_distance": 2,
-        "max_vertical_angle": 30,
-        "max_turn_rate": 1.0,
-        "move_speed": 1,
-        "speed_modifier_min": 0.5,
-        "speed_modifier_max": 1.5,
-        "positive_y_clip": 0.730,
-        "negative_y_clip": 0.206,
-        "animation_speed": 2.700,
-        "sine_wavelength": 1.000,
-        "sine_deformation_amplitude": {
-            "x": 1.500,
-            "y": 0.000,
-            "z": 0.000
-        },
-        "secondary_1_animation_amplitude": 0.300,
-        "invert_secondary_1_animation": 1,
-        "secondary_2_animation_amplitude": {
-            "x": 0.000,
-            "y": 0.000,
-            "z": 0.000
-        },
-        "invert_secondary_2_animation": 1,
-        "side_to_side_amplitude": {
-            "x": 0.050,
-            "y": 0.000,
-            "z": 0.000
-        },
-        "yaw_amplitude": {
-            "x": 0.000,
-            "y": 0.000,
-            "z": 0.050
-        },
-        "rolling_spine_amplitude": {
-            "x": 0.000,
-            "y": 0.030,
-            "z": 0.000
-        },
-        "bone_animated": false
+    "rolling_spine_amplitude": {
+      "x": 0.0,
+      "y": 0.02,
+      "z": 0.0
     },
-    {
-        "name": "Common Bottlenose Dolphin",
-        "maxPopulation": 10,
-        "habitats": ["Coastal Zone"],
-        "seabed_bound": false,
-        "predator": false,
-        "prey": false,
-        "cell_radius": 8,
-        "state_transition_speed": 0.5,
-        "state_change_timer_min": 1,
-        "state_change_timer_max": 10,
-        "separation_weight": 2.5,
-        "alignment_weight": 0,
-        "target_weight": 2,
-        "obstacle_aversion_distance": 2,
-        "max_vertical_angle": 30,
-        "max_turn_rate": 1.0,
-        "move_speed": 2,
-        "speed_modifier_min": 0.5,
-        "speed_modifier_max": 1.5,
-        "positive_y_clip": 0.85,
-        "negative_y_clip": 0.4,
-        "animation_speed": 5,
-        "sine_wavelength": 1,
-        "sine_deformation_amplitude": {
-            "x": 0,
-            "y": 0,
-            "z": 0.4
-        },
-        "secondary_1_animation_amplitude": 1.2,
-        "invert_secondary_1_animation": 1,
-        "secondary_2_animation_amplitude": {
-            "x": 0,
-            "y": 0,
-            "z": 0.3
-        },
-        "invert_secondary_2_animation": -1,
-        "side_to_side_amplitude": {
-            "x": 0,
-            "y": 0,
-            "z": 0.05
-        },
-        "yaw_amplitude": {
-            "x": -0.05,
-            "y": 0,
-            "z": 0
-        },
-        "rolling_spine_amplitude": {
-            "x": 0,
-            "y": 0.05,
-            "z": 0
-        },
-        "bone_animated": false
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "medium",
+      "schooling",
+      "prey"
+    ]
+  },
+  {
+    "name": "Atlantic Sailfish",
+    "maxPopulation": 100,
+    "habitats": [
+      "Coastal Zone"
+    ],
+    "seabed_bound": false,
+    "predator": true,
+    "prey": false,
+    "water_current_influence": -1.0,
+    "cell_radius": 8,
+    "state_transition_speed": 0.5,
+    "state_change_timer_min": 1,
+    "state_change_timer_max": 10,
+    "separation_weight": 2.5,
+    "alignment_weight": 0,
+    "target_weight": 2,
+    "obstacle_aversion_distance": 2,
+    "max_vertical_angle": 30,
+    "max_turn_rate": 1.0,
+    "move_speed": 1.5,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.5,
+    "speed_modifier_max": 1.5,
+    "positive_y_clip": 1,
+    "negative_y_clip": 0.353,
+    "animation_speed": 7,
+    "sine_wavelength": 1.5,
+    "sine_deformation_amplitude": {
+      "x": 0.3,
+      "y": 0,
+      "z": 0
     },
-    {
-    "name": "Common Cuttlefish",
+    "secondary_1_animation_amplitude": 1,
+    "invert_secondary_1_animation": -1,
+    "secondary_2_animation_amplitude": {
+      "x": 0.1,
+      "y": 0,
+      "z": 0
+    },
+    "invert_secondary_2_animation": -1,
+    "side_to_side_amplitude": {
+      "x": 0.03,
+      "y": 0,
+      "z": 0
+    },
+    "yaw_amplitude": {
+      "x": 0,
+      "y": 0,
+      "z": 0.05
+    },
+    "rolling_spine_amplitude": {
+      "x": 0,
+      "y": 0.05,
+      "z": 0
+    },
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "predator"
+    ]
+  },
+  {
+    "name": "Blue Shark",
     "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
+    "seabed_bound": false,
+    "predator": true,
+    "prey": false,
+    "water_current_influence": -1.0,
+    "cell_radius": 8,
+    "state_transition_speed": 0.5,
+    "state_change_timer_min": 1,
+    "state_change_timer_max": 10,
+    "separation_weight": 2.5,
+    "alignment_weight": 0,
+    "target_weight": 2,
+    "obstacle_aversion_distance": 2,
+    "max_vertical_angle": 30,
+    "max_turn_rate": 1.0,
+    "move_speed": 1,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.5,
+    "speed_modifier_max": 1.5,
+    "positive_y_clip": 1,
+    "negative_y_clip": 0.55,
+    "animation_speed": 4,
+    "sine_wavelength": 0.6,
+    "sine_deformation_amplitude": {
+      "x": 0.5,
+      "y": 0,
+      "z": 0
+    },
+    "secondary_1_animation_amplitude": 1,
+    "invert_secondary_1_animation": -1,
+    "secondary_2_animation_amplitude": {
+      "x": 0.16,
+      "y": 0,
+      "z": 0
+    },
+    "invert_secondary_2_animation": -1,
+    "side_to_side_amplitude": {
+      "x": 0.015,
+      "y": 0,
+      "z": 0
+    },
+    "yaw_amplitude": {
+      "x": 0,
+      "y": 0,
+      "z": 0.05
+    },
+    "rolling_spine_amplitude": {
+      "x": 0,
+      "y": 0.05,
+      "z": 0
+    },
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "predator"
+    ]
+  },
+  {
+    "name": "Great White Shark",
+    "maxPopulation": 2,
+    "habitats": [
+      "Coastal Zone"
+    ],
+    "seabed_bound": false,
+    "predator": true,
+    "prey": false,
+    "water_current_influence": -1.0,
+    "cell_radius": 8,
+    "state_transition_speed": 0.5,
+    "state_change_timer_min": 1,
+    "state_change_timer_max": 10,
+    "separation_weight": 2.5,
+    "alignment_weight": 0,
+    "target_weight": 2,
+    "obstacle_aversion_distance": 2,
+    "max_vertical_angle": 30,
+    "max_turn_rate": 1.0,
+    "move_speed": 1,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.5,
+    "speed_modifier_max": 1.5,
+    "positive_y_clip": 0.73,
+    "negative_y_clip": 0.206,
+    "animation_speed": 2.7,
+    "sine_wavelength": 1.0,
+    "sine_deformation_amplitude": {
+      "x": 1.5,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "secondary_1_animation_amplitude": 0.3,
+    "invert_secondary_1_animation": 1,
+    "secondary_2_animation_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "invert_secondary_2_animation": 1,
+    "side_to_side_amplitude": {
+      "x": 0.05,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "yaw_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.05
+    },
+    "rolling_spine_amplitude": {
+      "x": 0.0,
+      "y": 0.03,
+      "z": 0.0
+    },
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "predator"
+    ]
+  },
+  {
+    "name": "Common Bottlenose Dolphin",
+    "maxPopulation": 10,
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
+    "cell_radius": 8,
+    "state_transition_speed": 0.5,
+    "state_change_timer_min": 1,
+    "state_change_timer_max": 10,
+    "separation_weight": 2.5,
+    "alignment_weight": 0,
+    "target_weight": 2,
+    "obstacle_aversion_distance": 2,
+    "max_vertical_angle": 30,
+    "max_turn_rate": 1.0,
+    "move_speed": 2,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.5,
+    "speed_modifier_max": 1.5,
+    "positive_y_clip": 0.85,
+    "negative_y_clip": 0.4,
+    "animation_speed": 5,
+    "sine_wavelength": 1,
+    "sine_deformation_amplitude": {
+      "x": 0,
+      "y": 0,
+      "z": 0.4
+    },
+    "secondary_1_animation_amplitude": 1.2,
+    "invert_secondary_1_animation": 1,
+    "secondary_2_animation_amplitude": {
+      "x": 0,
+      "y": 0,
+      "z": 0.3
+    },
+    "invert_secondary_2_animation": -1,
+    "side_to_side_amplitude": {
+      "x": 0,
+      "y": 0,
+      "z": 0.05
+    },
+    "yaw_amplitude": {
+      "x": -0.05,
+      "y": 0,
+      "z": 0
+    },
+    "rolling_spine_amplitude": {
+      "x": 0,
+      "y": 0.05,
+      "z": 0
+    },
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "schooling",
+      "neutral"
+    ]
+  },
+  {
+    "name": "Common Cuttlefish",
+    "maxPopulation": 10,
+    "habitats": [
+      "Coastal Zone"
+    ],
+    "seabed_bound": false,
+    "predator": false,
+    "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -341,103 +410,125 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.5,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
     "positive_y_clip": 1.0,
     "negative_y_clip": 1.0,
     "animation_speed": 10.0,
-    "sine_wavelength": 0.030,
+    "sine_wavelength": 0.03,
     "sine_deformation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.011
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.011
     },
-    "secondary_1_animation_amplitude": 0.000,
+    "secondary_1_animation_amplitude": 0.0,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.001
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.001
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
-    "bone_animated": true
-    },
-    {
+    "bone_animated": true,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "small",
+      "lone",
+      "neutral"
+    ]
+  },
+  {
     "name": "Common Dentex",
     "maxPopulation": 1000,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": true,
+    "water_current_influence": -1.0,
     "cell_radius": 4.0,
     "state_transition_speed": 3.0,
     "state_change_timer_min": 2.0,
     "state_change_timer_max": 4.0,
-    "separation_weight": 0.01,
-    "alignment_weight": 0.6,
+    "separation_weight": 0.009,
+    "alignment_weight": 0.59,
     "target_weight": 0.3,
     "obstacle_aversion_distance": 2.0,
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.6,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.3,
     "speed_modifier_max": 3.0,
     "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
-    "animation_speed": 5.000,
-    "sine_wavelength": 0.200,
+    "animation_speed": 5.0,
+    "sine_wavelength": 0.2,
     "sine_deformation_amplitude": {
-        "x": 0.060,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.06,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 2.000,
+    "secondary_1_animation_amplitude": 2.0,
     "invert_secondary_1_animation": -1,
     "secondary_2_animation_amplitude": {
-        "x": 0.050,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.05,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.005,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.005,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.070
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.07
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.020,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.02,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "medium",
+      "schooling",
+      "prey"
+    ]
+  },
+  {
     "name": "Common Dolphin",
     "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -449,213 +540,257 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 2.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
     "positive_y_clip": 0.82,
-    "negative_y_clip": 0.60,
-    "animation_speed": 5.000,
-    "sine_wavelength": 1.000,
+    "negative_y_clip": 0.6,
+    "animation_speed": 5.0,
+    "sine_wavelength": 1.0,
     "sine_deformation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.400
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.4
     },
-    "secondary_1_animation_amplitude": 1.200,
+    "secondary_1_animation_amplitude": 1.2,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.300
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.3
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.050
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.05
     },
     "yaw_amplitude": {
-        "x": -0.050,
-        "y": 0.000,
-        "z": 0.000
+      "x": -0.05,
+      "y": 0.0,
+      "z": 0.0
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "schooling",
+      "neutral"
+    ]
+  },
+  {
     "name": "European Anchovy",
     "maxPopulation": 2500,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Near Surface"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": true,
+    "water_current_influence": -1.0,
     "cell_radius": 1.0,
     "state_transition_speed": 3.0,
     "state_change_timer_min": 2.0,
     "state_change_timer_max": 4.0,
-    "separation_weight": 0.01,
-    "alignment_weight": 0.6,
+    "separation_weight": 0.009,
+    "alignment_weight": 0.59,
     "target_weight": 0.3,
     "obstacle_aversion_distance": 1.0,
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.2,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.3,
     "speed_modifier_max": 2.0,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
-    "animation_speed": 8.000,
-    "sine_wavelength": 0.100,
+    "animation_speed": 8.0,
+    "sine_wavelength": 0.1,
     "sine_deformation_amplitude": {
-        "x": 0.010,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
     },
     "secondary_1_animation_amplitude": 2.0,
     "invert_secondary_1_animation": 0,
     "secondary_2_animation_amplitude": {
-        "x": 0.010,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.001,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.001,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.030
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.03
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.5,
+    "tags": [
+      "small",
+      "schooling",
+      "prey"
+    ]
+  },
+  {
     "name": "European Hake",
     "maxPopulation": 2500,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "immobile": false,
     "seabed_bound": false,
     "predator": false,
     "prey": true,
+    "water_current_influence": -1.0,
     "cell_radius": 4.0,
     "state_transition_speed": 3.0,
     "state_change_timer_min": 2.0,
     "state_change_timer_max": 4.0,
-    "separation_weight": 0.01,
-    "alignment_weight": 0.6,
+    "separation_weight": 0.009,
+    "alignment_weight": 0.59,
     "target_weight": 0.3,
     "obstacle_aversion_distance": 2.0,
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.6,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.3,
     "speed_modifier_max": 3.0,
-    "positive_y_clip": 1.00,
-    "negative_y_clip": 0.40,
-    "animation_speed": 6.000,
-    "sine_wavelength": 0.150,
+    "positive_y_clip": 1.0,
+    "negative_y_clip": 0.4,
+    "animation_speed": 6.0,
+    "sine_wavelength": 0.15,
     "sine_deformation_amplitude": {
-        "x": 0.060,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.06,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 1.500,
+    "secondary_1_animation_amplitude": 1.5,
     "invert_secondary_1_animation": -1,
     "secondary_2_animation_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.001,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.001,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.020
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.02
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.030,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.03,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "medium",
+      "schooling",
+      "prey"
+    ]
+  },
+  {
     "name": "European Pilchard",
     "maxPopulation": 2500,
-    "habitats": ["Seaweed"],
+    "habitats": [
+      "Seaweed"
+    ],
     "immobile": false,
     "seabed_bound": false,
     "predator": false,
     "prey": true,
+    "water_current_influence": -1.0,
     "cell_radius": 1.0,
     "state_transition_speed": 3.0,
     "state_change_timer_min": 2.0,
     "state_change_timer_max": 4.0,
-    "separation_weight": 0.01,
-    "alignment_weight": 0.6,
+    "separation_weight": 0.009,
+    "alignment_weight": 0.59,
     "target_weight": 0.3,
     "obstacle_aversion_distance": 1.0,
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.2,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.3,
     "speed_modifier_max": 3.0,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.2,
-    "animation_speed": 15.000,
-    "sine_wavelength": 0.080,
+    "animation_speed": 15.0,
+    "sine_wavelength": 0.08,
     "sine_deformation_amplitude": {
-        "x": 0.006,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.006,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 1.20,
+    "secondary_1_animation_amplitude": 1.2,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.005,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.005,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.001,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.001,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.020
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.02
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "small",
+      "schooling",
+      "prey"
+    ]
+  },
+  {
     "name": "Green Crab",
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "maxPopulation": 100,
     "seabed_bound": true,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 1.0,
     "separation_weight": 1.0,
     "alignment_weight": 0.0,
@@ -664,50 +799,61 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.3,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
-    "animation_speed": 8.000,
-    "sine_wavelength": 0.030,
+    "animation_speed": 8.0,
+    "sine_wavelength": 0.03,
     "sine_deformation_amplitude": {
-        "x": 0.000,
-        "y": 0.015,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.015,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 0.000,
+    "secondary_1_animation_amplitude": 0.0,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.080,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.08,
+      "z": 0.0
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.005
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.005
     },
     "yaw_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.020
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.02
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.040
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.04
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "small",
+      "lone",
+      "neutral"
+    ]
+  },
+  {
     "name": "Grouper",
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "maxPopulation": 1000,
     "immobile": false,
     "seabed_bound": false,
     "predator": true,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 3.0,
     "state_change_timer_min": 2.0,
@@ -719,49 +865,60 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.5,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.3,
     "speed_modifier_max": 3.0,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
     "animation_speed": 3.2,
     "sine_wavelength": 0.18,
     "sine_deformation_amplitude": {
-        "x": 0.15,
-        "y": 0.0,
-        "z": 0.0
+      "x": 0.15,
+      "y": 0.0,
+      "z": 0.0
     },
     "secondary_1_animation_amplitude": 1,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.2,
-        "y": 0.0,
-        "z": 0.0
+      "x": 0.2,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.005,
-        "y": 0.0,
-        "z": 0.0
+      "x": 0.005,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": 0.03
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.03
     },
     "rolling_spine_amplitude": {
-        "x": 0.0,
-        "y": 0.02,
-        "z": 0.0
+      "x": 0.0,
+      "y": 0.02,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "schooling",
+      "predator"
+    ]
+  },
+  {
     "name": "Little Tunny",
     "maxPopulation": 1000,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": true,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 3.0,
     "state_change_timer_min": 2.0,
@@ -773,49 +930,60 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 1.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.3,
     "speed_modifier_max": 3.0,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
-    "animation_speed": 10.000,
-    "sine_wavelength": 0.800,
+    "animation_speed": 10.0,
+    "sine_wavelength": 0.8,
     "sine_deformation_amplitude": {
-        "x": 0.030,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.03,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 1.000,
+    "secondary_1_animation_amplitude": 1.0,
     "invert_secondary_1_animation": -1,
     "secondary_2_animation_amplitude": {
-        "x": 0.010,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.005,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.005,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.003
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.003
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.030,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.03,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "medium",
+      "schooling",
+      "prey"
+    ]
+  },
+  {
     "name": "Mahi Mahi",
     "maxPopulation": 100,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": true,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -827,49 +995,60 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 1.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
-    "animation_speed": 8.000,
-    "sine_wavelength": 0.300,
+    "animation_speed": 8.0,
+    "sine_wavelength": 0.3,
     "sine_deformation_amplitude": {
-        "x": 0.100,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.1,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 1.000,
+    "secondary_1_animation_amplitude": 1.0,
     "invert_secondary_1_animation": -1,
     "secondary_2_animation_amplitude": {
-        "x": 0.050,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.05,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.010,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.060
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.06
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "medium",
+      "schooling",
+      "prey"
+    ]
+  },
+  {
     "name": "Mediterranean Parrotfish",
     "maxPopulation": 100,
-    "habitats": ["Seaweed"],
+    "habitats": [
+      "Seaweed"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -881,49 +1060,60 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.5,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
-    "animation_speed": 11.000,
-    "sine_wavelength": 0.050,
+    "animation_speed": 11.0,
+    "sine_wavelength": 0.05,
     "sine_deformation_amplitude": {
-        "x": 0.010,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 0.000,
+    "secondary_1_animation_amplitude": 0.0,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-        "x": 0.003,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.003,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "medium",
+      "schooling",
+      "neutral"
+    ]
+  },
+  {
     "name": "Myctophids",
     "maxPopulation": 500,
-    "habitats": ["Seaweed"],
+    "habitats": [
+      "Seaweed"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -935,49 +1125,60 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.4,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.000,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.571,
-    "animation_speed": 10.000,
-    "sine_wavelength": 0.100,
+    "animation_speed": 10.0,
+    "sine_wavelength": 0.1,
     "sine_deformation_amplitude": {
-        "x": 0.010,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 0.800,
+    "secondary_1_animation_amplitude": 0.8,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.001,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.001,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.030
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.03
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "small",
+      "schooling",
+      "neutral"
+    ]
+  },
+  {
     "name": "Monk Seal",
     "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": true,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -989,49 +1190,60 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 2.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
-    "animation_speed": 5.000,
-    "sine_wavelength": 0.800,
+    "animation_speed": 5.0,
+    "sine_wavelength": 0.8,
     "sine_deformation_amplitude": {
-        "x": 0.300,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.3,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 2.000,
+    "secondary_1_animation_amplitude": 2.0,
     "invert_secondary_1_animation": -1,
     "secondary_2_animation_amplitude": {
-        "x": 0.160,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.16,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.050
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.05
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "predator"
+    ]
+  },
+  {
     "name": "Ocean Sunfish",
     "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -1043,158 +1255,191 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 2.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
-    "animation_speed": 2.500,
-    "sine_wavelength": 0.250,
+    "animation_speed": 2.5,
+    "sine_wavelength": 0.25,
     "sine_deformation_amplitude": {
-        "x": 0.800,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.8,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 1.000,
+    "secondary_1_animation_amplitude": 1.0,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-        "x": 0.030,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.03,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.020
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.02
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.012,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.012,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "neutral"
+    ]
+  },
+  {
     "name": "Red Mullet",
     "maxPopulation": 2500,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "immobile": false,
     "seabed_bound": false,
     "predator": false,
     "prey": true,
+    "water_current_influence": -1.0,
     "cell_radius": 1.0,
     "state_transition_speed": 3.0,
     "state_change_timer_min": 2.0,
     "state_change_timer_max": 4.0,
-    "separation_weight": 0.01,
-    "alignment_weight": 0.6,
+    "separation_weight": 0.009,
+    "alignment_weight": 0.59,
     "target_weight": 0.3,
     "obstacle_aversion_distance": 1.0,
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.2,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.3,
     "speed_modifier_max": 3.0,
-    "positive_y_clip": 1.00,
-    "negative_y_clip": 0.40,
-    "animation_speed": 8.000,
-    "sine_wavelength": 0.10,
+    "positive_y_clip": 1.0,
+    "negative_y_clip": 0.4,
+    "animation_speed": 8.0,
+    "sine_wavelength": 0.1,
     "sine_deformation_amplitude": {
-        "x": 0.010,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 0.80,
+    "secondary_1_animation_amplitude": 0.8,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.001,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.001,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.030
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.03
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "small",
+      "schooling",
+      "prey"
+    ]
+  },
+  {
     "name": "Sea Bass",
     "maxPopulation": 2000,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": true,
+    "water_current_influence": -1.0,
     "cell_radius": 4.0,
     "state_transition_speed": 3.0,
     "state_change_timer_min": 2.0,
     "state_change_timer_max": 4.0,
-    "separation_weight": 0.01,
-    "alignment_weight": 0.6,
+    "separation_weight": 0.009,
+    "alignment_weight": 0.59,
     "target_weight": 0.3,
     "obstacle_aversion_distance": 2.0,
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.6,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.3,
     "speed_modifier_max": 3.0,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
     "animation_speed": 7.0,
-    "sine_wavelength": 0.200,
+    "sine_wavelength": 0.2,
     "sine_deformation_amplitude": {
-        "x": 0.060,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.06,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 0.500,
+    "secondary_1_animation_amplitude": 0.5,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.050,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.05,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.005,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.005,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.030
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.03
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "medium",
+      "schooling",
+      "prey"
+    ]
+  },
+  {
     "name": "Shortfin Mako",
     "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": true,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -1206,270 +1451,325 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 1.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
-    "animation_speed": 3.000,
-    "sine_wavelength": 0.800,
+    "animation_speed": 3.0,
+    "sine_wavelength": 0.8,
     "sine_deformation_amplitude": {
-        "x": 1.000,
-        "y": 0.000,
-        "z": 0.000
-    },
-    "secondary_1_animation_amplitude": 2.000,
-    "invert_secondary_1_animation": -1,
-    "secondary_2_animation_amplitude": {
-        "x": 0.200,
-        "y": 0.000,
-        "z": 0.000
-    },
-    "invert_secondary_2_animation": -1,
-    "side_to_side_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.000
-    },
-    "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.050
-    },
-    "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
-    },
-    "bone_animated": false
-    },
-    {
-    "name": "Striped Dolphin",
-    "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
-    "immobile": false,
-    "seabed_bound": false,
-    "predator": false,
-    "prey": false,
-    "cell_radius": 8.0,
-    "state_transition_speed": 0.5,
-    "state_change_timer_min": 1.0,
-    "state_change_timer_max": 10.0,
-    "separation_weight": 2.5,
-    "alignment_weight": 0.0,
-    "target_weight": 2.0,
-    "obstacle_aversion_distance": 2.0,
-    "max_vertical_angle": 30.0,
-    "max_turn_rate": 1.0,
-    "move_speed": 2.0,
-    "speed_modifier_min": 0.5,
-    "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
-    "negative_y_clip": 0.55,
-    "animation_speed": 5.000,
-    "sine_wavelength": 1.000,
-    "sine_deformation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.400
-    },
-    "secondary_1_animation_amplitude": 1.200,
-    "invert_secondary_1_animation": 1,
-    "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.300
-    },
-    "invert_secondary_2_animation": -1,
-    "side_to_side_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.050
-    },
-    "yaw_amplitude": {
-        "x": -0.050,
-        "y": 0.000,
-        "z": 0.000
-    },
-    "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
-    },
-    "bone_animated": false
-    },
-    {
-    "name": "Swordfish",
-    "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
-    "immobile": false,
-    "seabed_bound": false,
-    "predator": true,
-    "prey": false,
-    "cell_radius": 8.0,
-    "state_transition_speed": 0.5,
-    "state_change_timer_min": 1.0,
-    "state_change_timer_max": 10.0,
-    "separation_weight": 2.5,
-    "alignment_weight": 0.0,
-    "target_weight": 2.0,
-    "obstacle_aversion_distance": 2.0,
-    "max_vertical_angle": 30.0,
-    "max_turn_rate": 1.0,
-    "move_speed": 2.0,
-    "speed_modifier_min": 0.5,
-    "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
-    "negative_y_clip": 0.55,
-    "animation_speed": 4.0,
-    "sine_wavelength": 1.0,
-    "sine_deformation_amplitude": {
-        "x": 0.9,
-        "y": 0.0,
-        "z": 0.0
-    },
-    "secondary_1_animation_amplitude": 1,
-    "invert_secondary_1_animation": 1,
-    "secondary_2_animation_amplitude": {
-        "x": 0.1,
-        "y": 0.0,
-        "z": 0.0
-    },
-    "invert_secondary_2_animation": -1,
-    "side_to_side_amplitude": {
-        "x": 0.0,
-        "y": 0.0,
-        "z": 0.0
-    },
-    "yaw_amplitude": {
-        "x": 0.0,
-        "y": 0.01,
-        "z": 0.0
-    },
-    "rolling_spine_amplitude": {
-        "x": 0.0,
-        "y": 0.04,
-        "z": 0.0
-    },
-    "bone_animated": false
-    },
-    {
-    "name": "Thresher Shark",
-    "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
-    "immobile": false,
-    "seabed_bound": false,
-    "predator": true,
-    "prey": false,
-    "cell_radius": 8.0,
-    "state_transition_speed": 0.5,
-    "state_change_timer_min": 1.0,
-    "state_change_timer_max": 10.0,
-    "separation_weight": 2.5,
-    "alignment_weight": 0.0,
-    "target_weight": 2.0,
-    "obstacle_aversion_distance": 2.0,
-    "max_vertical_angle": 30.0,
-    "max_turn_rate": 1.0,
-    "move_speed": 1.0,
-    "speed_modifier_min": 0.5,
-    "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
-    "negative_y_clip": 0.55,
-    "animation_speed": 5.000,
-    "sine_wavelength": 0.750,
-    "sine_deformation_amplitude": {
-        "x": 0.400,
-        "y": 0.000,
-        "z": 0.000
-    },
-    "secondary_1_animation_amplitude": 0.300,
-    "invert_secondary_1_animation": -1,
-    "secondary_2_animation_amplitude": {
-        "x": 0.160,
-        "y": 0.000,
-        "z": 0.000
-    },
-    "invert_secondary_2_animation": -1,
-    "side_to_side_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.000
-    },
-    "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.050
-    },
-    "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
-    },
-    "bone_animated": false
-    },
-    {
-    "name": "Whale Shark",
-    "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
-    "immobile": false,
-    "seabed_bound": false,
-    "predator": true,
-    "prey": false,
-    "cell_radius": 8.0,
-    "state_transition_speed": 0.5,
-    "state_change_timer_min": 1.0,
-    "state_change_timer_max": 10.0,
-    "separation_weight": 2.5,
-    "alignment_weight": 0.0,
-    "target_weight": 2.0,
-    "obstacle_aversion_distance": 2.0,
-    "max_vertical_angle": 30.0,
-    "max_turn_rate": 1.0,
-    "move_speed": 2.0,
-    "speed_modifier_min": 0.5,
-    "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
-    "negative_y_clip": 0.55,
-    "animation_speed": 2.000,
-    "sine_wavelength": 1.000,
-    "sine_deformation_amplitude": {
-        "x": 3.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 1.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "secondary_1_animation_amplitude": 2.0,
     "invert_secondary_1_animation": -1,
     "secondary_2_animation_amplitude": {
-        "x": 0.160,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.2,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.030
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.05
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.030,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
-    "name": "Fin Whale",
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "predator"
+    ]
+  },
+  {
+    "name": "Striped Dolphin",
     "maxPopulation": 10,
-    "habitats": ["Deepwater Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "immobile": false,
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
+    "cell_radius": 8.0,
+    "state_transition_speed": 0.5,
+    "state_change_timer_min": 1.0,
+    "state_change_timer_max": 10.0,
+    "separation_weight": 2.5,
+    "alignment_weight": 0.0,
+    "target_weight": 2.0,
+    "obstacle_aversion_distance": 2.0,
+    "max_vertical_angle": 30.0,
+    "max_turn_rate": 1.0,
+    "move_speed": 2.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.5,
+    "speed_modifier_max": 1.5,
+    "positive_y_clip": 1.0,
+    "negative_y_clip": 0.55,
+    "animation_speed": 5.0,
+    "sine_wavelength": 1.0,
+    "sine_deformation_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.4
+    },
+    "secondary_1_animation_amplitude": 1.2,
+    "invert_secondary_1_animation": 1,
+    "secondary_2_animation_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.3
+    },
+    "invert_secondary_2_animation": -1,
+    "side_to_side_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.05
+    },
+    "yaw_amplitude": {
+      "x": -0.05,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "rolling_spine_amplitude": {
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
+    },
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "schooling",
+      "neutral"
+    ]
+  },
+  {
+    "name": "Swordfish",
+    "maxPopulation": 10,
+    "habitats": [
+      "Coastal Zone"
+    ],
+    "immobile": false,
+    "seabed_bound": false,
+    "predator": true,
+    "prey": false,
+    "water_current_influence": -1.0,
+    "cell_radius": 8.0,
+    "state_transition_speed": 0.5,
+    "state_change_timer_min": 1.0,
+    "state_change_timer_max": 10.0,
+    "separation_weight": 2.5,
+    "alignment_weight": 0.0,
+    "target_weight": 2.0,
+    "obstacle_aversion_distance": 2.0,
+    "max_vertical_angle": 30.0,
+    "max_turn_rate": 1.0,
+    "move_speed": 2.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.5,
+    "speed_modifier_max": 1.5,
+    "positive_y_clip": 1.0,
+    "negative_y_clip": 0.55,
+    "animation_speed": 4.0,
+    "sine_wavelength": 1.0,
+    "sine_deformation_amplitude": {
+      "x": 0.9,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "secondary_1_animation_amplitude": 1,
+    "invert_secondary_1_animation": 1,
+    "secondary_2_animation_amplitude": {
+      "x": 0.1,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "invert_secondary_2_animation": -1,
+    "side_to_side_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "yaw_amplitude": {
+      "x": 0.0,
+      "y": 0.01,
+      "z": 0.0
+    },
+    "rolling_spine_amplitude": {
+      "x": 0.0,
+      "y": 0.04,
+      "z": 0.0
+    },
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "predator"
+    ]
+  },
+  {
+    "name": "Thresher Shark",
+    "maxPopulation": 10,
+    "habitats": [
+      "Coastal Zone"
+    ],
+    "immobile": false,
+    "seabed_bound": false,
+    "predator": true,
+    "prey": false,
+    "water_current_influence": -1.0,
+    "cell_radius": 8.0,
+    "state_transition_speed": 0.5,
+    "state_change_timer_min": 1.0,
+    "state_change_timer_max": 10.0,
+    "separation_weight": 2.5,
+    "alignment_weight": 0.0,
+    "target_weight": 2.0,
+    "obstacle_aversion_distance": 2.0,
+    "max_vertical_angle": 30.0,
+    "max_turn_rate": 1.0,
+    "move_speed": 1.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.5,
+    "speed_modifier_max": 1.5,
+    "positive_y_clip": 1.0,
+    "negative_y_clip": 0.55,
+    "animation_speed": 5.0,
+    "sine_wavelength": 0.75,
+    "sine_deformation_amplitude": {
+      "x": 0.4,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "secondary_1_animation_amplitude": 0.3,
+    "invert_secondary_1_animation": -1,
+    "secondary_2_animation_amplitude": {
+      "x": 0.16,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "invert_secondary_2_animation": -1,
+    "side_to_side_amplitude": {
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "yaw_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.05
+    },
+    "rolling_spine_amplitude": {
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
+    },
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "predator"
+    ]
+  },
+  {
+    "name": "Whale Shark",
+    "maxPopulation": 10,
+    "habitats": [
+      "Coastal Zone"
+    ],
+    "immobile": false,
+    "seabed_bound": false,
+    "predator": true,
+    "prey": false,
+    "water_current_influence": -1.0,
+    "cell_radius": 8.0,
+    "state_transition_speed": 0.5,
+    "state_change_timer_min": 1.0,
+    "state_change_timer_max": 10.0,
+    "separation_weight": 2.5,
+    "alignment_weight": 0.0,
+    "target_weight": 2.0,
+    "obstacle_aversion_distance": 2.0,
+    "max_vertical_angle": 30.0,
+    "max_turn_rate": 1.0,
+    "move_speed": 2.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.5,
+    "speed_modifier_max": 1.5,
+    "positive_y_clip": 1.0,
+    "negative_y_clip": 0.55,
+    "animation_speed": 2.0,
+    "sine_wavelength": 1.0,
+    "sine_deformation_amplitude": {
+      "x": 3.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "secondary_1_animation_amplitude": 2.0,
+    "invert_secondary_1_animation": -1,
+    "secondary_2_animation_amplitude": {
+      "x": 0.16,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "invert_secondary_2_animation": -1,
+    "side_to_side_amplitude": {
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "yaw_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.03
+    },
+    "rolling_spine_amplitude": {
+      "x": 0.0,
+      "y": 0.03,
+      "z": 0.0
+    },
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "predator"
+    ]
+  },
+  {
+    "name": "Fin Whale",
+    "maxPopulation": 10,
+    "habitats": [
+      "Deepwater Zone"
+    ],
+    "immobile": false,
+    "seabed_bound": false,
+    "predator": false,
+    "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 5.5,
     "state_change_timer_min": 1.0,
@@ -1481,50 +1781,61 @@
     "max_vertical_angle": 20.0,
     "max_turn_rate": 0.1,
     "move_speed": 1.5,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
     "positive_y_clip": 0.867,
     "negative_y_clip": 0.359,
-    "animation_speed": 1.250,
-    "sine_wavelength": 9.000,
+    "animation_speed": 1.25,
+    "sine_wavelength": 9.0,
     "sine_deformation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 9.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 9.0
     },
-    "secondary_1_animation_amplitude": 1.500,
+    "secondary_1_animation_amplitude": 1.5,
     "invert_secondary_1_animation": -1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.200
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.2
     },
     "invert_secondary_2_animation": -1,
     "side_to_side_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.060
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.06
     },
     "yaw_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.0
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.050,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "neutral"
+    ]
+  },
+  {
     "name": "Common Octopus",
     "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "immobile": false,
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -1536,49 +1847,60 @@
     "max_vertical_angle": 180.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.25,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.55,
     "animation_speed": 0.5,
-    "sine_wavelength": 0.500,
+    "sine_wavelength": 0.5,
     "sine_deformation_amplitude": {
-        "x": 0.300,
-        "y": 0.300,
-        "z": 0.200
+      "x": 0.3,
+      "y": 0.3,
+      "z": 0.2
     },
-    "secondary_1_animation_amplitude": 0.000,
+    "secondary_1_animation_amplitude": 0.0,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
-    "bone_animated": true
-    },
-    {
+    "bone_animated": true,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "medium",
+      "lone",
+      "neutral"
+    ]
+  },
+  {
     "name": "European Squid",
     "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -1590,49 +1912,60 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.5,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
     "positive_y_clip": 1.0,
     "negative_y_clip": 1.0,
-    "animation_speed": 5.500,
-    "sine_wavelength": 0.040,
+    "animation_speed": 5.5,
+    "sine_wavelength": 0.04,
     "sine_deformation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.023
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.023
     },
-    "secondary_1_animation_amplitude": 0.000,
+    "secondary_1_animation_amplitude": 0.0,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.010,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.01,
+      "z": 0.0
     },
-    "bone_animated": true
-    },
-    {
+    "bone_animated": true,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "small",
+      "schooling",
+      "neutral"
+    ]
+  },
+  {
     "name": "Loggerhead Sea Turtle",
     "maxPopulation": 10,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -1644,49 +1977,60 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.5,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
     "positive_y_clip": 1.0,
     "negative_y_clip": 1.0,
-    "animation_speed": 0.000,
-    "sine_wavelength": 0.040,
+    "animation_speed": 0.0,
+    "sine_wavelength": 0.04,
     "sine_deformation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.023
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.023
     },
-    "secondary_1_animation_amplitude": 0.000,
+    "secondary_1_animation_amplitude": 0.0,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.010,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.01,
+      "z": 0.0
     },
-    "bone_animated": true
-    },
-    {
+    "bone_animated": true,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "neutral"
+    ]
+  },
+  {
     "name": "Dungon",
     "maxPopulation": 20,
-    "habitats": ["Dungon"],
+    "habitats": [
+      "Dungon"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 2.5,
     "state_change_timer_min": 5.0,
@@ -1698,50 +2042,61 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 0.1,
     "move_speed": 0.1,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
     "positive_y_clip": 0.848,
     "negative_y_clip": 0.571,
-    "animation_speed": 3.500,
-    "sine_wavelength": 1.000,
+    "animation_speed": 3.5,
+    "sine_wavelength": 1.0,
     "sine_deformation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.350
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.35
     },
-    "secondary_1_animation_amplitude": 1.000,
+    "secondary_1_animation_amplitude": 1.0,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.020
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.02
     },
     "yaw_amplitude": {
-        "x": 0.020,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.02,
+      "y": 0.0,
+      "z": 0.0
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.020,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.02,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "neutral"
+    ]
+  },
+  {
     "name": "Megalodon",
     "maxPopulation": 10,
-    "habitats": ["Megalodon"],
+    "habitats": [
+      "Megalodon"
+    ],
     "immobile": false,
     "seabed_bound": false,
     "predator": true,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 5.5,
     "state_change_timer_min": 1.0,
@@ -1753,49 +2108,60 @@
     "max_vertical_angle": 15.0,
     "max_turn_rate": 1.0,
     "move_speed": 5.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 0.750,
+    "positive_y_clip": 0.75,
     "negative_y_clip": 0.443,
-    "animation_speed": 3.500,
-    "sine_wavelength": 4.000,
+    "animation_speed": 3.5,
+    "sine_wavelength": 4.0,
     "sine_deformation_amplitude": {
-        "x": 4.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 4.0,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 0.500,
+    "secondary_1_animation_amplitude": 0.5,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-        "x": 0.100,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.1,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.050
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.05
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.030,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.03,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "predator"
+    ]
+  },
+  {
     "name": "Manta Ray",
     "maxPopulation": 4,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 2.5,
     "state_change_timer_min": 5.0,
@@ -1807,103 +2173,125 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 0.5,
     "move_speed": 0.9,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 1.0,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.000,
-    "negative_y_clip": 0.250,
-    "animation_speed": 2.000,
-    "sine_wavelength": 1.000,
+    "positive_y_clip": 1.0,
+    "negative_y_clip": 0.25,
+    "animation_speed": 2.0,
+    "sine_wavelength": 1.0,
     "sine_deformation_amplitude": {
-    "x": 0.000,
-    "y": 0.000,
-    "z": 2.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 2.0
     },
-    "secondary_1_animation_amplitude": 0.000,
+    "secondary_1_animation_amplitude": 0.0,
     "invert_secondary_1_animation": -1,
     "secondary_2_animation_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-    "z": -0.200
+      "x": 0.0,
+      "y": 0.0,
+      "z": -0.2
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-    "x": 0.000,
-    "y": 0.000,
-    "z": 0.030
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.03
     },
     "yaw_amplitude": {
-    "x": -0.010,
-        "y": 0.000,
-        "z": 0.000
+      "x": -0.01,
+      "y": 0.0,
+      "z": 0.0
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.020,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.02,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "large",
+      "lone",
+      "neutral"
+    ]
+  },
+  {
     "name": "Cod",
     "maxPopulation": 2000,
-    "habitats": ["Coastal Zone"],
+    "habitats": [
+      "Coastal Zone"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": true,
+    "water_current_influence": -1.0,
     "cell_radius": 4.0,
     "state_transition_speed": 2.0,
     "state_change_timer_min": 2.0,
     "state_change_timer_max": 8.0,
-    "separation_weight": 0.01,
-    "alignment_weight": 0.6,
+    "separation_weight": 0.009,
+    "alignment_weight": 0.59,
     "target_weight": 0.3,
     "obstacle_aversion_distance": 2.0,
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.6,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.3,
     "speed_modifier_max": 3.0,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.372,
-    "animation_speed": 3.600,
-    "sine_wavelength": 0.700,
+    "animation_speed": 3.6,
+    "sine_wavelength": 0.7,
     "sine_deformation_amplitude": {
-    "x": 0.250,
-    "y": 0.000,
-    "z": 0.000
+      "x": 0.25,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 0.000,
+    "secondary_1_animation_amplitude": 0.0,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-    "x": 0.000,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-    "x": 0.010,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-    "z": 0.020
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.02
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-    "y": 0.030,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.03,
+      "z": 0.0
     },
-    "bone_animated": false
-    },
-    {
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "medium",
+      "schooling",
+      "prey"
+    ]
+  },
+  {
     "name": "Damselfish",
     "maxPopulation": 100,
-    "habitats": ["Seaweed"],
+    "habitats": [
+      "Seaweed"
+    ],
     "seabed_bound": false,
     "predator": false,
     "prey": false,
+    "water_current_influence": -1.0,
     "cell_radius": 8.0,
     "state_transition_speed": 0.5,
     "state_change_timer_min": 1.0,
@@ -1915,41 +2303,178 @@
     "max_vertical_angle": 30.0,
     "max_turn_rate": 1.0,
     "move_speed": 0.5,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
     "speed_modifier_min": 0.5,
     "speed_modifier_max": 1.5,
-    "positive_y_clip": 1.00,
+    "positive_y_clip": 1.0,
     "negative_y_clip": 0.599,
-    "animation_speed": 6.000,
-    "sine_wavelength": 0.300,
+    "animation_speed": 6.0,
+    "sine_wavelength": 0.3,
     "sine_deformation_amplitude": {
-        "x": 0.030,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.03,
+      "y": 0.0,
+      "z": 0.0
     },
-    "secondary_1_animation_amplitude": 0.000,
+    "secondary_1_animation_amplitude": 0.0,
     "invert_secondary_1_animation": 1,
     "secondary_2_animation_amplitude": {
-        "x": 0.010,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
     },
     "invert_secondary_2_animation": 1,
     "side_to_side_amplitude": {
-        "x": 0.003,
-        "y": 0.000,
-        "z": 0.000
+      "x": 0.003,
+      "y": 0.0,
+      "z": 0.0
     },
     "yaw_amplitude": {
-        "x": 0.000,
-        "y": 0.000,
-        "z": 0.010
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.01
     },
     "rolling_spine_amplitude": {
-        "x": 0.000,
-        "y": 0.030,
-        "z": 0.000
+      "x": 0.0,
+      "y": 0.03,
+      "z": 0.0
     },
-    "bone_animated": false
-    }
-    
+    "bone_animated": false,
+    "spawn_clustering": 0.8,
+    "tags": [
+      "small",
+      "schooling",
+      "neutral"
+    ]
+  },
+  {
+    "name": "Seabird Gannet",
+    "maxPopulation": 100,
+    "habitats": [
+      "Water Surface"
+    ],
+    "seabed_bound": false,
+    "predator": false,
+    "prey": false,
+    "water_current_influence": -1.0,
+    "cell_radius": 8.0,
+    "state_transition_speed": 0.5,
+    "state_change_timer_min": 1.0,
+    "state_change_timer_max": 10.0,
+    "separation_weight": 1.0,
+    "alignment_weight": 0.1,
+    "target_weight": 1.5,
+    "obstacle_aversion_distance": 0.2,
+    "max_vertical_angle": 30.0,
+    "max_turn_rate": 1.0,
+    "move_speed": 0.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.5,
+    "speed_modifier_max": 1.5,
+    "positive_y_clip": 1.0,
+    "negative_y_clip": 0.599,
+    "animation_speed": 6.0,
+    "sine_wavelength": 0.3,
+    "sine_deformation_amplitude": {
+      "x": 0.03,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "secondary_1_animation_amplitude": 0.0,
+    "invert_secondary_1_animation": 1,
+    "secondary_2_animation_amplitude": {
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "invert_secondary_2_animation": 1,
+    "side_to_side_amplitude": {
+      "x": 0.003,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "yaw_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.01
+    },
+    "rolling_spine_amplitude": {
+      "x": 0.0,
+      "y": 0.03,
+      "z": 0.0
+    },
+    "bone_animated": true,
+    "spawn_clustering": 0.0,
+    "tags": [
+      "small",
+      "schooling",
+      "neutral"
+    ]
+  },
+  {
+    "name": "Seabird Shearwater",
+    "maxPopulation": 100,
+    "habitats": [
+      "Water Surface"
+    ],
+    "seabed_bound": false,
+    "predator": false,
+    "prey": false,
+    "water_current_influence": -1.0,
+    "cell_radius": 8.0,
+    "state_transition_speed": 0.5,
+    "state_change_timer_min": 1.0,
+    "state_change_timer_max": 10.0,
+    "separation_weight": 1.0,
+    "alignment_weight": 0.1,
+    "target_weight": 1.5,
+    "obstacle_aversion_distance": 0.2,
+    "max_vertical_angle": 30.0,
+    "max_turn_rate": 1.0,
+    "move_speed": 0.0,
+    "scale_min": 0.45,
+    "scale_max": 1.85,
+    "speed_modifier_min": 0.5,
+    "speed_modifier_max": 1.5,
+    "positive_y_clip": 1.0,
+    "negative_y_clip": 0.599,
+    "animation_speed": 6.0,
+    "sine_wavelength": 0.3,
+    "sine_deformation_amplitude": {
+      "x": 0.03,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "secondary_1_animation_amplitude": 0.0,
+    "invert_secondary_1_animation": 1,
+    "secondary_2_animation_amplitude": {
+      "x": 0.01,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "invert_secondary_2_animation": 1,
+    "side_to_side_amplitude": {
+      "x": 0.003,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "yaw_amplitude": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.01
+    },
+    "rolling_spine_amplitude": {
+      "x": 0.0,
+      "y": 0.03,
+      "z": 0.0
+    },
+    "bone_animated": true,
+    "spawn_clustering": 0.0,
+    "tags": [
+      "small",
+      "schooling",
+      "neutral"
+    ]
+  }
 ]

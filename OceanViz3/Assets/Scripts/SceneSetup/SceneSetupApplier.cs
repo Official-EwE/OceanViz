@@ -154,6 +154,36 @@ namespace OceanViz3
                             api.SetEntityGroupViewVisibility(group.groupName, viewIndex, visibility);
                         }
                     }
+
+                    if (group.sizes != null)
+                    {
+                        for (int s = 0; s < group.sizes.Length; s++)
+                        {
+                            SizeEntry size = group.sizes[s];
+                            if (size == null)
+                            {
+                                continue;
+                            }
+
+                            int viewIndex = size.viewIndex;
+                            if (viewIndex < 0 || viewIndex > 3)
+                            {
+                                Debug.Assert(false, "[SceneSetupApplier] size viewIndex must be in [0,3].");
+                                continue;
+                            }
+
+                            float sizeMultiplier = size.sizeMultiplier;
+                            if (sizeMultiplier < 0.5f)
+                            {
+                                sizeMultiplier = 0.5f;
+                            }
+                            if (sizeMultiplier > 2.0f)
+                            {
+                                sizeMultiplier = 2.0f;
+                            }
+                            api.SetEntityGroupViewSize(group.groupName, viewIndex, sizeMultiplier);
+                        }
+                    }
                 }
             }
 

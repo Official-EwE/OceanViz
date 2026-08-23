@@ -34,6 +34,7 @@ namespace OceanViz3
                 AddComponent(entity, new ScreenDisplayEndOverride { Value = new float4(1, 0, 0, 0) });
                 AddComponent(entity, new TurbulenceStrengthOverride { Value = 0.0f });
                 AddComponent(entity, new WavesMotionStrengthOverride { Value = 0.0f });
+                AddComponent(entity, new StaticEntitySpawnSiteIndex { Value = -1 });
                 
                 // Note: We don't set up rendering components here
                 // The rendering components (RenderMeshArray, MaterialMeshInfo) will be set up at runtime

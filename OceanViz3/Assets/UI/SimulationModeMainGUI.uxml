@@ -33,8 +33,13 @@
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement style="flex-grow: 1; flex-direction: column; opacity: 1; align-items: auto; justify-content: space-between; align-self: stretch;">
-            <ui:VisualElement style="flex-grow: 1; flex-direction: column; align-items: flex-start; justify-content: space-between; align-self: stretch;">
+            <ui:VisualElement style="flex-grow: 1; flex-direction: row; align-items: flex-start; justify-content: space-between; align-self: stretch;">
                 <ui:Button text="Menu" parse-escape-sequences="true" display-tooltip-when-elided="true" name="MainMenuButton" style="align-self: auto; justify-content: flex-start; -unity-text-align: upper-center; align-items: auto;" />
+                <ui:VisualElement name="SimulationPlaybackControls" style="flex-direction: row; align-items: flex-start; justify-content: center;">
+                    <ui:Button tooltip="Play simulation" focusable="false" name="PlaySimulationButton" style="width: 30px; height: 22px; margin-right: 1px; padding-left: 0; padding-right: 0;" />
+                    <ui:Button tooltip="Pause simulation" focusable="false" name="PauseSimulationButton" style="width: 30px; height: 22px; margin-left: 1px; padding-left: 0; padding-right: 0;" />
+                </ui:VisualElement>
+                <ui:VisualElement picking-mode="Ignore" style="width: 49px;" />
             </ui:VisualElement>
             <ui:VisualElement style="flex-grow: 1; justify-content: flex-end; flex-direction: row; align-items: stretch; align-self: stretch;">
                 <ui:Button text="Activate Automatic Camera" parse-escape-sequences="true" display-tooltip-when-elided="true" name="ActivateAutomaticCameraModeButton" style="align-self: flex-end; justify-content: flex-start; -unity-text-align: middle-center;" />

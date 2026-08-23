@@ -51,14 +51,14 @@ public class StateMatcher : MonoBehaviour
     
     private void Start()
     {
-        simulationAPI = FindObjectOfType<SimulationAPI>();
+        simulationAPI = UnityEngine.Object.FindFirstObjectByType<SimulationAPI>();
         if (simulationAPI == null)
         {
             Debug.LogError("[StateMatcher] SimulationAPI not found in scene");
             return;
         }
 
-        mainScene = FindObjectOfType<MainScene>();
+        mainScene = UnityEngine.Object.FindFirstObjectByType<MainScene>();
         if (mainScene == null)
         {
             Debug.LogError("[StateMatcher] MainScene not found in scene");

@@ -42,6 +42,12 @@ public class MainScene : MonoBehaviour
 	/// Maximum number of simultaneous views supported by the application.
 	/// </summary>
 	private const int MaxViews = 4;
+	private const string EntityHoverEnabledPlayerPrefsKey = "OceanViz3.EntityHoverEnabled";
+	private const string FpsCounterEnabledPlayerPrefsKey = "OceanViz3.FpsCounterEnabled";
+	private const float MainMenuWidth = 255.0f;
+	private const float MainMenuHeight = 279.0f;
+	private const float SettingsMenuWidth = 510.0f;
+	private const float SettingsMenuHeight = 558.0f;
 	public SimulationAPI simulationAPI;
 	public LocationScript currentLocationScript;
 	public String currentLocationName;
@@ -63,12 +69,6 @@ public class MainScene : MonoBehaviour
 	public List<DynamicEntitiesGroup> dynamicEntitiesGroups = new List<DynamicEntitiesGroup>();
 	
 	/// <summary>
-	/// Unique identifier counter for dynamic entity groups.
-	/// </summary>
-	private int nextDynamicEntityGroupId = 0;
-	private int nextStaticEntityGroupId = 0;
-	
-	/// <summary>
 	/// List of active static entity groups (e.g., coral, seaweed) in the scene.
 	/// </summary>
 	[SerializeField]
@@ -77,12 +77,22 @@ public class MainScene : MonoBehaviour
 	//// UI
 	public GameObject mainMenuUIDocument;
 	private VisualElement mainMenuRoot;
+	private VisualElement mainMenuWindow;
+	private VisualElement mainMenuNavigationPanel;
+	private VisualElement settingsPanel;
+	private Button assetBrowserButton;
+	private Button simulationModeButton;
+	private Toggle entityHoverEnabledToggle;
+	private Toggle fpsCounterEnabledToggle;
 	private bool isMainMenuVisible = false;
+	public bool EntityHoverEnabled { get; private set; }
+	public bool FpsCounterEnabled { get; private set; }
 	
 	//// Game Objects
 	public GameObject templateTerrain;
 	public GameObject mainCamera;
 	public GameObject currentLocationGameObject;
+	[SerializeField] private FpsCounter fpsCounter;
 	
 	//// Rendering
 	/// <summary>
@@ -90,13 +100,20 @@ public class MainScene : MonoBehaviour
 	/// </summary>
 	public UniversalRendererData urpAsset;
 
+	[Header("Culling (Size-Aware)")]
+	[SerializeField] private float cullingStartMeshSize = 0.12f; // With this largest mesh dimension or smaller, the entity will be culled at cullingStartDistance
+	[SerializeField] private float cullingStartDistance = 30.0f;
+	[SerializeField] private float cullingEndMeshSize = 40.0f; // With this largest mesh dimension or larger, the entity will be culled at cullingEndDistance
+	[SerializeField] private float cullingEndDistance = 300.0f; // After this distance, all entities are culled
+	// For example, if the cullingStartMeshSize is 1.0f, the cullingEndMeshSize is 2.0f, the cullingStartDistance is 3.0f, the cullingEndDistance is 4.0f, then a mesh with a largest dimension of 1.5f will be culled at 3.5f distance from the camera, since it's in the middle of the range.
+	// These values are sampled when entities spawn and are not refreshed at runtime.
+
 	//// Entity Component System
 	private World world;
 	private EntityManager entityManager;
+	public StaticEntityLocationDataCache StaticEntityLocationCache { get; } = new StaticEntityLocationDataCache();
 	
 	private NoiseTextureManager noiseTextureManager;
-
-	private float lastEntitiesGraphicsStatsLogTime = 0f;
 
 	// App Mode Management
 	public AppMode currentMode { get; private set; }
@@ -107,11 +124,16 @@ public class MainScene : MonoBehaviour
 
 	private void Awake()
 	{
+		EntityHoverEnabled = PlayerPrefs.GetInt(EntityHoverEnabledPlayerPrefsKey, 1) != 0;
+		FpsCounterEnabled = PlayerPrefs.GetInt(FpsCounterEnabledPlayerPrefsKey, 0) != 0;
+		Debug.Assert(fpsCounter != null, "[MainScene] FPS counter is required.");
+		fpsCounter.SetVisible(FpsCounterEnabled);
+
 		world = World.DefaultGameObjectInjectionWorld;
 		entityManager = world.EntityManager;
+		var sceneDataQuery = entityManager.CreateEntityQuery(typeof(SceneData));
 
 		// --- Ensure SceneData singleton entity exists ---
-		var sceneDataQuery = entityManager.CreateEntityQuery(typeof(SceneData));
 		if (sceneDataQuery.CalculateEntityCount() == 0)
 		{
 			// Use mainCamera position if available, otherwise default to zero
@@ -121,8 +143,36 @@ public class MainScene : MonoBehaviour
 				cameraPos = mainCamera.transform.position;
 			}
 			Entity sceneDataEntity = entityManager.CreateEntity(typeof(SceneData));
-			entityManager.SetComponentData(sceneDataEntity, new SceneData { CameraPosition = cameraPos });
+			entityManager.SetComponentData(sceneDataEntity, new SceneData
+			{
+				CameraPosition = cameraPos,
+				CullingStartMeshSize = cullingStartMeshSize,
+				CullingStartDistance = cullingStartDistance,
+				CullingEndMeshSize = cullingEndMeshSize,
+				CullingEndDistance = cullingEndDistance
+			});
 		}
+		else
+		{
+			Entity sceneDataEntity = sceneDataQuery.GetSingletonEntity();
+			entityManager.SetComponentData(sceneDataEntity, new SceneData
+			{
+				CameraPosition = entityManager.GetComponentData<SceneData>(sceneDataEntity).CameraPosition,
+				CullingStartMeshSize = cullingStartMeshSize,
+				CullingStartDistance = cullingStartDistance,
+				CullingEndMeshSize = cullingEndMeshSize,
+				CullingEndDistance = cullingEndDistance
+			});
+		}
+	}
+
+	private void OnDestroy()
+	{
+		if (world != null && world.IsCreated)
+		{
+			world.EntityManager.CompleteAllTrackedJobs();
+		}
+		StaticEntityLocationCache.Dispose();
 	}
 	
 	private void Start()
@@ -163,10 +213,9 @@ public class MainScene : MonoBehaviour
 		assetBrowserModeManager.Setup(this);
 
 		//// UI
+		SetupMainMenu();
 		// Hide main menu initially
-		mainMenuUIDocument.SetActive(false);
-
-		// Register main menu button callbacks
+		mainMenuRoot.style.display = DisplayStyle.None;
 		
 		// Load the first location scene
 		SceneManager.LoadScene(firstLocation, LoadSceneMode.Additive);
@@ -328,6 +377,7 @@ public class MainScene : MonoBehaviour
 		
 		currentLocationScript = loadedLocationScript;
 		currentLocationGameObject = loadedLocationScript.gameObject;
+		StaticEntityLocationCache.Prepare(loadedLocationScript);
 		
 		// Find the LocationPreset for the current location
 		var presetPair = locationPresets.FirstOrDefault(kvp => kvp.Key == currentLocationName);
@@ -364,9 +414,9 @@ public class MainScene : MonoBehaviour
 	/// </summary>
 	/// <param name="presetName">Name of the preset to use</param>
 	/// <param name="groupName">Name for the new group instance</param>
-	public async Task SpawnStaticPreset(string presetName, string groupName)
+	public Task SpawnStaticPreset(string presetName, string groupName)
 	{
-		await simulationModeManager.SpawnStaticPreset(presetName, groupName);
+		return simulationModeManager.SpawnStaticPreset(presetName, groupName);
 	}
 
     private void Update()
@@ -391,7 +441,28 @@ public class MainScene : MonoBehaviour
 
 		currentModeManager?.OnUpdate();
 	}
-	
+
+	public static float CalculateCullingMaxDistance(float meshLargestDimension, float startMeshSize, float startDistance, float endMeshSize, float endDistance)
+	{
+		if (endMeshSize == startMeshSize)
+		{
+			return endDistance;
+		}
+
+		if (meshLargestDimension <= startMeshSize)
+		{
+			return startDistance;
+		}
+
+		if (meshLargestDimension >= endMeshSize)
+		{
+			return endDistance;
+		}
+
+		float t = (meshLargestDimension - startMeshSize) / (endMeshSize - startMeshSize);
+		return math.lerp(startDistance, endDistance, t);
+	}
+
 	/// <summary>
 	/// Updates the number of active views and adjusts the UI accordingly.
 	/// </summary>
@@ -402,107 +473,141 @@ public class MainScene : MonoBehaviour
 	}
 
 	/// <summary>
-	/// Toggles the visibility of the main menu and main GUI
+	/// Sets up the main menu, Settings panel, and their callbacks once.
+	/// </summary>
+	private void SetupMainMenu()
+	{
+		Debug.Assert(mainMenuUIDocument != null, "[MainScene] Main menu UI document GameObject is required.");
+		UIDocument document = mainMenuUIDocument.GetComponent<UIDocument>();
+		Debug.Assert(document != null, "[MainScene] Main menu requires a UIDocument component.");
+		mainMenuRoot = document.rootVisualElement;
+		Debug.Assert(mainMenuRoot != null, "[MainScene] Main menu root is required.");
+
+		Button closeButton = mainMenuRoot.Q<Button>("CloseMenuButton");
+		Button settingsButton = mainMenuRoot.Q<Button>("SettingsButton");
+		Button closeSettingsButton = mainMenuRoot.Q<Button>("CloseSettingsButton");
+		Button closeAppButton = mainMenuRoot.Q<Button>("CloseAppButton");
+		assetBrowserButton = mainMenuRoot.Q<Button>("AssetBrowserButton");
+		simulationModeButton = mainMenuRoot.Q<Button>("SimulationModeButton");
+		mainMenuWindow = mainMenuRoot.Q<VisualElement>("MainMenuWindow");
+		mainMenuNavigationPanel = mainMenuRoot.Q<VisualElement>("MainMenuNavigationPanel");
+		settingsPanel = mainMenuRoot.Q<VisualElement>("SettingsPanel");
+		entityHoverEnabledToggle = mainMenuRoot.Q<Toggle>("EntityHoverEnabledToggle");
+		fpsCounterEnabledToggle = mainMenuRoot.Q<Toggle>("FpsCounterEnabledToggle");
+
+		Debug.Assert(closeButton != null, "[MainScene] CloseMenuButton is required.");
+		Debug.Assert(settingsButton != null, "[MainScene] SettingsButton is required.");
+		Debug.Assert(closeSettingsButton != null, "[MainScene] CloseSettingsButton is required.");
+		Debug.Assert(closeAppButton != null, "[MainScene] CloseAppButton is required.");
+		Debug.Assert(assetBrowserButton != null, "[MainScene] AssetBrowserButton is required.");
+		Debug.Assert(simulationModeButton != null, "[MainScene] SimulationModeButton is required.");
+		Debug.Assert(mainMenuWindow != null, "[MainScene] MainMenuWindow is required.");
+		Debug.Assert(mainMenuNavigationPanel != null, "[MainScene] MainMenuNavigationPanel is required.");
+		Debug.Assert(settingsPanel != null, "[MainScene] SettingsPanel is required.");
+		Debug.Assert(entityHoverEnabledToggle != null, "[MainScene] EntityHoverEnabledToggle is required.");
+		Debug.Assert(fpsCounterEnabledToggle != null, "[MainScene] FpsCounterEnabledToggle is required.");
+
+		closeButton.clicked += CloseMainMenu;
+		settingsButton.clicked += OpenSettingsPanel;
+		closeSettingsButton.clicked += ShowMainMenuNavigation;
+		closeAppButton.clicked += Application.Quit;
+		assetBrowserButton.clicked += OpenAssetBrowserMode;
+		simulationModeButton.clicked += OpenSimulationMode;
+		entityHoverEnabledToggle.RegisterValueChangedCallback(OnEntityHoverEnabledChanged);
+		fpsCounterEnabledToggle.RegisterValueChangedCallback(OnFpsCounterEnabledChanged);
+		entityHoverEnabledToggle.SetValueWithoutNotify(EntityHoverEnabled);
+		fpsCounterEnabledToggle.SetValueWithoutNotify(FpsCounterEnabled);
+		ShowMainMenuNavigation();
+	}
+
+	/// <summary>
+	/// Toggles the visibility of the main menu and main GUI.
 	/// </summary>
 	public void ToggleMainMenu()
 	{
-		isMainMenuVisible = !isMainMenuVisible;
-		
 		if (isMainMenuVisible)
 		{
-			// Instead of hiding the whole mainGUI, we now just hide the specific mode's GUI
-			if (currentModeManager != null)
-			{
-				currentModeManager.EnterMenu();
-			}
-
-			mainMenuUIDocument.SetActive(true);
-
-			// Register close button callback after activating the document
-			mainMenuRoot = mainMenuUIDocument.GetComponent<UIDocument>().rootVisualElement;
-			
-			var closeButton = mainMenuRoot.Q<Button>("CloseMenuButton");
-			if (closeButton != null)
-			{
-				closeButton.RegisterCallback<ClickEvent>((evt) => CloseMainMenu());
-			}
-			else
-			{
-				Debug.LogError("[MainScene] CloseMenuButton not found in mainMenuRoot");
-			}
-
-			var assetBrowserButton = mainMenuRoot.Q<Button>("AssetBrowserButton");
-			if (assetBrowserButton != null)
-			{
-				assetBrowserButton.RegisterCallback<ClickEvent>((evt) =>
-				{
-					SwitchMode(AppMode.AssetBrowser);
-					CloseMainMenu();
-				});
-			}
-			else
-			{
-				Debug.LogError("[MainScene] AssetBrowserButton not found in mainMenuRoot");
-			}
-
-			var simulationModeButton = mainMenuRoot.Q<Button>("SimulationModeButton");
-			if (simulationModeButton != null)
-			{
-				simulationModeButton.RegisterCallback<ClickEvent>((evt) =>
-				{
-					SwitchMode(AppMode.Simulation);
-					CloseMainMenu();
-				});
-			}
-			else
-			{
-				Debug.LogError("[MainScene] SimulationModeButton not found in mainMenuRoot");
-			}
-
-			// Set button visibility based on current mode
-			if (currentMode == AppMode.Simulation)
-			{
-				if (simulationModeButton != null)
-				{
-					simulationModeButton.style.display = DisplayStyle.None;
-				}
-				if (assetBrowserButton != null)
-				{
-					assetBrowserButton.style.display = DisplayStyle.Flex;
-				}
-			}
-			else if (currentMode == AppMode.AssetBrowser)
-			{
-				if (simulationModeButton != null)
-				{
-					simulationModeButton.style.display = DisplayStyle.Flex;
-				}
-				if (assetBrowserButton != null)
-				{
-					assetBrowserButton.style.display = DisplayStyle.None;
-				}
-			}
-
-			var closeAppButton = mainMenuRoot.Q<Button>("CloseAppButton");
-			if (closeAppButton != null)
-			{
-				closeAppButton.RegisterCallback<ClickEvent>((evt) => Application.Quit());
-			}
-			else
-			{
-				Debug.LogError("[MainScene] CloseAppButton not found in mainMenuRoot");
-			}
+			CloseMainMenu();
+			return;
 		}
-		else
+
+		isMainMenuVisible = true;
+		if (currentModeManager != null)
 		{
-			mainMenuUIDocument.SetActive(false);
-
-			// Re-enter the current mode to show its GUI
-			if (currentModeManager != null)
-			{
-				currentModeManager.ExitMenu();
-			}
+			currentModeManager.EnterMenu();
 		}
+
+		mainMenuRoot.style.display = DisplayStyle.Flex;
+		ShowMainMenuNavigation();
+		RefreshModeButtonVisibility();
+	}
+
+	private void OpenSettingsPanel()
+	{
+		mainMenuWindow.style.width = SettingsMenuWidth;
+		mainMenuWindow.style.height = SettingsMenuHeight;
+		mainMenuNavigationPanel.style.display = DisplayStyle.None;
+		settingsPanel.style.display = DisplayStyle.Flex;
+		entityHoverEnabledToggle.SetValueWithoutNotify(EntityHoverEnabled);
+		fpsCounterEnabledToggle.SetValueWithoutNotify(FpsCounterEnabled);
+	}
+
+	private void ShowMainMenuNavigation()
+	{
+		mainMenuWindow.style.width = MainMenuWidth;
+		mainMenuWindow.style.height = MainMenuHeight;
+		settingsPanel.style.display = DisplayStyle.None;
+		mainMenuNavigationPanel.style.display = DisplayStyle.Flex;
+	}
+
+	private void RefreshModeButtonVisibility()
+	{
+		assetBrowserButton.style.display = DisplayStyle.Flex;
+		simulationModeButton.style.display = DisplayStyle.Flex;
+		if (currentMode == AppMode.Simulation)
+		{
+			simulationModeButton.style.display = DisplayStyle.None;
+		}
+		else if (currentMode == AppMode.AssetBrowser)
+		{
+			assetBrowserButton.style.display = DisplayStyle.None;
+		}
+	}
+
+	private void OnEntityHoverEnabledChanged(ChangeEvent<bool> evt)
+	{
+		EntityHoverEnabled = evt.newValue;
+		SaveBooleanSetting(EntityHoverEnabledPlayerPrefsKey, EntityHoverEnabled);
+	}
+
+	private void OnFpsCounterEnabledChanged(ChangeEvent<bool> evt)
+	{
+		FpsCounterEnabled = evt.newValue;
+		fpsCounter.SetVisible(FpsCounterEnabled);
+		SaveBooleanSetting(FpsCounterEnabledPlayerPrefsKey, FpsCounterEnabled);
+	}
+
+	private static void SaveBooleanSetting(string playerPrefsKey, bool value)
+	{
+		int savedValue = 0;
+		if (value)
+		{
+			savedValue = 1;
+		}
+		PlayerPrefs.SetInt(playerPrefsKey, savedValue);
+		PlayerPrefs.Save();
+	}
+
+	private void OpenAssetBrowserMode()
+	{
+		SwitchMode(AppMode.AssetBrowser);
+		CloseMainMenu();
+	}
+
+	private void OpenSimulationMode()
+	{
+		SwitchMode(AppMode.Simulation);
+		CloseMainMenu();
 	}
 
 	/// <summary>
@@ -511,7 +616,7 @@ public class MainScene : MonoBehaviour
 	private void CloseMainMenu()
 	{
 		isMainMenuVisible = false;
-		mainMenuUIDocument.SetActive(false);
+		mainMenuRoot.style.display = DisplayStyle.None;
 		
 		// Re-enter the current mode to show its GUI
 		if (currentModeManager != null)

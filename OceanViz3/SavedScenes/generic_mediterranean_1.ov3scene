@@ -1,0 +1,529 @@
+{
+    "version": 1,
+    "locationName": "Mediterranean",
+    "viewsCount": 1,
+    "turbidities": [
+        {
+            "viewIndex": 0,
+            "turbidity": 0.10000000149011612
+        },
+        {
+            "viewIndex": 1,
+            "turbidity": -0.5
+        },
+        {
+            "viewIndex": 2,
+            "turbidity": 0.0
+        },
+        {
+            "viewIndex": 3,
+            "turbidity": 0.25
+        }
+    ],
+    "groups": [
+        {
+            "presetName": "Common Dolphin",
+            "groupName": "Common Dolphin",
+            "population": 0.0,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.9100000262260437
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "European Hake",
+            "groupName": "European Hake",
+            "population": 0.10400000214576721,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Atlantic Blue Marlin",
+            "groupName": "Atlantic Blue Marlin",
+            "population": 0.10000000149011612,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Mahi Mahi",
+            "groupName": "Mahi Mahi",
+            "population": 0.6299999952316284,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Atlantic Bonito",
+            "groupName": "Atlantic Bonito",
+            "population": 0.27000001072883608,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "European Pilchard",
+            "groupName": "European Pilchard",
+            "population": 0.25200000405311587,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Blue Shark",
+            "groupName": "Blue Shark",
+            "population": 0.0,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Manta Ray",
+            "groupName": "Manta Ray",
+            "population": 0.25,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Posidonia Oceanica",
+            "groupName": "Posidonia Oceanica",
+            "population": 0.32705333828926089,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.05999999865889549
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Padina Pavonica",
+            "groupName": "Padina Pavonica",
+            "population": 0.0,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 0.9900000095367432
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Cystoseira",
+            "groupName": "Cystoseira",
+            "population": 0.036666665226221088,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 0.10999999940395355
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        },
+        {
+            "presetName": "Kelp",
+            "groupName": "Kelp",
+            "population": 0.014999999664723874,
+            "overrideHabitats": [],
+            "visibilities": [
+                {
+                    "viewIndex": 0,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "visibility": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "visibility": 1.0
+                }
+            ],
+            "sizes": [
+                {
+                    "viewIndex": 0,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 1,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 2,
+                    "sizeMultiplier": 1.0
+                },
+                {
+                    "viewIndex": 3,
+                    "sizeMultiplier": 1.0
+                }
+            ]
+        }
+    ]
+}

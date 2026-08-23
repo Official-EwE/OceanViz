@@ -56,12 +56,12 @@ Material:
     - _AnimationDistance: 0.1
     - _AnimationFrequency: 1
     - _AnimationSpeed: 4
-    - _Bloom: 0
-    - _BloomCutoff: 0.01
-    - _BloomOffset: 0.47
+    - _Bloom: 1
+    - _BloomCutoff: 1.54
+    - _BloomOffset: 2
     - _BloomThreshold: -0.44
-    - _BloomWeight: 0.19
-    - _BloomWeightView0: 0.33
+    - _BloomWeight: 1.85
+    - _BloomWeightView0: 1
     - _BloomWeightView1: 0.33
     - _BloomWeightView2: 0.33
     - _BloomWeightView3: 0.33
@@ -86,7 +86,7 @@ Material:
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Strenght: 0.1
-    - _Turbidity0: 0
+    - _Turbidity0: 0.02
     - _Turbidity1: 0
     - _Turbidity2: 0
     - _Turbidity3: 0

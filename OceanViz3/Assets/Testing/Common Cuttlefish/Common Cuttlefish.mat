@@ -19,7 +19,8 @@ Material:
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
-  disabledShaderPasses: []
+  disabledShaderPasses:
+  - MOTIONVECTORS
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
@@ -107,7 +108,7 @@ Material:
     - _AlphaToMask: 0
     - _AnimationRandomOffset: 0
     - _AnimationSpeed: 5
-    - _AnimationTest: 1
+    - _AnimationTest: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
     - _BumpScale: 1
@@ -166,6 +167,7 @@ Material:
     - _Tint: {r: 1, g: 1, b: 1, a: 0}
     - _YawAmplitude: {r: 0, g: 0, b: 0.03, a: 0}
   m_BuildTextureStacks: []
+  m_AllowLocking: 1
 --- !u!114 &771603728832852531
 MonoBehaviour:
   m_ObjectHideFlags: 11
@@ -178,4 +180,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d0353a89b1f911e48b9e16bdc9f2e058, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  version: 7
+  version: 10

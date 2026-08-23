@@ -9,7 +9,7 @@ TerrainLayer:
   m_Name: MediterraneanRock
   m_DiffuseTexture: {fileID: 2800000, guid: 0b0f03c2049c2b147861f8126b7085f6, type: 3}
   m_NormalMapTexture: {fileID: 2800000, guid: b715e790be67ddd409cb10b5e62302af, type: 3}
-  m_MaskMapTexture: {fileID: 2800000, guid: cd3bcf94be90750408013aaf46fc382b, type: 3}
+  m_MaskMapTexture: {fileID: 0}
   m_TileSize: {x: 4, y: 4}
   m_TileOffset: {x: 0, y: 0}
   m_Specular: {r: 0, g: 0, b: 0, a: 0}
